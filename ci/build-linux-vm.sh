@@ -27,14 +27,16 @@ command -v vmrun   >/dev/null 2>&1 || err "vmrun not on PATH (run ci/host-setup.
 
 mkdir -p "$VM_DIR"
 
-# 1. Convert cloud image (qcow2) to a growable vmdk, then expand to DISK_GB.
+# 1. Resize the cloud image (qcow2 supports resize; the converted vmdk does not),
+#    then convert to a growable vmdk of DISK_GB virtual size.
 if [ ! -f "$DISK" ]; then
+  note "resizing cloud image to ${DISK_GB}G (cloud image is small; installer needs room)"
+  cp "$UBUNTU_IMG" "$VM_DIR/base.qcow2"
+  qemu-img resize "$VM_DIR/base.qcow2" "${DISK_GB}G"
   note "converting qcow2 -> vmdk"
-  qemu-img convert -f qcow2 -O vmdk -o subformat=monolithicSparse "$UBUNTU_IMG" "$DISK"
-  note "expanding disk to ${DISK_GB}G (cloud image is small; installer needs room)"
-  qemu-img resize "$DISK" "${DISK_GB}G"
-  # grow the root partition/filesystem to fill the new size (cloud image supports grow)
-  # We do it from inside the guest via cloud-init runcmd below instead of here.
+  qemu-img convert -f qcow2 -O vmdk -o subformat=monolithicSparse "$VM_DIR/base.qcow2" "$DISK"
+  rm -f "$VM_DIR/base.qcow2"
+  # root FS is grown to fill the disk over SSH after first boot (below)
 fi
 
 # 2. Author the .vmx (arm64 EFI, SATA disk + seed cdrom, NAT, vmxnet3).
