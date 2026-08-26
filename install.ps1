@@ -269,16 +269,37 @@ function Install-Crawl4ai {
     Write-Host "`n  crawl4ai note: first call downloads a headless browser (Playwright). Automatic, no key needed." -ForegroundColor DarkGray
 }
 
-# ---------- run ----------
-Install-VSCode
-Install-ClaudeCode
-Write-VSCodeUserSettings
-New-Workspace
-Write-Settings
-Write-NextSteps
-Install-Crawl4ai
+# ---------- run (resilient: each step in try/catch, one failure doesn't abort the rest) ----------
+$ErrorActionPreference = 'Stop'
+$steps = @(
+    @{ Name='Visual Studio Code';          Action={ Install-VSCode } },
+    @{ Name='Claude Code extension';       Action={ Install-ClaudeCode } },
+    @{ Name='VS Code user settings';       Action={ Write-VSCodeUserSettings } },
+    @{ Name='AI workspace';                Action={ New-Workspace } },
+    @{ Name='settings.local.json';         Action={ Write-Settings } },
+    @{ Name='NEXT-STEPS.md';               Action={ Write-NextSteps } },
+    @{ Name='crawl4ai MCP';                Action={ Install-Crawl4ai } }
+)
+$failed = @()
+$logFile = Join-Path $env:USERPROFILE 'bootstrap-install.log'
+"bootstrap install — $(Get-Date)" | Out-File $logFile -Encoding UTF8
+foreach ($s in $steps) {
+    try { & $s.Action; "[OK] $($s.Name)" | Out-File $logFile -Encoding UTF8 -Append }
+    catch {
+        $msg = "[FAIL] $($s.Name) -- $($_.Exception.Message)"
+        Warn $msg
+        $msg | Out-File $logFile -Encoding UTF8 -Append
+        $failed += $s.Name
+    }
+}
 
 Note 'Done.'
+if ($failed.Count -gt 0) {
+    Warn ("Some steps failed (the rest still ran): " + ($failed -join ', '))
+    Write-Host '  Re-run the script to retry failed steps, or open ~/ai-workspace/NEXT-STEPS.md.' -ForegroundColor Yellow
+} else {
+    Write-Host '  All steps completed.' -ForegroundColor Green
+}
 Write-Host @'
 
   Almost ready! One step left: add your API key.
