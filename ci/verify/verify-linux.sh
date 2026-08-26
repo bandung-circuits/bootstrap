@@ -41,6 +41,16 @@ else no 'ai-workspace'; fi
 # NEXT-STEPS.md onboarding file
 if [ -f "$HOME/ai-workspace/NEXT-STEPS.md" ]; then ok 'NEXT-STEPS.md present'; else no 'NEXT-STEPS.md'; fi
 
+# CLAUDE.md workspace rules
+if [ -f "$HOME/ai-workspace/CLAUDE.md" ]; then ok 'CLAUDE.md present'; else no 'CLAUDE.md'; fi
+
+# VS Code user settings: trust off + Claude Code Edit-automatically
+vsc="$HOME/.config/Code/User/settings.json"
+if [ -f "$vsc" ] && grep -q '"security.workspace.trust.enabled": false' "$vsc" 2>/dev/null \
+   && grep -q '"claudeCode.initialPermissionMode": "acceptEdits"' "$vsc" 2>/dev/null; then
+  ok 'VS Code user settings (trust off + Edit-automatically)'
+else no 'VS Code user settings'; fi
+
 # model connectivity — actually call the backend
 if [ -n "${TEST_API_KEY:-}" ]; then
   case "${TEST_PROVIDER:-deepseek}" in

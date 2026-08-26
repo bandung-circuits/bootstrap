@@ -30,6 +30,13 @@ if ((Test-Path $ws) -and (Test-Path (Join-Path $ws 'README.md'))) { Ok 'ai-works
 
 if (Test-Path (Join-Path $ws 'NEXT-STEPS.md')) { Ok 'NEXT-STEPS.md present' } else { No 'NEXT-STEPS.md' }
 
+if (Test-Path (Join-Path $ws 'CLAUDE.md')) { Ok 'CLAUDE.md present' } else { No 'CLAUDE.md' }
+
+$vsc = Join-Path $env:APPDATA 'Code\User\settings.json'
+if ((Test-Path $vsc) -and (Select-String -Path $vsc -Quiet 'security.workspace.trust.enabled.*false') -and (Select-String -Path $vsc -Quiet 'claudeCode.initialPermissionMode.*acceptEdits')) {
+    Ok 'VS Code user settings (trust off + Edit-automatically)'
+} else { No 'VS Code user settings' }
+
 if ($env:TEST_API_KEY) {
     switch ($env:TEST_PROVIDER) {
         'bailian'    { $url='https://dashscope.aliyuncs.com/apps/anthropic/v1/messages'; $model='deepseek-v4-flash-0731' }

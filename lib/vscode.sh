@@ -61,3 +61,52 @@ vscode_link_cli() {
   ln -sf "$target" "$bindir/code"
   note "linked 'code' to $bindir (add $bindir to PATH if needed)"
 }
+
+# Path to the VS Code USER settings.json (per OS).
+vscode_user_settings_path() {
+  case "$DETECT_OS" in
+    macos) printf '%s/Library/Application Support/Code/User/settings.json' "$HOME" ;;
+    linux|wsl) printf '%s/.config/Code/User/settings.json' "$HOME" ;;
+    windows) printf '%s\\AppData\\Roaming\\Code\\User\\settings.json' "$HOME" ;;
+  esac
+}
+
+# Write VS Code user settings to make first-run frictionless:
+#   - no Welcome tab / walkthroughs / release notes
+#   - workspace trust disabled (no Restricted Mode prompt)
+#   - Claude Code extension starts in "Edit automatically" mode
+# Merges into any existing settings (python3 for safe JSON merge).
+vscode_write_user_settings() {
+  local settings; settings=$(vscode_user_settings_path)
+  mkdir -p "$(dirname "$settings")"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$settings" <<'PY'
+import json, os, sys
+path = sys.argv[1]
+try:
+    with open(path) as f:
+        data = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    data = {}
+data["workbench.startupEditor"] = "none"
+data["workbench.welcomePage.walkthroughsVisible"] = False
+data["update.showReleaseNotes"] = False
+data["security.workspace.trust.enabled"] = False
+data["claudeCode.initialPermissionMode"] = "acceptEdits"
+with open(path, "w") as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+    f.write("\n")
+PY
+  else
+    cat > "$settings" <<'EOF'
+{
+  "workbench.startupEditor": "none",
+  "workbench.welcomePage.walkthroughsVisible": false,
+  "update.showReleaseNotes": false,
+  "security.workspace.trust.enabled": false,
+  "claudeCode.initialPermissionMode": "acceptEdits"
+}
+EOF
+  fi
+  note "wrote VS Code user settings (skip welcome, trust on, Claude Code = Edit automatically)"
+}

@@ -1,11 +1,11 @@
-# Provider: DeepSeek official (international default)
+# Provider: DeepSeek official (fallback)
 
-DeepSeek 官方平台原生提供 Anthropic 兼容端点。Claude Code 可直接用它做后端，无需中间商。model 名 `deepseek-v4-flash` 已自动指向最新的 V4-Flash-0731。
+DeepSeek 官方平台原生提供 Anthropic 兼容端点。直连无中间商。现在作为**备选**（默认国外路径已改为百炼国际）；想用 DeepSeek 自家平台而非阿里的用户可选这个。
 
 ## 适用
 
-- 国外用户（默认路由）。
-- 国内用户想绕过百炼也可用（DeepSeek 官方平台接受国际信用卡）。
+- 想直连 DeepSeek、用其自家平台的用户（备选）。
+
 
 ## 注册与获取 API Key
 

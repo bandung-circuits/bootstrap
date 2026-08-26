@@ -38,13 +38,14 @@ usage() {
   cat <<'U'
 bootstrap — set up VS Code + Claude Code + DeepSeek V4 Flash 0731.
 
-  --provider=bailian|deepseek|openrouter   override auto region routing
+  --provider=bailian|bailian-intl|deepseek|openrouter   override auto region routing
   --api-key=KEY                            (optional) bake the key into settings;
                                            if omitted, a placeholder is written
                                            and NEXT-STEPS.md tells you how to add it
 
-Default routing: China -> Alibaba Bailian; elsewhere -> DeepSeek official.
-The installer never prompts — it writes a template config + NEXT-STEPS.md.
+Default routing: China -> Alibaba Bailian (domestic); elsewhere -> Alibaba Cloud
+Model Studio (international). The installer never prompts — it writes a template
+config + NEXT-STEPS.md.
 U
 }
 
@@ -98,6 +99,9 @@ main() {
 
   note "Installing Claude Code VS Code extension"
   claude_code_extension_install
+
+  note "Setting VS Code defaults (skip welcome, trust on, Edit-automatically mode)"
+  vscode_write_user_settings
 
   note "Creating default AI workspace"
   workspace_create

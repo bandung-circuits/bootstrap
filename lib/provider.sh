@@ -7,26 +7,30 @@
 provider_resolve() {
   if [ -z "${PROVIDER:-}" ]; then
     case "$DETECT_REGION" in
-      china) PROVIDER=bailian ;;
-      *)     PROVIDER=deepseek ;;
+      china) PROVIDER=bailian ;;        # domestic Bailian (CN entity / Alipay)
+      *)     PROVIDER=bailian-intl ;;  # Alibaba Cloud International (Visa/Mastercard)
     esac
   fi
 
   case "$PROVIDER" in
-    bailian)
+    bailian)        # domestic Bailian — tested with a real key
       PROVIDER_BASE_URL="https://dashscope.aliyuncs.com/apps/anthropic"
       PROVIDER_MODEL="deepseek-v4-flash-0731"
       ;;
-    deepseek)
+    bailian-intl)  # Alibaba Cloud International (Model Studio), per alibabacloud.com docs
+      PROVIDER_BASE_URL="https://dashscope-intl.aliyuncs.com/apps/anthropic"
+      PROVIDER_MODEL="deepseek-v4-flash"
+      ;;
+    deepseek)      # DeepSeek official (fallback)
       PROVIDER_BASE_URL="https://api.deepseek.com/anthropic"
       PROVIDER_MODEL="deepseek-v4-flash"
       ;;
-    openrouter)
+    openrouter)    # OpenRouter (fallback, wiring to be confirmed)
       PROVIDER_BASE_URL="https://openrouter.ai/api/v1"
       PROVIDER_MODEL="deepseek/deepseek-v4-flash"
       ;;
     *)
-      err "unknown provider: $PROVIDER (use bailian|deepseek|openrouter)"
+      err "unknown provider: $PROVIDER (use bailian|bailian-intl|deepseek|openrouter)"
       ;;
   esac
   export PROVIDER PROVIDER_BASE_URL PROVIDER_MODEL
@@ -61,9 +65,9 @@ provider_write_settings() {
   local settings="$claude_dir/settings.local.json"
   mkdir -p "$claude_dir"
 
-  # Bailian (DashScope) benefits from disabling server-side data inspection.
+  # Bailian / DashScope (domestic & intl) benefits from disabling server-side data inspection.
   local extra_env=""
-  if [ "$PROVIDER" = "bailian" ]; then
+  if [ "$PROVIDER" = "bailian" ] || [ "$PROVIDER" = "bailian-intl" ]; then
     extra_env='"ANTHROPIC_CUSTOM_HEADERS": "X-DashScope-DataInspection: {\"input\":\"disable\",\"output\":\"disable\"}",'
   fi
 
@@ -97,7 +101,7 @@ if extra:
 data.setdefault("permissions", {
     "allow": ["Bash(*)","Read","Write","Edit","Glob","Grep","Task",
               "mcp__crawl4ai__search","mcp__crawl4ai__read_url"],
-    "deny": ["WebSearch","WebFetch"],
+    "deny": [],
     "ask": []
 })
 data.setdefault("enabledMcpjsonServers", ["crawl4ai"])
@@ -119,7 +123,7 @@ PY
   },
   "permissions": {
     "allow": ["Bash(*)","Read","Write","Edit","Glob","Grep","Task","mcp__crawl4ai__search","mcp__crawl4ai__read_url"],
-    "deny": ["WebSearch","WebFetch"],
+    "deny": [],
     "ask": []
   },
   "enabledMcpjsonServers": ["crawl4ai"],
@@ -137,9 +141,10 @@ EOF
 provider_write_next_steps() {
   local p_site p_name
   case "$PROVIDER" in
-    bailian)   p_site="https://bailian.console.aliyun.com/"; p_name="Alibaba Cloud Bailian" ;;
-    deepseek)  p_site="https://platform.deepseek.com/";       p_name="DeepSeek" ;;
-    openrouter) p_site="https://openrouter.ai/";              p_name="OpenRouter" ;;
+    bailian)       p_site="https://bailian.console.aliyun.com/";            p_name="Alibaba Cloud Bailian (China)" ;;
+    bailian-intl)  p_site="https://dashscope-intl.console.aliyun.com/";     p_name="Alibaba Cloud Model Studio (international)" ;;
+    deepseek)      p_site="https://platform.deepseek.com/";                 p_name="DeepSeek" ;;
+    openrouter)    p_site="https://openrouter.ai/";                        p_name="OpenRouter" ;;
   esac
   local steps="$WORKSPACE_DIR/NEXT-STEPS.md"
   cat > "$steps" <<EOF

@@ -33,9 +33,10 @@ if (-not $Provider) {
     else { $Provider = 'deepseek' }
 }
 switch ($Provider) {
-    'bailian'   { $BaseUrl='https://dashscope.aliyuncs.com/apps/anthropic'; $Model='deepseek-v4-flash-0731' }
-    'deepseek'  { $BaseUrl='https://api.deepseek.com/anthropic';            $Model='deepseek-v4-flash' }
-    'openrouter'{ $BaseUrl='https://openrouter.ai/api/v1';                  $Model='deepseek/deepseek-v4-flash' }
+    'bailian'      { $BaseUrl='https://dashscope.aliyuncs.com/apps/anthropic';     $Model='deepseek-v4-flash-0731' }
+    'bailian-intl' { $BaseUrl='https://dashscope-intl.aliyuncs.com/apps/anthropic'; $Model='deepseek-v4-flash' }
+    'deepseek'     { $BaseUrl='https://api.deepseek.com/anthropic';                $Model='deepseek-v4-flash' }
+    'openrouter'   { $BaseUrl='https://openrouter.ai/api/v1';                      $Model='deepseek/deepseek-v4-flash' }
     default { Err "unknown provider: $Provider" }
 }
 Note "Provider: $Provider | Base: $BaseUrl | Model: $Model"
@@ -96,6 +97,24 @@ Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
     if (-not (Test-Path $gi)) {
         "node_modules/`n.venv/`nvenv/`n__pycache__/`n*.log`n.DS_Store`n.claude/settings.local.json" | Set-Content -Path $gi -Encoding UTF8
     }
+    $claudeMd = Join-Path $WS 'CLAUDE.md'
+    if (-not (Test-Path $claudeMd)) {
+        @'
+# CLAUDE.md — workspace rules for Claude Code
+
+## Web tools: prefer crawl4ai
+Prefer the crawl4ai MCP (mcp__crawl4ai__read_url / mcp__crawl4ai__search) for
+web fetch/search — free, no key. If unavailable, fall back to WebFetch / WebSearch.
+
+## Grounded search (avoid hallucination)
+Never trust a search summary alone. Fetch the real page/PDF in full with
+mcp__crawl4ai__read_url and read it before answering. Cite the source URL.
+
+## Backend
+This workspace talks to DeepSeek V4 Flash 0731 via .claude/settings.local.json
+(where you pasted your API key). No Anthropic sign-in needed.
+'@ | Set-Content -Path $claudeMd -Encoding UTF8
+    }
 }
 
 # ---------- settings.local.json (workspace, self-contained) ----------
@@ -117,13 +136,13 @@ function Write-Settings {
     Set-Prop $data.env 'ANTHROPIC_DEFAULT_SONNET_MODEL' $Model
     Set-Prop $data.env 'ANTHROPIC_DEFAULT_OPUS_MODEL'   $Model
     Set-Prop $data.env 'API_TIMEOUT_MS' '3000000'
-    if ($Provider -eq 'bailian') {
+    if ($Provider -eq 'bailian' -or $Provider -eq 'bailian-intl') {
         Set-Prop $data.env 'ANTHROPIC_CUSTOM_HEADERS' 'X-DashScope-DataInspection: {"input":"disable","output":"disable"}'
     }
     if (-not ($data.PSObject.Properties.Name -contains 'permissions')) {
         $data | Add-Member -NotePropertyName permissions -NotePropertyValue ([PSCustomObject]@{
             allow = @('Bash(*)','Read','Write','Edit','Glob','Grep','Task','mcp__crawl4ai__search','mcp__crawl4ai__read_url')
-            deny  = @('WebSearch','WebFetch')
+            deny  = @()
             ask   = @()
         })
     }
@@ -135,17 +154,36 @@ function Write-Settings {
     Note "wrote $settings"
 }
 
+# ---------- VS Code user settings (skip welcome, trust on, Claude Code = Edit automatically) ----------
+function Write-VSCodeUserSettings {
+    $dir = Join-Path $env:APPDATA 'Code\User'
+    $settings = Join-Path $dir 'settings.json'
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    $data = $null
+    if (Test-Path $settings) { try { $data = Get-Content $settings -Raw | ConvertFrom-Json } catch { $data = $null } }
+    if (-not $data) { $data = [PSCustomObject]@{} }
+    Set-Prop $data 'workbench.startupEditor' 'none'
+    Set-Prop $data 'workbench.welcomePage.walkthroughsVisible' $false
+    Set-Prop $data 'update.showReleaseNotes' $false
+    Set-Prop $data 'security.workspace.trust.enabled' $false
+    Set-Prop $data 'claudeCode.initialPermissionMode' 'acceptEdits'
+    $data | ConvertTo-Json -Depth 10 | Set-Content -Path $settings -Encoding UTF8
+    Note 'wrote VS Code user settings (skip welcome, trust on, Claude Code = Edit automatically)'
+}
+
 # ---------- NEXT-STEPS.md (onboarding: where to get a key, what to edit, how to start) ----------
 function Write-NextSteps {
     $p_site = switch ($Provider) {
-        'bailian'   { 'https://bailian.console.aliyun.com/' }
-        'deepseek'  { 'https://platform.deepseek.com/' }
-        'openrouter'{ 'https://openrouter.ai/' }
+        'bailian'      { 'https://bailian.console.aliyun.com/' }
+        'bailian-intl' { 'https://dashscope-intl.console.aliyun.com/' }
+        'deepseek'     { 'https://platform.deepseek.com/' }
+        'openrouter'   { 'https://openrouter.ai/' }
     }
     $p_name = switch ($Provider) {
-        'bailian'   { 'Alibaba Cloud Bailian' }
-        'deepseek'  { 'DeepSeek' }
-        'openrouter'{ 'OpenRouter' }
+        'bailian'      { 'Alibaba Cloud Bailian (China)' }
+        'bailian-intl' { 'Alibaba Cloud Model Studio (international)' }
+        'deepseek'     { 'DeepSeek' }
+        'openrouter'   { 'OpenRouter' }
     }
     $keyNote = if ($script:KeyIsPlaceholder) { '' } else { "`n(Note: an API key was already provided to the installer — skip the paste step if that's the key you intend to use.)" }
     $steps = Join-Path $WS 'NEXT-STEPS.md'
@@ -232,6 +270,7 @@ function Install-Crawl4ai {
 # ---------- run ----------
 Install-VSCode
 Install-ClaudeCode
+Write-VSCodeUserSettings
 New-Workspace
 Write-Settings
 Write-NextSteps

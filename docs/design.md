@@ -35,11 +35,12 @@
 
 | 供应商 | 区域 | base_url | model | 鉴权 |
 |---|---|---|---|---|
-| 阿里云百炼 | 国内默认 | `https://dashscope.aliyuncs.com/apps/anthropic` | `deepseek-v4-flash-0731` | Bearer |
-| DeepSeek 官方 | 国外主推 | `https://api.deepseek.com/anthropic` | `deepseek-v4-flash`（自动 0731） | Bearer |
+| 阿里云百炼（国内） | 中国默认 | `https://dashscope.aliyuncs.com/apps/anthropic` | `deepseek-v4-flash-0731` | Bearer |
+| 阿里云 Model Studio（国际） | 国外默认 | `https://dashscope-intl.aliyuncs.com/apps/anthropic` | `deepseek-v4-flash` | Bearer |
+| DeepSeek 官方 | 备选 | `https://api.deepseek.com/anthropic` | `deepseek-v4-flash`（自动 0731） | Bearer |
 | OpenRouter | 备选（接法待确认） | `https://openrouter.ai/api/v1` | `deepseek/deepseek-v4-flash` | Bearer |
 
-百炼路径额外加 `ANTHROPIC_CUSTOM_HEADERS: X-DashScope-DataInspection: {"input":"disable","output":"disable"}` 关闭服务端数据审查。
+百炼/Model Studio（国内与国际）路径额外加 `ANTHROPIC_CUSTOM_HEADERS: X-DashScope-DataInspection: {"input":"disable","output":"disable"}` 关闭服务端数据审查。
 
 ### 关键坑（百炼，来自官方文档）
 
@@ -48,9 +49,9 @@
 
 ## 区域路由
 
-脚本检测区域（locale/时区/geo IP 探测），默认中国→百炼，其余→DeepSeek 官方。用户可用 `--provider=bailian|deepseek|openrouter` 覆盖，`--api-key=xxx` 传 key。
+脚本检测区域（locale/时区/geo IP 探测），默认中国→百炼（国内），其余→百炼国际（Model Studio 国际端点，alibabacloud.com 文档核实托管 deepseek-v4-flash）。用户可用 `--provider=bailian|bailian-intl|deepseek|openrouter` 覆盖。
 
-国外用户为何不走百炼：国内百炼要中国实体/支付宝；DashScope 国际门户英文且 Visa/Mastercard，但主要托管 Qwen，DeepSeek 在国际门户是否上架需核实。DeepSeek 官方端点原生 Anthropic 兼容、直连无中间商，是国外最干净路径。
+国外用户为何也默认走百炼国际：DeepSeek 官方虽便宜直连，但百炼国际是同一套 Anthropic 兼容端点、同一模型，且统一在阿里平台（用户偏好）。DeepSeek 官方降为备选。
 
 ## crawl4ai MCP
 
