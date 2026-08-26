@@ -1,0 +1,7 @@
+# local test artifacts
+ci/logs/
+ci/*.log
+.DS_Store
+
+# local/private config (host addresses, VM paths, API keys) — copy .env.example to .env
+.env

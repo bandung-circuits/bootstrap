@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Provider subscription guide — Bootstrap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent-2:#a371f7;--code:#1f2630;--ok:#3fb950}
+  @media (prefers-color-scheme: light){:root{--bg:#fff;--panel:#f6f8fa;--border:#d0d7de;--text:#1f2328;--muted:#57606a;--accent:#0969da;--accent-2:#8250df;--code:#eff1f3;--ok:#1a7f37}}
+  *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:760px;margin:0 auto;padding:2rem 1.25rem 5rem}
+  a{color:var(--accent)}h1{font-size:1.6rem}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.3rem;margin:1rem 0}
+  .card h2{margin:0 0 .4rem}.tag{display:inline-block;font-size:.7rem;text-transform:uppercase;letter:.04em;padding:.15rem .55rem;border-radius:99px;border:1px solid var(--accent);color:var(--accent);margin-bottom:.6rem}
+  .tag.alt{border-color:var(--accent-2);color:var(--accent-2)}
+  .tag.fallback{border-color:var(--muted);color:var(--muted)}
+  .steps{margin:1rem 0;padding:0 0 0 1.4rem}.steps li{margin:.5rem 0}
+  code{background:var(--code);padding:.1rem .35rem;border-radius:4px;font-size:.85em}
+  .foot{margin-top:2.5rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);padding-top:1rem}
+  .back{font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Back</a>
+  <h1>Get your API key</h1>
+  <p style="color:var(--muted)">The bootstrap installer connects Claude Code to DeepSeek V4 Flash 0731. You need one API key from a provider. The installer auto-picks one based on your region, but you can override with <code>--provider=</code>.</p>
+
+  <div class="card">
+    <span class="tag alt">China · default</span>
+    <h2>Alibaba Cloud Bailian (百炼)</h2>
+    <p style="color:var(--muted)">Best for users in mainland China. Requires a Chinese payment method (Alipay) or entity.</p>
+    <ol class="steps">
+      <li>Open the <a href="https://bailian.console.aliyun.com/">Bailian console</a> and sign in with an Alibaba Cloud account.</li>
+      <li>Activate Model Studio (first-time gets a free quota).</li>
+      <li>Go to <strong>API-Key Management</strong> and create an API key. Copy and save it.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <span class="tag">International · default</span>
+    <h2>DeepSeek official</h2>
+    <p style="color:var(--muted)">Cleanest path for users outside China — direct connection, no middleman. International credit card accepted, pay-as-you-go, very cheap.</p>
+    <ol class="steps">
+      <li>Open <a href="https://platform.deepseek.com/">platform.deepseek.com</a> and register.</li>
+      <li>Add a payment method and top up your balance.</li>
+      <li>Under <strong>API Keys</strong>, create a key and copy it.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <span class="tag fallback">Fallback</span>
+    <h2>OpenRouter</h2>
+    <p style="color:var(--muted)">One key accesses many models. Slightly more expensive for DeepSeek (platform fee). Good if you already have an OpenRouter account or want to switch models later.</p>
+    <ol class="steps">
+      <li>Open <a href="https://openrouter.ai/">openrouter.ai</a> and sign up.</li>
+      <li>Add credits (credit card).</li>
+      <li>Under <strong>Keys</strong>, create and copy an API key.</li>
+    </ol>
+    <p style="color:var(--muted);font-size:.85rem">Note: the exact Claude Code ↔ OpenRouter wiring is being finalized; until then the default international route is DeepSeek official.</p>
+  </div>
+
+  <div class="card">
+    <h2>Optional: Serper &amp; Oxylabs MCP</h2>
+    <p style="color:var(--muted)">The installer ships the free <strong>crawl4ai</strong> MCP (web fetch/search, no key). For heavier search needs you can add Serper or Oxylabs yourself — they need your own paid API keys. After bootstrap, edit <code>~/.claude/.mcp.json</code> and add a <code>serper-search</code> or <code>oxylabs</code> entry with your keys, then restart Claude Code.</p>
+  </div>
+
+  <div class="foot">A Bandung Circuits project · <a href="https://github.com/bandung-circuits/bootstrap">source</a></div>
+</div>
+</body>
+</html>
