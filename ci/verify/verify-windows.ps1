@@ -1,4 +1,4 @@
-# verify-windows.ps1 — run INSIDE the Windows VM after the installer.
+# verify-windows.ps1 -- run INSIDE the Windows VM after the installer.
 # Env: $env:TEST_PROVIDER, $env:TEST_API_KEY
 $ErrorActionPreference = 'Continue'
 $pass=0; $fail=0

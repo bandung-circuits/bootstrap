@@ -282,7 +282,7 @@ $steps = @(
 )
 $failed = @()
 $logFile = Join-Path $env:USERPROFILE 'bootstrap-install.log'
-"bootstrap install — $(Get-Date)" | Out-File $logFile -Encoding UTF8
+"bootstrap install -- $(Get-Date)" | Out-File $logFile -Encoding UTF8
 foreach ($s in $steps) {
     try { & $s.Action; "[OK] $($s.Name)" | Out-File $logFile -Encoding UTF8 -Append }
     catch {
