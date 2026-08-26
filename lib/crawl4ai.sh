@@ -3,6 +3,9 @@
 # Free, no API key needed. Forked from gigix/crawl4ai-mcp-server.
 
 CRAWL4AI_REPO="https://github.com/gigix/crawl4ai-mcp-server.git"
+# Branch with the ddgs migration fix (the version the maintainer actually uses);
+# main still uses the deprecated duckduckgo_search and is broken.
+CRAWL4AI_BRANCH="fix/migrate-to-ddgs-library"
 CRAWL4AI_DIR="${HOME}/.bootstrap/crawl4ai-mcp-server"
 
 crawl4ai_is_installed() {
@@ -16,9 +19,9 @@ crawl4ai_install() {
   ensure_base_tools
 
   mkdir -p "$(dirname "$CRAWL4AI_DIR")"
-  note "cloning crawl4ai-mcp-server"
+  note "cloning crawl4ai-mcp-server (branch $CRAWL4AI_BRANCH)"
   if [ ! -d "$CRAWL4AI_DIR" ]; then
-    git clone --depth 1 "$CRAWL4AI_REPO" "$CRAWL4AI_DIR" || err "git clone failed"
+    git clone --branch "$CRAWL4AI_BRANCH" --depth 1 "$CRAWL4AI_REPO" "$CRAWL4AI_DIR" || err "git clone failed"
   fi
 
   note "creating venv"
@@ -36,6 +39,10 @@ ensure_base_tools() {
   local need=""
   command -v git     >/dev/null 2>&1 || need="$need git"
   command -v python3 >/dev/null 2>&1 || need="$need python3"
+  # python3-venv (ensurepip) is separate on Debian/Ubuntu; ensure venv works.
+  if [ "$DETECT_OS" = "linux" ] && [ "$DETECT_PKG_MANAGER" = "apt" ]; then
+    if ! python3 -c "import ensurepip" >/dev/null 2>&1; then need="$need python3-venv"; fi
+  fi
   [ -z "$need" ] && return 0
   note "installing base tools:$need"
   case "$DETECT_OS" in
