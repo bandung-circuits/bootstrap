@@ -1,6 +1,6 @@
-# bootstrap install.ps1 — Windows one-command setup of VS Code + Claude Code +
+# bootstrap install.ps1 -- Windows one-command setup of VS Code + Claude Code +
 # DeepSeek V4 Flash 0731, with the crawl4ai MCP. Config lives in ~/ai-workspace
-# (self-contained). No Node.js or standalone CLI — the VS Code extension bundles its own.
+# (self-contained). No Node.js or standalone CLI -- the VS Code extension bundles its own.
 #
 # Usage (PowerShell):
 #   irm https://bandung-circuits.github.io/bootstrap/install.ps1 | iex
@@ -100,11 +100,11 @@ Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
     $claudeMd = Join-Path $WS 'CLAUDE.md'
     if (-not (Test-Path $claudeMd)) {
         @'
-# CLAUDE.md — workspace rules for Claude Code
+# CLAUDE.md -- workspace rules for Claude Code
 
 ## Web tools: prefer crawl4ai
 Prefer the crawl4ai MCP (mcp__crawl4ai__read_url / mcp__crawl4ai__search) for
-web fetch/search — free, no key. If unavailable, fall back to WebFetch / WebSearch.
+web fetch/search -- free, no key. If unavailable, fall back to WebFetch / WebSearch.
 
 ## Grounded search (avoid hallucination)
 Never trust a search summary alone. Fetch the real page/PDF in full with
@@ -185,7 +185,7 @@ function Write-NextSteps {
         'deepseek'     { 'DeepSeek' }
         'openrouter'   { 'OpenRouter' }
     }
-    $keyNote = if ($script:KeyIsPlaceholder) { '' } else { "`n(Note: an API key was already provided to the installer — skip the paste step if that's the key you intend to use.)" }
+    $keyNote = if ($script:KeyIsPlaceholder) { '' } else { "`n(Note: an API key was already provided to the installer -- skip the paste step if that's the key you intend to use.)" }
     $steps = Join-Path $WS 'NEXT-STEPS.md'
     @"
 # Next steps
@@ -217,7 +217,7 @@ Open VS Code in this workspace:
 Click the Spark icon (top-right of the editor, or in the sidebar) to open the
 Claude Code panel. Ask it anything, e.g.  "create a hello.py and run it".
 
-The crawl4ai MCP (web fetch/search) is already configured — no key needed.
+The crawl4ai MCP (web fetch/search) is already configured -- no key needed.
 "@ | Set-Content -Path $steps -Encoding UTF8
     Note "wrote $steps"
 }
