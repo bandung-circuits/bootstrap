@@ -84,14 +84,15 @@ test_windows(){
   local ip; ip=$(guest_ip "$WIN_VMX" "${WIN_HOST:-}") || fail "windows: no guest IP"
   note "[Windows] guest IP: $ip — waiting for SSH"
   ssh_wait "$ip" "$WIN_USER" || fail "windows SSH timeout"
-  note "[Windows] running installer (PowerShell)"
+  note "[Windows] scp install.ps1 + verify-windows.ps1 into VM"
+  scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no install.ps1 ci/verify/verify-windows.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
+  note "[Windows] running installer (with provider + key)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -Command \"irm $PS1_URL | iex\"" \
+    "powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Provider $TEST_PROVIDER -ApiKey $TEST_API_KEY" \
     2>&1 | tee "ci/logs/win-install-$stamp.log"
   note "[Windows] verifying"
-  scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no ci/verify/verify-windows.ps1 "$WIN_USER@$ip":verify.ps1
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -Command \"\$env:TEST_PROVIDER='$TEST_PROVIDER'; \$env:TEST_API_KEY='$TEST_API_KEY'; .\verify.ps1\"" \
+    "set TEST_PROVIDER=$TEST_PROVIDER&& set TEST_API_KEY=$TEST_API_KEY&& powershell -NoProfile -ExecutionPolicy Bypass -File verify-windows.ps1" \
     2>&1 | tee "ci/logs/win-verify-$stamp.log"
 }
 
