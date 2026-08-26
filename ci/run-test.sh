@@ -33,11 +33,12 @@ stamp=$(date +%Y%m%d-%H%M%S 2>/dev/null || echo "manual")
 export PATH="$PATH:/Applications/VMware Fusion.app/Contents/Public"
 vmrun(){ command vmrun -T fusion "$@"; }
 
-# Resolve a VM's guest IP: try vmrun getGuestIPAddress, fall back to .env hint.
+# Resolve a VM's guest IP: try vmrun getGuestIPAddress (only accept a real dotted-quad),
+# fall back to the .env hint.
 guest_ip(){
   local vmx="$1" hint="$2" ip
   for i in $(seq 1 30); do
-    ip=$(vmrun getGuestIPAddress "$vmx" 2>/dev/null || true)
+    ip=$(vmrun getGuestIPAddress "$vmx" 2>/dev/null | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$" || true)
     [ -n "$ip" ] && { echo "$ip"; return 0; }
     sleep 5
   done
