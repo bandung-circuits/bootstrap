@@ -38,6 +38,9 @@ if [ -d "$HOME/ai-workspace" ] && [ -f "$HOME/ai-workspace/README.md" ]; then
   ok 'ai-workspace created'
 else no 'ai-workspace'; fi
 
+# NEXT-STEPS.md onboarding file
+if [ -f "$HOME/ai-workspace/NEXT-STEPS.md" ]; then ok 'NEXT-STEPS.md present'; else no 'NEXT-STEPS.md'; fi
+
 # model connectivity — actually call the backend
 if [ -n "${TEST_API_KEY:-}" ]; then
   case "${TEST_PROVIDER:-deepseek}" in

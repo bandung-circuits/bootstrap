@@ -39,9 +39,12 @@ usage() {
 bootstrap — set up VS Code + Claude Code + DeepSeek V4 Flash 0731.
 
   --provider=bailian|deepseek|openrouter   override auto region routing
-  --api-key=KEY                            pass API key non-interactively
+  --api-key=KEY                            (optional) bake the key into settings;
+                                           if omitted, a placeholder is written
+                                           and NEXT-STEPS.md tells you how to add it
 
 Default routing: China -> Alibaba Bailian; elsewhere -> DeepSeek official.
+The installer never prompts — it writes a template config + NEXT-STEPS.md.
 U
 }
 
@@ -101,6 +104,7 @@ main() {
 
   note "Configuring Claude Code backend (settings.local.json in workspace)"
   provider_write_settings
+  provider_write_next_steps
 
   note "Installing crawl4ai MCP"
   crawl4ai_install
@@ -109,15 +113,12 @@ main() {
   note "Done."
   cat <<'NEXT'
 
-  Next steps:
-  1. Visual Studio Code opens in  ~/ai-workspace  (your default workspace).
-  2. Open the Claude Code panel (the Spark icon). The backend is already
-     configured to DeepSeek V4 Flash 0731 via your API key — no sign-in needed.
-  3. Try asking it something, e.g. "create a hello.py and run it".
+  Almost ready! One step left: add your API key.
+  See  ~/ai-workspace/NEXT-STEPS.md  (open it: it tells you where to get a key,
+  which file to edit, and how to start Claude Code).
 
-  The crawl4ai MCP (web fetch/search) is also registered and ready.
-  Config lives inside ~/ai-workspace (.claude/settings.local.json + .mcp.json),
-  so the workspace is self-contained.
+  Then open VS Code in  ~/ai-workspace  and click the Spark icon.
+  The crawl4ai MCP (web fetch/search) is registered and ready.
 NEXT
   workspace_open
 }

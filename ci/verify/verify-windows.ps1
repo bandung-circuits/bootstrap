@@ -28,6 +28,8 @@ if ((Test-Path $venvPy) -and (& $venvPy -c 'import crawl4ai' 2>$null)) { Ok 'cra
 $ws = Join-Path $env:USERPROFILE 'ai-workspace'
 if ((Test-Path $ws) -and (Test-Path (Join-Path $ws 'README.md'))) { Ok 'ai-workspace created' } else { No 'ai-workspace' }
 
+if (Test-Path (Join-Path $ws 'NEXT-STEPS.md')) { Ok 'NEXT-STEPS.md present' } else { No 'NEXT-STEPS.md' }
+
 if ($env:TEST_API_KEY) {
     switch ($env:TEST_PROVIDER) {
         'bailian'    { $url='https://dashscope.aliyuncs.com/apps/anthropic/v1/messages'; $model='deepseek-v4-flash-0731' }

@@ -40,12 +40,8 @@ switch ($Provider) {
 }
 Note "Provider: $Provider | Base: $BaseUrl | Model: $Model"
 
-if (-not $ApiKey) {
-    $p = switch ($Provider) {'bailian'{'Alibaba Cloud Bailian'}'deepseek'{'DeepSeek (platform.deepseek.com)'}'openrouter'{'OpenRouter (openrouter.ai)'}}
-    Write-Host "`n  Enter your $p API key (see providers guide on the bootstrap site)."
-    $ApiKey = Read-Host '  API key'
-    if (-not $ApiKey) { Err 'no API key provided.' }
-}
+if (-not $ApiKey) { $ApiKey = 'PASTE-YOUR-API-KEY-HERE'; $script:KeyIsPlaceholder = $true }
+else { $script:KeyIsPlaceholder = $false }
 
 # ---------- paths ----------
 $WS = Join-Path $env:USERPROFILE 'ai-workspace'
@@ -139,6 +135,55 @@ function Write-Settings {
     Note "wrote $settings"
 }
 
+# ---------- NEXT-STEPS.md (onboarding: where to get a key, what to edit, how to start) ----------
+function Write-NextSteps {
+    $p_site = switch ($Provider) {
+        'bailian'   { 'https://bailian.console.aliyun.com/' }
+        'deepseek'  { 'https://platform.deepseek.com/' }
+        'openrouter'{ 'https://openrouter.ai/' }
+    }
+    $p_name = switch ($Provider) {
+        'bailian'   { 'Alibaba Cloud Bailian' }
+        'deepseek'  { 'DeepSeek' }
+        'openrouter'{ 'OpenRouter' }
+    }
+    $keyNote = if ($script:KeyIsPlaceholder) { '' } else { "`n(Note: an API key was already provided to the installer — skip the paste step if that's the key you intend to use.)" }
+    $steps = Join-Path $WS 'NEXT-STEPS.md'
+    @"
+# Next steps
+
+Your AI workspace is set up at  $WS
+One thing left: add your API key, then start using Claude Code.
+
+## 1. Get an API key
+
+Get a key for DeepSeek V4 Flash 0731 from $p_name:
+  $p_site
+(Full guide: https://bandung-circuits.github.io/bootstrap/providers-guide.html )
+
+## 2. Paste your key into the config
+
+Open this file:
+  $WS\.claude\settings.local.json
+
+Find the line:
+  "ANTHROPIC_AUTH_TOKEN": "PASTE-YOUR-API-KEY-HERE"
+
+Replace  PASTE-YOUR-API-KEY-HERE  with your real key. Save the file.$keyNote
+
+## 3. Start using Claude Code
+
+Open VS Code in this workspace:
+  code $WS
+
+Click the Spark icon (top-right of the editor, or in the sidebar) to open the
+Claude Code panel. Ask it anything, e.g.  "create a hello.py and run it".
+
+The crawl4ai MCP (web fetch/search) is already configured — no key needed.
+"@ | Set-Content -Path $steps -Encoding UTF8
+    Note "wrote $steps"
+}
+
 # ---------- uv ----------
 function Ensure-Uv {
     if (Test-Path $UV_BIN) { return }
@@ -189,18 +234,17 @@ Install-VSCode
 Install-ClaudeCode
 New-Workspace
 Write-Settings
+Write-NextSteps
 Install-Crawl4ai
 
 Note 'Done.'
 Write-Host @'
 
-  Next steps:
-  1. Open Visual Studio Code in  ~/ai-workspace  (your default workspace).
-  2. Open the Claude Code panel (Spark icon). Backend is already configured to
-     DeepSeek V4 Flash 0731 via your API key — no sign-in needed.
-  3. Try: "create a hello.py and run it".
+  Almost ready! One step left: add your API key.
+  See  ~/ai-workspace/NEXT-STEPS.md  (where to get a key, which file to edit,
+  and how to start Claude Code).
 
-  crawl4ai MCP (web fetch/search) is registered. Config lives inside ~/ai-workspace
-  (.claude/settings.local.json + .mcp.json), so the workspace is self-contained.
+  Then open VS Code in  ~/ai-workspace  and click the Spark icon.
+  crawl4ai MCP (web fetch/search) is registered and ready.
 '@
 if (Get-Command code -ErrorAction SilentlyContinue) { Start-Process code -ArgumentList "`"$WS`"" }

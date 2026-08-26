@@ -32,23 +32,19 @@ provider_resolve() {
   export PROVIDER PROVIDER_BASE_URL PROVIDER_MODEL
 }
 
-# Ensure we have an API key. If not provided, prompt interactively.
-# Sets: PROVIDER_API_KEY
+# API key handling: if not passed via --api-key, write a placeholder. We do NOT
+# prompt interactively — `curl|bash`/`wget|bash` pipe the script in, so stdin
+# isn't a terminal and `read` would hit EOF and abort. The user pastes their key
+# into settings.local.json after install (see NEXT-STEPS.md in the workspace).
+# Sets: PROVIDER_API_KEY, PROVIDER_KEY_IS_PLACEHOLDER
 provider_ensure_key() {
-  if [ -n "${PROVIDER_API_KEY:-}" ]; then return 0; fi
-  case "$PROVIDER" in
-    bailian)   local p="Alibaba Cloud Bailian (DashScope)" ;;
-    deepseek)  local p="DeepSeek (platform.deepseek.com)" ;;
-    openrouter) local p="OpenRouter (openrouter.ai)" ;;
-  esac
-  printf '\n  Enter your %s API key.\n' "$p"
-  printf '  (Get one at the provider site — see the providers guide on the bootstrap site.)\n'
-  printf '  API key: '
-  read -r PROVIDER_API_KEY
-  if [ -z "$PROVIDER_API_KEY" ]; then
-    err "no API key provided. Re-run with --api-key=..., or set it interactively."
+  if [ -n "${PROVIDER_API_KEY:-}" ]; then
+    PROVIDER_KEY_IS_PLACEHOLDER=0
+  else
+    PROVIDER_API_KEY="PASTE-YOUR-API-KEY-HERE"
+    PROVIDER_KEY_IS_PLACEHOLDER=1
   fi
-  export PROVIDER_API_KEY
+  export PROVIDER_API_KEY PROVIDER_KEY_IS_PLACEHOLDER
 }
 
 provider_print() {
@@ -133,4 +129,53 @@ EOF
   fi
   chmod 600 "$settings"
   note "wrote $settings"
+}
+
+# Write ~/ai-workspace/NEXT-STEPS.md — actionable onboarding (where to get a key,
+# which file to edit, how to start). The installer doesn't prompt for a key, so
+# this file walks the user through adding it after install.
+provider_write_next_steps() {
+  local p_site p_name
+  case "$PROVIDER" in
+    bailian)   p_site="https://bailian.console.aliyun.com/"; p_name="Alibaba Cloud Bailian" ;;
+    deepseek)  p_site="https://platform.deepseek.com/";       p_name="DeepSeek" ;;
+    openrouter) p_site="https://openrouter.ai/";              p_name="OpenRouter" ;;
+  esac
+  local steps="$WORKSPACE_DIR/NEXT-STEPS.md"
+  cat > "$steps" <<EOF
+# Next steps
+
+Your AI workspace is set up at  ~/ai-workspace
+One thing left: add your API key, then start using Claude Code.
+
+## 1. Get an API key
+
+Get a key for DeepSeek V4 Flash 0731 from $p_name:
+  $p_site
+(Full guide: https://bandung-circuits.github.io/bootstrap/providers-guide.html )
+
+## 2. Paste your key into the config
+
+Open this file:
+  ~/ai-workspace/.claude/settings.local.json
+
+Find the line:
+  "ANTHROPIC_AUTH_TOKEN": "PASTE-YOUR-API-KEY-HERE"
+
+Replace  PASTE-YOUR-API-KEY-HERE  with your real key. Save the file.
+$( [ "${PROVIDER_KEY_IS_PLACEHOLDER:-0}" = "1" ] || echo "
+(Note: an API key was already provided to the installer — you can skip this step
+if that key is the one you intend to use.)" )
+
+## 3. Start using Claude Code
+
+Open VS Code in this workspace:
+  code ~/ai-workspace
+
+Click the Spark icon (top-right of the editor, or in the sidebar) to open the
+Claude Code panel. Ask it anything, e.g.  "create a hello.py and run it".
+
+The crawl4ai MCP (web fetch/search) is already configured — no key needed.
+EOF
+  note "wrote $steps"
 }
