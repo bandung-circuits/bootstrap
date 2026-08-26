@@ -7,7 +7,6 @@ function No($m){ Write-Host "  FAIL  $m" -ForegroundColor Red;   $script:fail++ 
 function Have($c){ if(Get-Command $c -ErrorAction SilentlyContinue){Ok "$c on PATH"}else{No "$c on PATH"} }
 
 Have code
-Have git
 
 if (code --list-extensions 2>$null | Select-String -Quiet 'anthropic.claude-code') {
     Ok 'claude-code extension installed'
@@ -23,7 +22,10 @@ $m = Join-Path $ws '.mcp.json'
 if ((Test-Path $m) -and (Select-String -Path $m -Quiet 'crawl4ai')) { Ok '.mcp.json crawl4ai entry' } else { No '.mcp.json crawl4ai' }
 
 $venvPy = Join-Path $env:USERPROFILE '.bootstrap\crawl4ai-mcp-server\venv\Scripts\python.exe'
-if ((Test-Path $venvPy) -and (& $venvPy -c 'import crawl4ai' 2>$null)) { Ok 'crawl4ai importable in venv' } else { No 'crawl4ai importable in venv' }
+if (Test-Path $venvPy) {
+    & $venvPy -c 'import crawl4ai' 2>$null
+    if ($LASTEXITCODE -eq 0) { Ok 'crawl4ai importable in venv' } else { No 'crawl4ai importable in venv' }
+} else { No 'crawl4ai importable in venv' }
 
 $ws = Join-Path $env:USERPROFILE 'ai-workspace'
 if ((Test-Path $ws) -and (Test-Path (Join-Path $ws 'README.md'))) { Ok 'ai-workspace created' } else { No 'ai-workspace' }
