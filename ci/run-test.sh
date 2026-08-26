@@ -97,7 +97,7 @@ test_windows(){
 
 note "=== Bootstrap CI run $stamp ==="
 # ensure the host repo is current (tests latest committed code)
-git pull -q --ff-only 2>/dev/null || note "(git pull skipped/failed — using current tree)"
+git pull -q --ff-only origin main 2>/dev/null || note "(git pull skipped/failed — using current tree)"
 
 test_linux  ; lr=${PIPESTATUS[0]:-$?}
 if [ -n "${WIN_VMX:-}" ]; then
