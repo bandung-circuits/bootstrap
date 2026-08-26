@@ -20,7 +20,8 @@ node_install() {
       case "$DETECT_PKG_MANAGER" in
         apt)
           note "installing Node.js (NodeSource) via apt"
-          curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+          sudo apt-get install -y curl ca-certificates git
+          curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo bash -
           sudo apt-get install -y nodejs
           ;;
         dnf) sudo dnf install -y nodejs npm ;;
