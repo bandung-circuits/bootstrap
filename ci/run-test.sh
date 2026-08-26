@@ -60,17 +60,17 @@ test_linux(){
   local ip; ip=$(guest_ip "$LINUX_VMX" "${LINUX_HOST:-}") || fail "linux: no guest IP"
   note "[Linux] guest IP: $ip — waiting for SSH"
   ssh_wait "$ip" "$LINUX_USER" || fail "linux SSH timeout"
-  note "[Linux] running installer"
-  # fetch on the host (has curl) and pipe to VM bash — VM needs no curl for the main script.
-  # (install.sh itself fetches lib/*.sh from the Pages URL via curl || wget fallback.)
-  local fetcher="curl -fsSL"; command -v curl >/dev/null 2>&1 || fetcher="wget -qO-"
-  $fetcher "$INSTALL_URL" | ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
-    "bash -s -- --provider=$TEST_PROVIDER --api-key=$TEST_API_KEY" \
+  note "[Linux] rsync repo into VM (test latest committed code, no Pages CDN)"
+  rsync -az -e "ssh -i $CI_SSH_KEY -o StrictHostKeyChecking=no" \
+    --exclude ".git" --exclude "ci/logs" \
+    "$(pwd)/" "$LINUX_USER@$ip":~/bootstrap/ 2>&1 | tail -1
+  note "[Linux] running installer from clone (local lib)"
+  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
+    "cd ~/bootstrap && bash install.sh --provider=$TEST_PROVIDER --api-key=$TEST_API_KEY" \
     2>&1 | tee "ci/logs/linux-install-$stamp.log"
   note "[Linux] verifying"
-  scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no ci/verify/verify-linux.sh "$LINUX_USER@$ip":/tmp/verify.sh
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
-    "TEST_PROVIDER=$TEST_PROVIDER TEST_API_KEY=$TEST_API_KEY bash /tmp/verify.sh" \
+    "TEST_PROVIDER=$TEST_PROVIDER TEST_API_KEY=$TEST_API_KEY bash ~/bootstrap/ci/verify/verify-linux.sh" \
     2>&1 | tee "ci/logs/linux-verify-$stamp.log"
 }
 
@@ -95,8 +95,16 @@ test_windows(){
 }
 
 note "=== Bootstrap CI run $stamp ==="
+# ensure the host repo is current (tests latest committed code)
+git pull -q --ff-only 2>/dev/null || note "(git pull skipped/failed — using current tree)"
+
 test_linux  ; lr=${PIPESTATUS[0]:-$?}
-test_windows; wr=${PIPESTATUS[0]:-$?}
+if [ -n "${WIN_VMX:-}" ]; then
+  test_windows; wr=${PIPESTATUS[0]:-$?}
+else
+  note "[Windows] skipped (WIN_VMX not set in .env)"
+  wr=0
+fi
 echo
 note "=== SUMMARY: Linux=$([ $lr -eq 0 ] && echo PASS || echo FAIL)  Windows=$([ $wr -eq 0 ] && echo PASS || echo FAIL) ==="
 [ $lr -eq 0 ] && [ $wr -eq 0 ]

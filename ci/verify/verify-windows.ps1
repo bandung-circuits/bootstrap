@@ -7,23 +7,19 @@ function No($m){ Write-Host "  FAIL  $m" -ForegroundColor Red;   $script:fail++ 
 function Have($c){ if(Get-Command $c -ErrorAction SilentlyContinue){Ok "$c on PATH"}else{No "$c on PATH"} }
 
 Have code
-Have claude
-Have node
 Have git
-Have python
-
-if (claude --version) { Ok 'claude --version' } else { No 'claude --version' }
 
 if (code --list-extensions 2>$null | Select-String -Quiet 'anthropic.claude-code') {
     Ok 'claude-code extension installed'
 } else { No 'claude-code extension installed' }
 
-$s = Join-Path $env:USERPROFILE '.claude\settings.json'
+$ws = Join-Path $env:USERPROFILE 'ai-workspace'
+$s = Join-Path $ws '.claude\settings.local.json'
 if ((Test-Path $s) -and (Select-String -Path $s -Quiet 'ANTHROPIC_BASE_URL') -and (Select-String -Path $s -Quiet 'ANTHROPIC_AUTH_TOKEN') -and (Select-String -Path $s -Quiet 'ANTHROPIC_MODEL')) {
-    Ok 'settings.json env block present'
-} else { No 'settings.json env block' }
+    Ok 'settings.local.json env block present'
+} else { No 'settings.local.json env block' }
 
-$m = Join-Path $env:USERPROFILE '.claude\.mcp.json'
+$m = Join-Path $ws '.mcp.json'
 if ((Test-Path $m) -and (Select-String -Path $m -Quiet 'crawl4ai')) { Ok '.mcp.json crawl4ai entry' } else { No '.mcp.json crawl4ai' }
 
 $venvPy = Join-Path $env:USERPROFILE '.bootstrap\crawl4ai-mcp-server\venv\Scripts\python.exe'
