@@ -61,8 +61,11 @@ test_linux(){
   note "[Linux] guest IP: $ip — waiting for SSH"
   ssh_wait "$ip" "$LINUX_USER" || fail "linux SSH timeout"
   note "[Linux] running installer"
-  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
-    "curl -fsSL $INSTALL_URL | bash -s -- --provider=$TEST_PROVIDER --api-key=$TEST_API_KEY" \
+  # fetch on the host (has curl) and pipe to VM bash — VM needs no curl for the main script.
+  # (install.sh itself fetches lib/*.sh from the Pages URL via curl || wget fallback.)
+  local fetcher="curl -fsSL"; command -v curl >/dev/null 2>&1 || fetcher="wget -qO-"
+  $fetcher "$INSTALL_URL" | ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
+    "bash -s -- --provider=$TEST_PROVIDER --api-key=$TEST_API_KEY" \
     2>&1 | tee "ci/logs/linux-install-$stamp.log"
   note "[Linux] verifying"
   scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no ci/verify/verify-linux.sh "$LINUX_USER@$ip":/tmp/verify.sh

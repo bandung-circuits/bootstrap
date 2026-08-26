@@ -49,6 +49,15 @@ U
 cleanup() { [ -n "$_TMP_LIB_DIR" ] && rm -rf "$_TMP_LIB_DIR"; }
 trap cleanup EXIT
 
+# Fetch a URL to a file, using curl if available, else wget.
+fetch() { # fetch <url> <out>
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$1" -o "$2"
+  else
+    wget -qO "$2" "$1"
+  fi
+}
+
 load_libs() {
   local script_dir
   # If run from a clone, lib/ sits next to this script.
@@ -60,7 +69,7 @@ load_libs() {
   # Piped via curl|bash: fetch libs into a temp dir.
   _TMP_LIB_DIR="$(mktemp -d)"
   for f in "${LIB_FILES[@]}"; do
-    curl -fsSL "${REPO_RAW}/lib/${f}" -o "${_TMP_LIB_DIR}/${f}" \
+    fetch "${REPO_RAW}/lib/${f}" "${_TMP_LIB_DIR}/${f}" \
       || err "failed to fetch lib/${f} from repo"
     . "${_TMP_LIB_DIR}/${f}"
   done
