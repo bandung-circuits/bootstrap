@@ -99,13 +99,23 @@
   <div class="card">
     <h2>What it does</h2>
     <ol class="steps">
-      <li>Detects your OS and region, picks a model provider (China → Alibaba Bailian; elsewhere → DeepSeek official).</li>
+      <li>Detects your OS and region, picks a model provider (China → Alibaba Bailian; elsewhere → Alibaba Cloud Model Studio international).</li>
       <li>Installs Visual Studio Code and the Claude Code extension (the extension bundles its own CLI — no separate Node.js or CLI install).</li>
-      <li>Configures the backend to DeepSeek V4 Flash 0731 — you'll paste your API key when asked.</li>
+      <li>Configures the backend to DeepSeek V4 Flash 0731 and leaves a <code class="inline">NEXT-STEPS.md</code> telling you where to paste your API key — the installer never blocks on a prompt.</li>
       <li>Installs the crawl4ai MCP (web fetch &amp; search, free, no key needed) via a pinned Python 3.10 venv.</li>
       <li>Creates a clean, self-contained <code class="inline">~/ai-workspace</code> (config lives inside it) and opens VS Code there, so you can start immediately.</li>
     </ol>
     <p style="margin-top:1rem">Need an API key? See the <a href="providers-guide.html">provider subscription guide</a>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Prefer to set it up yourself?</h2>
+    <p>This script is just a shortcut — it automates the same steps you'd do by hand. If you'd rather walk through it manually (and understand each piece along the way), the <a href="https://thetricontinental.org/">Tricontinental Institute</a> published two clear, illustrated guides:</p>
+    <ul style="margin:.5rem 0 1rem;padding-left:1.2rem;line-height:1.7">
+      <li><a href="https://thetricontinental.org/how-to-install-and-set-up-claude-code-in-visual-studio-code/">Install &amp; set up Claude Code in Visual Studio Code</a> — the basics, step by step with screenshots.</li>
+      <li><a href="https://thetricontinental.org/how-to-connect-claude-code-to-alternative-apis/">Connect Claude Code to alternative APIs</a> — how the model-provider wiring works (the exact mechanism this script automates).</li>
+    </ul>
+    <p style="color:var(--muted);margin:0">Worth reading even if you use the script — you'll see how the pieces fit together, and how to switch providers or tweak the setup later.</p>
   </div>
 
   <div class="foot">
