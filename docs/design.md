@@ -6,26 +6,40 @@
 
 ## 核心技术机制
 
-Claude Code 通过 `~/.claude/settings.json` 的 `env` 块接任意 Anthropic 兼容后端：
+只装 **VS Code + "Claude Code for VS Code" 扩展**（marketplace ID `anthropic.claude-code`）。扩展自带聊天面板用的 CLI（官方文档原文："The extension bundles its own copy of the CLI for the chat panel"），**不装 Node.js、不装独立 claude CLI**。模型后端通过 `settings.local.json` 的 `env` 块接任意 Anthropic 兼容端点。
+
+配置写进**工作区**（`~/ai-workspace/.claude/settings.local.json`，项目域、自包含），不是全局 `~/.claude/`。这样工作区换机器复制即用；`settings.local.json` 含 API key，工作区 `.gitignore` 忽略它。crawl4ai 注册进工作区 `.mcp.json`（无密钥，可提交）。
 
 ```json
+// ~/ai-workspace/.claude/settings.local.json
 {
   "env": {
     "ANTHROPIC_BASE_URL": "<端点>",
     "ANTHROPIC_AUTH_TOKEN": "<api key>",
-    "ANTHROPIC_MODEL": "<模型名>"
+    "ANTHROPIC_MODEL": "<模型名>",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "<模型名>",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "<模型名>",
+    "API_TIMEOUT_MS": "3000000"
   },
+  "permissions": {
+    "allow": ["Bash(*)","Read","Write","Edit","Glob","Grep","Task","mcp__crawl4ai__search","mcp__crawl4ai__read_url"],
+    "deny": ["WebSearch","WebFetch"],
+    "ask": []
+  },
+  "enabledMcpjsonServers": ["crawl4ai"],
   "hasCompletedOnboarding": true
 }
 ```
 
-三条供应商路径，base URL 与 model 名均已/将核实（不信任搜索摘要，抓官方文档全文）：
+三条供应商路径，base URL 与 model 名均抓官方文档全文核实：
 
 | 供应商 | 区域 | base_url | model | 鉴权 |
 |---|---|---|---|---|
 | 阿里云百炼 | 国内默认 | `https://dashscope.aliyuncs.com/apps/anthropic` | `deepseek-v4-flash-0731` | Bearer |
 | DeepSeek 官方 | 国外主推 | `https://api.deepseek.com/anthropic` | `deepseek-v4-flash`（自动 0731） | Bearer |
-| OpenRouter | 备选 | （实现期核实） | `deepseek/deepseek-v4-flash` | Bearer |
+| OpenRouter | 备选（接法待确认） | `https://openrouter.ai/api/v1` | `deepseek/deepseek-v4-flash` | Bearer |
+
+百炼路径额外加 `ANTHROPIC_CUSTOM_HEADERS: X-DashScope-DataInspection: {"input":"disable","output":"disable"}` 关闭服务端数据审查。
 
 ### 关键坑（百炼，来自官方文档）
 
@@ -40,15 +54,17 @@ Claude Code 通过 `~/.claude/settings.json` 的 `env` 块接任意 Anthropic �
 
 ## crawl4ai MCP
 
-随环境下发（免费无 key）：clone `gigix/crawl4ai-mcp-server`，建 venv，写进 `~/.claude/.mcp.json`。serper/oxylabs 带私钥，不下发，站上给文字指导让用户用自己的 key 加。
+随环境下发（免费无 key）：clone `gigix/crawl4ai-mcp-server` 的 `fix/migrate-to-ddgs-library` 分支（main 用已废弃的 duckduckgo_search，是坏的），用 **uv** 钉 Python 3.10 建 venv（依赖 lxml/pillow/pydantic-core 在 3.10 有预编译 wheel；系统 Python 太新如 3.14 会逼源码编译，pydantic-core 还要 Rust，死路），注册进工作区 `.mcp.json`。serper/oxylabs 带私钥，不下发，站上给文字指导让用户用自己的 key 加。
 
 ## Windows
 
-PowerShell `irm | iex` 一行脚本为主推（winget 装 VS Code + Node）。WSL 路径为备选（复用 install.sh）。Windows 上跑的是 Windows 11 ARM（CI 服务器是 Apple Silicon Mac）。
+PowerShell `irm | iex` 一行脚本为主推（winget 装 VS Code + Git + uv）。WSL 路径为备选（复用 install.sh）。Windows 上跑的是 Windows 11 ARM（CI 服务器是 Apple Silicon Mac）。设计同 Linux：只装扩展，配置进工作区，crawl4ai 用 uv。
 
 ## CI
 
-CI 在一台 Apple Silicon Mac 上用 VMware Fusion Pro（个人免费，原生快照 + `vmrun` CLI）。两台模板 VM：Ubuntu 24.04 ARM、Windows 11 ARM。每次 `revertToSnapshot clean-base` → 跑安装脚本 → 自动化 verify。主机地址、VM 路径、测试 API key 等本地信息放 `.env`（gitignored，模板见 `.env.example`）。Docker 不行（无 GUI、跑不了 VS Code 扩展登录流、无 Windows）。UTM 无原生快照，CI 恢复别扭。
+CI 在一台 Apple Silicon Mac 上用 VMware Fusion Pro（个人免费，原生快照 + `vmrun` CLI）。Linux 模板 VM：Ubuntu 26.04 ARM（手动装 + openssh + open-vm-tools + CI 公钥 + 免密 sudo）。每次 `revertToSnapshot clean-base` → 主机 rsync 仓库进 VM → 从 clone 跑 `install.sh`（用本地 lib，测最新提交，不依赖 Pages CDN 缓存）→ 自动化 verify。Windows 11 ARM 模板 VM 暂缓（Fusion 在 macOS 26.1 上跑 Windows VM 有坑）。主机地址、VM 路径、测试 API key 等本地信息放 `.env`（gitignored，模板见 `.env.example`）。
+
+注意：CI 的 clean-base 模板里给 `yuan` 用户开了免密 sudo（真用户是交互式自己输密码；CI 无人值守得免密）。clean-base 不含 bootstrap 仓库（CI 每次 rsync 进去），只含 OS + openssh + open-vm-tools + CI 公钥 + 免密 sudo。
 
 ## 暂不推
 

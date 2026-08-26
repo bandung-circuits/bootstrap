@@ -94,10 +94,10 @@
     <h2>What it does</h2>
     <ol class="steps">
       <li>Detects your OS and region, picks a model provider (China → Alibaba Bailian; elsewhere → DeepSeek official).</li>
-      <li>Installs Visual Studio Code and the Claude Code extension + CLI.</li>
+      <li>Installs Visual Studio Code and the Claude Code extension (the extension bundles its own CLI — no separate Node.js or CLI install).</li>
       <li>Configures the backend to DeepSeek V4 Flash 0731 — you'll paste your API key when asked.</li>
-      <li>Installs the crawl4ai MCP (web fetch &amp; search, free, no key needed).</li>
-      <li>Creates a clean <code class="inline">~/ai-workspace</code> folder and opens VS Code there, so you can start immediately.</li>
+      <li>Installs the crawl4ai MCP (web fetch &amp; search, free, no key needed) via a pinned Python 3.10 venv.</li>
+      <li>Creates a clean, self-contained <code class="inline">~/ai-workspace</code> (config lives inside it) and opens VS Code there, so you can start immediately.</li>
     </ol>
     <p style="margin-top:1rem">Need an API key? See the <a href="providers-guide.html">provider subscription guide</a>.</p>
   </div>
