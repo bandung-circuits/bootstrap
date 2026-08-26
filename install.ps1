@@ -195,7 +195,7 @@ One thing left: add your API key, then start using Claude Code.
 
 ## 1. Get an API key
 
-Get a key for DeepSeek V4 Flash 0731 from $p_name:
+Get a key for DeepSeek V4 Flash 0731 from ${p_name}:
   $p_site
 (Full guide: https://bandung-circuits.github.io/bootstrap/providers-guide.html )
 
