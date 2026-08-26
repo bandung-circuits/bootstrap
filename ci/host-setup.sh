@@ -15,18 +15,25 @@ note(){ printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 err(){ printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 FUSION_DMG=""
-for a in "$@"; do
-  case "$a" in
-    --fusion-dmg=*) FUSION_DMG="${a#*=}" ;;
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --fusion-dmg) FUSION_DMG="$2"; shift 2 ;;
+    --fusion-dmg=*) FUSION_DMG="${1#*=}"; shift ;;
     -h|--help)
       sed -n '2,14p' "$0"; exit 0 ;;
-    *) err "unknown arg: $a" ;;
+    *) err "unknown argument: $1" ;;
   esac
 done
 
 [ "$(uname -m)" = "arm64" ] || err "this script targets Apple Silicon (arm64)."
 
 # ---------- Homebrew ----------
+# brew may be installed but not on a non-login shell PATH; source its shellenv.
+if ! command -v brew >/dev/null 2>&1; then
+  if [ -x /opt/homebrew/bin/brew ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  fi
+fi
 if ! command -v brew >/dev/null 2>&1; then
   note "Installing Homebrew (will ask for sudo password)"
   NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -34,7 +41,7 @@ if ! command -v brew >/dev/null 2>&1; then
   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
   eval "$(/opt/homebrew/bin/brew shellenv)"
 else
-  note "Homebrew already installed"
+  note "Homebrew already installed ($(brew --version | head -1))"
 fi
 
 # ---------- qemu (qemu-img for qcow2 -> vmdk) ----------
@@ -50,11 +57,12 @@ fi
 if [ ! -d "/Applications/VMware Fusion.app" ]; then
   note "Mounting Fusion dmg"
   hdiutil attach "$FUSION_DMG" -nobrowse -mountpoint /tmp/fusionmnt
-  # find the .pkg inside the mounted volume
-  PKG=$(find /tmp/fusionmnt -maxdepth 2 -name "*.pkg" | head -1 || true)
-  [ -n "$PKG" ] || err "no .pkg found in the dmg; mount point: /tmp/fusionmnt"
-  note "Installing Fusion (will use sudo): $PKG"
-  sudo installer -pkg "$PKG" -target /
+  # The dmg ships "VMware Fusion.app"; the deployable metapackage lives inside it.
+  MPKG=$(find /tmp/fusionmnt -maxdepth 4 -iname "Deploy VMware Fusion.mpkg" | head -1 || true)
+  [ -n "$MPKG" ] || MPKG=$(find /tmp/fusionmnt -maxdepth 3 -iname "*.pkg" | head -1 || true)
+  [ -n "$MPKG" ] || err "no Deploy VMware Fusion.mpkg found in dmg; mount: /tmp/fusionmnt"
+  note "Installing Fusion via metapackage (sudo): $MPKG"
+  sudo installer -pkg "$MPKG" -target /
   hdiutil detach /tmp/fusionmnt
 else
   note "VMware Fusion already installed"
