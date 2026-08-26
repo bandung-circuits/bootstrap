@@ -50,7 +50,11 @@ ensure_base_tools() {
   case "$DETECT_OS" in
     linux|wsl)
       case "$DETECT_PKG_MANAGER" in
-        apt)   sudo apt-get update -y && sudo apt-get install -y$need ;;
+        apt)
+          # build deps for C-extension wheels (lxml has no wheel on very new Python)
+          sudo apt-get update -y
+          sudo apt-get install -y$need build-essential libxml2-dev libxslt-dev python3-dev
+          ;;
         dnf)   sudo dnf install -y$need ;;
         yum)   sudo yum install -y$need ;;
         pacman) sudo pacman -S --noconfirm $need ;;
