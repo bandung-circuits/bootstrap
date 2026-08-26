@@ -5,22 +5,27 @@
 # Usage (PowerShell):
 #   irm https://bandung-circuits.github.io/bootstrap/install.ps1 | iex
 # or from a clone:
-#   .\install.ps1 [-Provider bailian|deepseek|openrouter] [-ApiKey KEY]
+#   .\install.ps1 [-Provider bailian|bailian-intl|deepseek|openrouter] [-ApiKey KEY]
+# Args accept both -Provider=val and -Provider val forms.
 
 #requires -Version 5.1
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'   # speed up Invoke-WebRequest
 
 function Note($m){ Write-Host "==> $m" -ForegroundColor Green }
 function Warn($m){ Write-Host "!! $m" -ForegroundColor Yellow }
 function Err($m){ Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
 
-# ---------- args ----------
+# ---------- args (accept -Key=val and -Key val) ----------
 $Provider = $null; $ApiKey = $null
 for ($i=0; $i -lt $args.Count; $i++) {
-    switch -Regex ($args[$i]) {
+    $a = $args[$i]
+    switch -Regex ($a) {
         '^-?Provider=(.+)$' { $Provider = $matches[1] }
         '^-?ApiKey=(.+)$'   { $ApiKey   = $matches[1] }
-        default { Err "unknown argument: $($args[$i])" }
+        '^-?Provider$'      { $Provider = $args[++$i] }
+        '^-?ApiKey$'        { $ApiKey   = $args[++$i] }
+        default { Err "unknown argument: $a" }
     }
 }
 
@@ -30,7 +35,7 @@ if (-not $Provider) {
     $tz = (Get-TimeZone -ErrorAction SilentlyContinue).Id
     $lang = $env:LANG, $env:LC_ALL -join ''
     if ($tz -match 'China|Shanghai|Urumqi' -or $lang -match 'zh_CN|zh_SG') { $Provider = 'bailian' }
-    else { $Provider = 'deepseek' }
+    else { $Provider = 'bailian-intl' }
 }
 switch ($Provider) {
     'bailian'      { $BaseUrl='https://dashscope.aliyuncs.com/apps/anthropic';     $Model='deepseek-v4-flash-0731' }
@@ -40,7 +45,6 @@ switch ($Provider) {
     default { Err "unknown provider: $Provider" }
 }
 Note "Provider: $Provider | Base: $BaseUrl | Model: $Model"
-
 if (-not $ApiKey) { $ApiKey = 'PASTE-YOUR-API-KEY-HERE'; $script:KeyIsPlaceholder = $true }
 else { $script:KeyIsPlaceholder = $false }
 
@@ -50,21 +54,19 @@ $Bootstrap = Join-Path $env:USERPROFILE '.bootstrap'
 $CrawlDir = Join-Path $Bootstrap 'crawl4ai-mcp-server'
 $UV_BIN = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
 
-# ---------- winget helper ----------
-function Ensure-Winget {
-    if (Get-Command winget -ErrorAction SilentlyContinue) { return }
-    Err 'winget not found. Install App Installer from the Microsoft Store, or run on Windows 10 1709+.'
-}
+function Refresh-Path { $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:USERPROFILE + '\.local\bin' }
 
-# ---------- VS Code ----------
+# ---------- VS Code (direct download, no winget) ----------
 function Install-VSCode {
     if ((Get-Command code -ErrorAction SilentlyContinue) -or (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd")) {
         Note 'VS Code already installed'; return
     }
-    Note 'Installing Visual Studio Code (winget)'
-    Ensure-Winget
-    winget install --id Microsoft.VisualStudioCode -e --accept-source-agreements --accept-package-agreements --silent
-    $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+    Note 'Installing Visual Studio Code (ARM64 user installer, no winget)'
+    $url = 'https://update.code.visualstudio.com/latest/win32-arm64-user/stable'
+    $exe = Join-Path $env:TEMP 'vscode-setup.exe'
+    Invoke-WebRequest $url -OutFile $exe
+    Start-Process $exe -ArgumentList '/VERYSILENT','/NORESTART','/MERGETASKS=!runcode' -Wait
+    Refresh-Path
 }
 
 # ---------- Claude Code extension ----------
@@ -171,7 +173,7 @@ function Write-VSCodeUserSettings {
     Note 'wrote VS Code user settings (skip welcome, trust on, Claude Code = Edit automatically)'
 }
 
-# ---------- NEXT-STEPS.md (onboarding: where to get a key, what to edit, how to start) ----------
+# ---------- NEXT-STEPS.md ----------
 function Write-NextSteps {
     $p_site = switch ($Provider) {
         'bailian'      { 'https://bailian.console.aliyun.com/' }
@@ -226,34 +228,34 @@ The crawl4ai MCP (web fetch/search) is already configured -- no key needed.
 function Ensure-Uv {
     if (Test-Path $UV_BIN) { return }
     Note 'Installing uv (Python runtime manager)'
-    Ensure-Winget
-    winget install --id astral-sh.uv -e --accept-source-agreements --accept-package-agreements --silent
-    $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+    Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+    Refresh-Path
 }
 
-# ---------- crawl4ai MCP ----------
+# ---------- crawl4ai MCP (download zip, no git; uv venv) ----------
 function Install-Crawl4ai {
     $venvPy = Join-Path $CrawlDir 'venv\Scripts\python.exe'
     if ((Test-Path $venvPy) -and (Test-Path (Join-Path $CrawlDir 'src\index.py'))) {
         Note "crawl4ai MCP already installed at $CrawlDir"
     } else {
-        Ensure-Winget   # for winget (git via winget below)
-        if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-            Note 'Installing Git for Windows (winget)'
-            winget install --id Git.Git -e --accept-source-agreements --accept-package-agreements --silent
-            $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
-        }
         Ensure-Uv
-        $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
-        Note 'Cloning crawl4ai-mcp-server (branch fix/migrate-to-ddgs-library)'
-        git clone --branch fix/migrate-to-ddgs-library --depth 1 https://github.com/gigix/crawl4ai-mcp-server.git $CrawlDir
+        New-Item -ItemType Directory -Force -Path $Bootstrap | Out-Null
+        $zip = Join-Path $env:TEMP 'crawl4ai-mcp.zip'
+        Note 'Downloading crawl4ai-mcp-server (branch fix/migrate-to-ddgs-library)'
+        Invoke-WebRequest 'https://github.com/gigix/crawl4ai-mcp-server/archive/refs/heads/fix/migrate-to-ddgs-library.zip' -OutFile $zip
+        if (Test-Path $CrawlDir) { Remove-Item -Recurse -Force $CrawlDir }
+        Expand-Archive -Path $zip -DestinationPath $Bootstrap -Force
+        # extracted folder has a -suffix name; rename to crawl4ai-mcp-server
+        $extracted = Get-ChildItem -Path $Bootstrap -Directory | Where-Object Name -like 'crawl4ai-mcp-server-*' | Select-Object -First 1
+        if ($extracted) { Move-Item $extracted.FullName $CrawlDir -Force }
         Note 'Provisioning Python 3.10 + venv via uv (prebuilt wheels for deps)'
+        $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
+        if (-not $uv) { $uv = $UV_BIN }
         & $uv python install 3.10
         & $uv venv --python 3.10 (Join-Path $CrawlDir 'venv')
         Note 'Installing dependencies via uv (may take a minute)'
         & $uv pip install --python $venvPy -r (Join-Path $CrawlDir 'requirements.txt')
     }
-
     $mcpFile = Join-Path $WS '.mcp.json'
     $mcp = $null
     if (Test-Path $mcpFile) { try { $mcp = Get-Content $mcpFile -Raw | ConvertFrom-Json } catch { $mcp = $null } }
