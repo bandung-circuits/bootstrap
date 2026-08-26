@@ -39,11 +39,13 @@ ensure_base_tools() {
   local need=""
   command -v git     >/dev/null 2>&1 || need="$need git"
   command -v python3 >/dev/null 2>&1 || need="$need python3"
-  # python3-venv (ensurepip) is separate on Debian/Ubuntu; ensure venv works.
+  [ -z "$need" ] && need_set=0 || need_set=1
+  # On Debian/Ubuntu, python3-venv (ensurepip wheels) is a separate package and
+  # `import ensurepip` lies (imports fine without the wheels). Always ensure it.
   if [ "$DETECT_OS" = "linux" ] && [ "$DETECT_PKG_MANAGER" = "apt" ]; then
-    if ! python3 -c "import ensurepip" >/dev/null 2>&1; then need="$need python3-venv"; fi
+    need="$need python3-venv"; need_set=1
   fi
-  [ -z "$need" ] && return 0
+  [ "$need_set" -eq 1 ] || return 0
   note "installing base tools:$need"
   case "$DETECT_OS" in
     linux|wsl)
