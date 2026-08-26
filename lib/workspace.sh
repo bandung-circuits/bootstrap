@@ -39,6 +39,8 @@ venv/
 __pycache__/
 *.log
 .DS_Store
+# settings.local.json contains your API key — keep it in the folder, out of git.
+.claude/settings.local.json
 GI
   fi
 }

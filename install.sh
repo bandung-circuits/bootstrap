@@ -93,30 +93,31 @@ main() {
   note "Installing Visual Studio Code"
   vscode_install
 
-  note "Installing Node.js + Claude Code CLI + extension"
-  claude_code_install_all
+  note "Installing Claude Code VS Code extension"
+  claude_code_extension_install
 
-  note "Configuring Claude Code backend (settings.json)"
+  note "Creating default AI workspace"
+  workspace_create
+
+  note "Configuring Claude Code backend (settings.local.json in workspace)"
   provider_write_settings
 
   note "Installing crawl4ai MCP"
   crawl4ai_install
   crawl4ai_postinstall_hint
 
-  note "Creating default AI workspace"
-  workspace_create
-
   note "Done."
   cat <<'NEXT'
 
   Next steps:
   1. Visual Studio Code opens in  ~/ai-workspace  (your default workspace).
-  2. Open the Claude Code panel (sidebar). Sign-in step is skipped — the
-     backend is already configured to DeepSeek V4 Flash 0731 via your API key.
-  3. Run  /model  in the Claude Code panel to confirm the active model.
-  4. Try asking it something: e.g. "create a hello.py and run it".
+  2. Open the Claude Code panel (the Spark icon). The backend is already
+     configured to DeepSeek V4 Flash 0731 via your API key — no sign-in needed.
+  3. Try asking it something, e.g. "create a hello.py and run it".
 
   The crawl4ai MCP (web fetch/search) is also registered and ready.
+  Config lives inside ~/ai-workspace (.claude/settings.local.json + .mcp.json),
+  so the workspace is self-contained.
 NEXT
   workspace_open
 }

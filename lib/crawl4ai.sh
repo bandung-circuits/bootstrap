@@ -12,8 +12,8 @@ crawl4ai_is_installed() {
 crawl4ai_install() {
   if crawl4ai_is_installed; then note "crawl4ai MCP already installed at $CRAWL4AI_DIR"; return 0; fi
 
-  command -v git    >/dev/null 2>&1 || err "git not found; install git first"
-  command -v python3 >/dev/null 2>&1 || err "python3 not found; install python3 first"
+  # ensure git + python3 are present (python3 is also required for the venv)
+  ensure_base_tools
 
   mkdir -p "$(dirname "$CRAWL4AI_DIR")"
   note "cloning crawl4ai-mcp-server"
@@ -31,11 +31,32 @@ crawl4ai_install() {
   crawl4ai_register_mcp
 }
 
-# Merge crawl4ai entry into ~/.claude/.mcp.json (python3 for safe JSON merge).
+# Install git + python3 if missing, using the detected package manager.
+ensure_base_tools() {
+  local need=""
+  command -v git     >/dev/null 2>&1 || need="$need git"
+  command -v python3 >/dev/null 2>&1 || need="$need python3"
+  [ -z "$need" ] && return 0
+  note "installing base tools:$need"
+  case "$DETECT_OS" in
+    linux|wsl)
+      case "$DETECT_PKG_MANAGER" in
+        apt)   sudo apt-get update -y && sudo apt-get install -y$need ;;
+        dnf)   sudo dnf install -y$need ;;
+        yum)   sudo yum install -y$need ;;
+        pacman) sudo pacman -S --noconfirm $need ;;
+        *) err "git/python3 missing and no supported package manager" ;;
+      esac ;;
+    macos) brew install$need ;;
+    *) err "git/python3 missing; install manually" ;;
+  esac
+}
+
+# Register crawl4ai in the WORKSPACE's .mcp.json (project scope, self-contained —
+# config travels with the workspace; .mcp.json has no secrets so it can be committed).
 crawl4ai_register_mcp() {
-  local mcp_dir="${HOME}/.claude"
-  local mcp_file="$mcp_dir/.mcp.json"
-  mkdir -p "$mcp_dir"
+  local mcp_file="${WORKSPACE_DIR}/.mcp.json"
+  mkdir -p "$WORKSPACE_DIR"
 
   local py_bin="$CRAWL4AI_DIR/venv/bin/python"
   [ "$DETECT_OS" = "windows" ] && py_bin="$CRAWL4AI_DIR/venv/Scripts/python.exe"
@@ -49,7 +70,6 @@ try:
 except (FileNotFoundError, json.JSONDecodeError):
     data = {}
 servers = data.setdefault("mcpServers", {})
-# Refresh path each run in case of reinstall/move.
 servers["crawl4ai"] = {
     "command": pybin,
     "args": [os.path.join(srvdir, "src", "index.py")],
@@ -59,7 +79,6 @@ with open(path, "w") as f:
     json.dump(data, f, indent=2)
     f.write("\n")
 PY
-  chmod 600 "$mcp_file"
   note "registered crawl4ai in $mcp_file"
 }
 

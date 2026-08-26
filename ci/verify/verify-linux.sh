@@ -9,27 +9,22 @@ no(){ printf '  FAIL  %s\n' "$*"; fail=$((fail+1)); }
 have(){ command -v "$1" >/dev/null 2>&1 && ok "$1 on PATH" || no "$1 on PATH"; }
 
 have code
-have claude
-have node
 have git
 have python3
 
-# Claude Code CLI responds
-if claude --version >/dev/null 2>&1; then ok 'claude --version'; else no 'claude --version'; fi
-
-# VS Code extension installed
+# VS Code Claude Code extension installed
 if code --list-extensions 2>/dev/null | grep -qi 'anthropic.claude-code'; then
   ok 'claude-code extension installed'
 else no 'claude-code extension installed'; fi
 
-# settings.json env block
-s="$HOME/.claude/settings.json"
+# settings.local.json env block (in the workspace, self-contained)
+s="$HOME/ai-workspace/.claude/settings.local.json"
 if [ -f "$s" ] && grep -q ANTHROPIC_BASE_URL "$s" && grep -q ANTHROPIC_AUTH_TOKEN "$s" && grep -q ANTHROPIC_MODEL "$s"; then
-  ok 'settings.json env block present'
-else no 'settings.json env block'; fi
+  ok 'settings.local.json env block present'
+else no 'settings.local.json env block'; fi
 
-# .mcp.json crawl4ai
-m="$HOME/.claude/.mcp.json"
+# .mcp.json crawl4ai (workspace, self-contained)
+m="$HOME/ai-workspace/.mcp.json"
 if [ -f "$m" ] && grep -q crawl4ai "$m"; then ok '.mcp.json crawl4ai entry'; else no '.mcp.json crawl4ai'; fi
 
 # crawl4ai venv importable
