@@ -1,22 +1,60 @@
 #!/usr/bin/env bash
-# crawl4ai.sh — install crawl4ai MCP server and register it in ~/.claude/.mcp.json.
-# Free, no API key needed. Forked from gigix/crawl4ai-mcp-server.
+# crawl4ai.sh — install crawl4ai MCP server and register it in the workspace .mcp.json.
+# Free, no API key needed. Uses uv to provision a pinned Python (3.10) so the deps
+# (lxml / pillow / pydantic-core) get prebuilt wheels — system Python may be too new
+# (e.g. 3.14) and force fragile source builds. Forked from gigix/crawl4ai-mcp-server.
 
 CRAWL4AI_REPO="https://github.com/gigix/crawl4ai-mcp-server.git"
 # Branch with the ddgs migration fix (the version the maintainer actually uses);
 # main still uses the deprecated duckduckgo_search and is broken.
 CRAWL4AI_BRANCH="fix/migrate-to-ddgs-library"
 CRAWL4AI_DIR="${HOME}/.bootstrap/crawl4ai-mcp-server"
+# Python version with prebuilt wheels for all crawl4ai deps.
+CRAWL4AI_PY="3.10"
+UV_DIR="${HOME}/.local/bin"
+UV_BIN="${UV_DIR}/uv"
 
 crawl4ai_is_installed() {
   [ -x "$CRAWL4AI_DIR/venv/bin/python" ] && [ -f "$CRAWL4AI_DIR/src/index.py" ]
 }
 
+ensure_base_tools() {
+  local need=""
+  command -v git  >/dev/null 2>&1 || need="$need git"
+  command -v curl >/dev/null 2>&1 || need="$need curl"
+  [ -z "$need" ] && return 0
+  note "installing base tools:$need"
+  case "$DETECT_OS" in
+    linux|wsl)
+      case "$DETECT_PKG_MANAGER" in
+        apt)   sudo apt-get update -y && sudo apt-get install -y$need ;;
+        dnf)   sudo dnf install -y$need ;;
+        yum)   sudo yum install -y$need ;;
+        pacman) sudo pacman -S --noconfirm $need ;;
+        *) err "missing base tools and no supported package manager" ;;
+      esac ;;
+    macos) brew install$need ;;
+    *) err "git/curl missing; install manually" ;;
+  esac
+}
+
+# Install uv (single binary) if not present.
+ensure_uv() {
+  [ -x "$UV_BIN" ] && return 0
+  note "installing uv (Python package/runtime manager)"
+  if command -v curl >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  else
+    wget -qO- https://astral.sh/uv/install.sh | sh
+  fi
+  [ -x "$UV_BIN" ] || err "uv install failed"
+}
+
 crawl4ai_install() {
   if crawl4ai_is_installed; then note "crawl4ai MCP already installed at $CRAWL4AI_DIR"; return 0; fi
 
-  # ensure git + python3 are present (python3 is also required for the venv)
   ensure_base_tools
+  ensure_uv
 
   mkdir -p "$(dirname "$CRAWL4AI_DIR")"
   note "cloning crawl4ai-mcp-server (branch $CRAWL4AI_BRANCH)"
@@ -24,45 +62,15 @@ crawl4ai_install() {
     git clone --branch "$CRAWL4AI_BRANCH" --depth 1 "$CRAWL4AI_REPO" "$CRAWL4AI_DIR" || err "git clone failed"
   fi
 
-  note "creating venv"
-  python3 -m venv "$CRAWL4AI_DIR/venv" || err "venv creation failed"
-  note "installing dependencies (this can take a minute)"
-  "$CRAWL4AI_DIR/venv/bin/pip" install --upgrade pip -q
-  "$CRAWL4AI_DIR/venv/bin/pip" install -r "$CRAWL4AI_DIR/requirements.txt" -q \
+  note "provisioning Python $CRAWL4AI_PY via uv (prebuilt wheels for deps)"
+  "$UV_BIN" python install "$CRAWL4AI_PY" >/dev/null 2>&1 || err "uv python install failed"
+  note "creating venv (Python $CRAWL4AI_PY)"
+  "$UV_BIN" venv --python "$CRAWL4AI_PY" "$CRAWL4AI_DIR/venv" || err "venv creation failed"
+  note "installing dependencies via uv (prebuilt wheels; may take a minute)"
+  "$UV_BIN" pip install --python "$CRAWL4AI_DIR/venv/bin/python" -r "$CRAWL4AI_DIR/requirements.txt" \
     || err "pip install failed"
 
   crawl4ai_register_mcp
-}
-
-# Install git + python3 if missing, using the detected package manager.
-ensure_base_tools() {
-  local need=""
-  command -v git     >/dev/null 2>&1 || need="$need git"
-  command -v python3 >/dev/null 2>&1 || need="$need python3"
-  [ -z "$need" ] && need_set=0 || need_set=1
-  # On Debian/Ubuntu, python3-venv (ensurepip wheels) is a separate package and
-  # `import ensurepip` lies (imports fine without the wheels). Always ensure it.
-  if [ "$DETECT_OS" = "linux" ] && [ "$DETECT_PKG_MANAGER" = "apt" ]; then
-    need="$need python3-venv"; need_set=1
-  fi
-  [ "$need_set" -eq 1 ] || return 0
-  note "installing base tools:$need"
-  case "$DETECT_OS" in
-    linux|wsl)
-      case "$DETECT_PKG_MANAGER" in
-        apt)
-          # build deps for C-extension wheels (lxml has no wheel on very new Python)
-          sudo apt-get update -y
-          sudo apt-get install -y$need build-essential libxml2-dev libxslt-dev python3-dev
-          ;;
-        dnf)   sudo dnf install -y$need ;;
-        yum)   sudo yum install -y$need ;;
-        pacman) sudo pacman -S --noconfirm $need ;;
-        *) err "git/python3 missing and no supported package manager" ;;
-      esac ;;
-    macos) brew install$need ;;
-    *) err "git/python3 missing; install manually" ;;
-  esac
 }
 
 # Register crawl4ai in the WORKSPACE's .mcp.json (project scope, self-contained —
@@ -74,6 +82,7 @@ crawl4ai_register_mcp() {
   local py_bin="$CRAWL4AI_DIR/venv/bin/python"
   [ "$DETECT_OS" = "windows" ] && py_bin="$CRAWL4AI_DIR/venv/Scripts/python.exe"
 
+  # System python3 (any version) is fine for JSON merge — no deps needed.
   python3 - "$mcp_file" "$CRAWL4AI_DIR" "$py_bin" <<'PY'
 import json, os, sys
 path, srvdir, pybin = sys.argv[1:4]
