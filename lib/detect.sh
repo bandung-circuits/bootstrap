@@ -43,7 +43,7 @@ detect_region() {
     DETECT_REGION=china
   fi
   # locale
-  if [ -n "${LANG:-}${LC_ALL:-}" ] && printf '%s' "${LANG}${LC_ALL}" | grep -qiE 'zh_CN|zh_SG'; then
+  if [ -n "${LANG:-}${LC_ALL:-}" ] && printf '%s' "${LANG:-}${LC_ALL:-}" | grep -qiE 'zh_CN|zh_SG'; then
     DETECT_REGION=china
   fi
   export DETECT_REGION
