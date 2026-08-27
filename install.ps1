@@ -56,6 +56,25 @@ $UV_BIN = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
 
 function Refresh-Path { $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:USERPROFILE + '\.local\bin' }
 
+# Run a native command via .NET Process so PS 5.1 NEVER sees the native stderr.
+# Under $ErrorActionPreference='Stop', PS 5.1 wraps any native stderr (uv
+# progress, node deprecation, code warnings) as a terminating NativeCommandError
+# that can escape a function-scope try/catch and crash the whole script (the
+# crawl4ai step died this way on a real machine: 6 steps [OK] then the window
+# closed, no [FAIL] logged). 2>$null and cmd /c 2>nul do NOT reliably stop it.
+# Redirecting stderr to .NET (PS never sees the stream) is bulletproof.
+function Invoke-Native([string]$exe, [string]$argStr) {
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo.FileName = $exe
+    $p.StartInfo.Arguments = $argStr
+    $p.StartInfo.UseShellExecute = $false
+    $p.StartInfo.RedirectStandardError = $true
+    $p.StartInfo.RedirectStandardOutput = $true
+    [void]$p.Start()
+    $p.WaitForExit()
+    return $p.ExitCode
+}
+
 # ---------- VS Code (direct download, no winget) ----------
 function Install-VSCode {
     if ((Get-Command code -ErrorAction SilentlyContinue) -or (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd")) {
@@ -77,16 +96,20 @@ function Install-ClaudeCode {
         Note 'Claude Code extension already installed'
     } else {
         Note 'Installing Claude Code VS Code extension'
-        code --install-extension anthropic.claude-code --force
+        $codeExe = $code.Source
+        if (-not $codeExe) { $codeExe = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd" }
+        $rc = Invoke-Native $codeExe '--install-extension anthropic.claude-code --force'
+        if ($rc -ne 0) { throw "Claude Code extension install failed (exit $rc)" }
     }
     # Suppress GitHub Copilot so the only AI chat surface is Claude Code.
     # Best-effort: on a clean VM Copilot isn't installed (and built-in Copilot
     # can't be uninstalled, only disabled via settings in Write-VSCodeUserSettings),
-    # so --uninstall-extension errors with "not installed". Under
-    # $ErrorActionPreference='Stop' that native stderr becomes a terminating
-    # error — swallow it per-extension so the step stays green.
+    # so --uninstall-extension returns non-zero ("not installed"). Invoke-Native
+    # returns the exit code without throwing, so just ignore it.
+    $codeExe2 = ($code.Source)
+    if (-not $codeExe2) { $codeExe2 = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd" }
     foreach ($ext in 'github.copilot','github.copilot-chat') {
-        try { code --uninstall-extension $ext 2>$null | Out-Null } catch { }
+        [void](Invoke-Native $codeExe2 "--uninstall-extension $ext")
     }
 }
 
@@ -288,10 +311,17 @@ function Install-Crawl4ai {
         Note 'Provisioning Python 3.10 + venv via uv (prebuilt wheels for deps)'
         $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
         if (-not $uv) { $uv = $UV_BIN }
-        & $uv python install 3.10
-        & $uv venv --python 3.10 (Join-Path $CrawlDir 'venv')
+        # Run uv via .NET Process (Invoke-Native) so PS 5.1 never sees uv's
+        # stderr progress — under ErrorActionPreference=Stop that becomes a
+        # terminating NativeCommandError that crashes the whole script (this
+        # was the crawl4ai flash-exit: 6 steps [OK] then the window died).
+        $rc = Invoke-Native $uv 'python install 3.10'
+        if ($rc -ne 0) { throw "uv python install failed (exit $rc)" }
+        $rc = Invoke-Native $uv "venv --python 3.10 `"$CrawlDir\venv`""
+        if ($rc -ne 0) { throw "uv venv creation failed (exit $rc)" }
         Note 'Installing dependencies via uv (may take a minute)'
-        & $uv pip install --python $venvPy -r (Join-Path $CrawlDir 'requirements.txt')
+        $rc = Invoke-Native $uv "pip install --python `"$venvPy`" -r `"$CrawlDir\requirements.txt`""
+        if ($rc -ne 0) { throw "uv pip install failed (exit $rc)" }
     }
     $mcpFile = Join-Path $WS '.mcp.json'
     $mcp = $null
