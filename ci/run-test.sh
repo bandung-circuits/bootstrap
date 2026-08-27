@@ -55,6 +55,9 @@ ssh_wait(){
 # ---------- Linux ----------
 test_linux(){
   note "[Linux] revert to clean-base"
+  # Ensure the VM is powered off first — a prior run may have left it on,
+  # and vmrun revertToSnapshot on a powered-on VM fails ("Unknown error").
+  vmrun stop "$LINUX_VMX" hard 2>/dev/null || true
   vmrun revertToSnapshot "$LINUX_VMX" clean-base || fail "revert linux failed"
   vmrun start "$LINUX_VMX" nogui 2>/dev/null || vmrun start "$LINUX_VMX"
   note "[Linux] resolving guest IP"
@@ -73,11 +76,18 @@ test_linux(){
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
     "TEST_PROVIDER=$TEST_PROVIDER TEST_API_KEY=$TEST_API_KEY bash ~/bootstrap/ci/verify/verify-linux.sh" \
     2>&1 | tee "ci/logs/linux-verify-$stamp.log"
+  local lrc=$?
+  note "[Linux] powering off VM (leave clean for next run / manual use)"
+  vmrun stop "$LINUX_VMX" hard 2>/dev/null || true
+  return $lrc
 }
 
 # ---------- Windows ----------
 test_windows(){
   note "[Windows] revert to clean-base"
+  # Ensure the VM is powered off first — a prior run may have left it on,
+  # and vmrun revertToSnapshot on a powered-on VM fails ("Unknown error").
+  vmrun stop "$WIN_VMX" hard 2>/dev/null || true
   vmrun revertToSnapshot "$WIN_VMX" clean-base || fail "revert windows failed"
   vmrun start "$WIN_VMX" nogui 2>/dev/null || vmrun start "$WIN_VMX"
   note "[Windows] resolving guest IP"
@@ -94,6 +104,10 @@ test_windows(){
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
     "set TEST_PROVIDER=$TEST_PROVIDER&& set TEST_API_KEY=$TEST_API_KEY&& powershell -NoProfile -ExecutionPolicy Bypass -File verify-windows.ps1" \
     2>&1 | tee "ci/logs/win-verify-$stamp.log"
+  local wrc=$?
+  note "[Windows] powering off VM (leave clean for next run / manual use)"
+  vmrun stop "$WIN_VMX" hard 2>/dev/null || true
+  return $wrc
 }
 
 note "=== Bootstrap CI run $stamp ==="
