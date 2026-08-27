@@ -70,7 +70,7 @@ test_linux(){
     "$(pwd)/" "$LINUX_USER@$ip":~/bootstrap/ 2>&1 | tail -1
   note "[Linux] running installer from clone (local lib)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
-    "cd ~/bootstrap && bash install.sh --provider=$TEST_PROVIDER --api-key=$TEST_API_KEY" \
+    "cd ~/bootstrap && BOOTSTRAP_NO_LAUNCH=1 bash install.sh --provider=$TEST_PROVIDER --api-key=$TEST_API_KEY" \
     2>&1 | tee "ci/logs/linux-install-$stamp.log"
   note "[Linux] verifying"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$LINUX_USER@$ip" \
@@ -98,7 +98,7 @@ test_windows(){
   scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no install.ps1 ci/verify/verify-windows.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
   note "[Windows] running installer (with provider + key)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Provider $TEST_PROVIDER -ApiKey $TEST_API_KEY" \
+    "set BOOTSTRAP_NO_LAUNCH=1&& powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Provider $TEST_PROVIDER -ApiKey $TEST_API_KEY" \
     2>&1 | tee "ci/logs/win-install-$stamp.log"
   note "[Windows] verifying"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \

@@ -80,10 +80,13 @@ function Install-ClaudeCode {
         code --install-extension anthropic.claude-code --force
     }
     # Suppress GitHub Copilot so the only AI chat surface is Claude Code.
-    # Best-effort: built-in Copilot can't be uninstalled (disabled via
-    # settings in Write-VSCodeUserSettings); marketplace Copilot is removed.
+    # Best-effort: on a clean VM Copilot isn't installed (and built-in Copilot
+    # can't be uninstalled, only disabled via settings in Write-VSCodeUserSettings),
+    # so --uninstall-extension errors with "not installed". Under
+    # $ErrorActionPreference='Stop' that native stderr becomes a terminating
+    # error — swallow it per-extension so the step stays green.
     foreach ($ext in 'github.copilot','github.copilot-chat') {
-        code --uninstall-extension $ext 2>$null | Out-Null
+        try { code --uninstall-extension $ext 2>$null | Out-Null } catch { }
     }
 }
 
@@ -343,7 +346,12 @@ Write-Host @'
   Then open VS Code in  ~/ai-workspace  -- the Claude Code panel opens on its own.
   crawl4ai MCP (web fetch/search) is registered and ready.
 '@
-if (Get-Command code -ErrorAction SilentlyContinue) {
+# CI runs the installer over SSH with no desktop session; launching VS Code
+# (a GUI) there spins and can freeze the VM. run-test.sh sets
+# BOOTSTRAP_NO_LAUNCH=1 to skip. Real users (desktop terminal) want the launch.
+if ($env:BOOTSTRAP_NO_LAUNCH -eq '1') {
+    Note 'skipping VS Code launch (BOOTSTRAP_NO_LAUNCH=1)'
+} elseif (Get-Command code -ErrorAction SilentlyContinue) {
     # Open the workspace folder (loads .claude/.mcp.json/.vscode) AND
     # NEXT-STEPS.md (makes the Spark icon visible as a fallback), then pop
     # the Claude Code chat panel via the documented vscode:// URI handler.

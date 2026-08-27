@@ -94,6 +94,14 @@ MD
 # the file too makes the Spark icon visible in the editor toolbar as a
 # fallback if the URI handler can't fire (e.g. no opener on a headless box).
 workspace_open() {
+  # CI runs the installer over SSH with no desktop session; launching `code`
+  # (a GUI) there spins and can freeze the VM so hard that vmrun can't stop
+  # it. Real users run the installer in a desktop terminal, where launching
+  # is the point. run-test.sh sets BOOTSTRAP_NO_LAUNCH=1 to skip here.
+  if [ "${BOOTSTRAP_NO_LAUNCH:-0}" = "1" ]; then
+    note "skipping VS Code launch (BOOTSTRAP_NO_LAUNCH=1)"
+    return
+  fi
   if command -v code >/dev/null 2>&1; then
     note "opening VS Code in $WORKSPACE_DIR (NEXT-STEPS.md + Claude Code panel)"
     code "$WORKSPACE_DIR" "$WORKSPACE_DIR/NEXT-STEPS.md" >/dev/null 2>&1 \
