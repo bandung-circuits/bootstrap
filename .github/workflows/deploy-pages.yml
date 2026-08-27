@@ -1,0 +1,50 @@
+name: deploy-pages
+# Builds the site from repo root, stamps the deployed commit (short SHA + Beijing
+# time) into install.ps1 + index.html IN MEMORY (not committed), and deploys to
+# GitHub Pages. Switched Source to "GitHub Actions" (repo Settings → Pages).
+# Routine: runs automatically on every push to main (no manual trigger needed).
+# Pages keeps the last successful deploy, so a failed run leaves the site on the
+# previous version (stale, not down).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject deploy version
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          SHA8="${SHA:0:8}"
+          TIME="$(TZ='Asia/Shanghai' git log -1 --format=%cd --date=iso "$SHA")"
+          python3 - "$SHA8" "$TIME" <<'PY'
+          import re, sys
+          sha, t = sys.argv[1], sys.argv[2]
+          s = open("install.ps1").read()
+          s = re.sub(r'(?m)^# deployed:.*$',
+                     f'# deployed: {sha}  {t} (Beijing)', s, count=1)
+          open("install.ps1","w").write(s)
+          s = open("index.html").read()
+          s = re.sub(r'(?s)<span class="deploy-version">.*?</span>',
+                     f'<span class="deploy-version">deployed: <code>{sha}</code> · {t} (Beijing)</span>', s)
+          open("index.html","w").write(s)
+          PY
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4
