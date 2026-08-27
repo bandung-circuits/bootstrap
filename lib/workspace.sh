@@ -56,6 +56,8 @@ GI
   "claudeCode.disableLoginPrompt": true,
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
+  "chat.disableAIFeatures": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "github.copilot.enable": { "*": false }
 }
 VSC

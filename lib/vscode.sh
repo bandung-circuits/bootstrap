@@ -113,6 +113,8 @@ data["claudeCode.preferredLocation"] = "sidebar"
 data["claudeCode.disableLoginPrompt"] = True
 data["claudeCode.hideOnboarding"] = True
 data["chat.commandCenter.enabled"] = False
+data["chat.disableAIFeatures"] = True
+data["workbench.secondarySideBar.defaultVisibility"] = "hidden"
 data["github.copilot.enable"] = {"*": False}
 with open(path, "w") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
@@ -130,6 +132,8 @@ PY
   "claudeCode.disableLoginPrompt": true,
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
+  "chat.disableAIFeatures": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "github.copilot.enable": { "*": false }
 }
 EOF

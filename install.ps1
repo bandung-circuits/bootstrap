@@ -145,6 +145,8 @@ Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
   "claudeCode.disableLoginPrompt": true,
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
+  "chat.disableAIFeatures": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "github.copilot.enable": { "*": false }
 }
 '@ | Set-Content -Path $vsSettings -Encoding UTF8
@@ -223,6 +225,8 @@ function Write-VSCodeUserSettings {
     Set-Prop $data 'claudeCode.disableLoginPrompt' $true
     Set-Prop $data 'claudeCode.hideOnboarding' $true
     Set-Prop $data 'chat.commandCenter.enabled' $false
+    Set-Prop $data 'chat.disableAIFeatures' $true
+    Set-Prop $data 'workbench.secondarySideBar.defaultVisibility' 'hidden'
     # github.copilot.enable is an object { "*": false }; build it as a map.
     $cop = [PSCustomObject]@{ '*' = $false }
     if ($data.PSObject.Properties.Name -contains 'github.copilot.enable') {
@@ -362,7 +366,13 @@ function Seed-VSCodeState {
     if (-not (Test-Path $venvPy)) { Note "crawl4ai venv python not found -- skipping VS Code UI-state seed (first-run onboarding may show)"; return }
     $dir = Split-Path $db -Parent
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    $py = @'
+    # Write the seeder to a temp .py and run THAT (not `python -c $py`): PS strips
+    # the embedded double-quotes when passing a string to a native -c arg, so
+    # python gets `con.execute(CREATE ...` (no quotes) -> SyntaxError. Reading
+    # from a file avoids PS's native-arg quote-mangling. Local EAP=Continue so a
+    # stray python stderr line doesn't raise a NativeCommandError under Stop.
+    $tmp = Join-Path $env:TEMP 'seed-vscode-state.py'
+    @'
 import sqlite3, os, sys
 path = sys.argv[1]
 os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -377,8 +387,13 @@ for k, v in seeds.items():
     cur.execute("INSERT OR REPLACE INTO ItemTable (key, value) VALUES (?, ?)", (k, v))
 con.commit(); con.close()
 print("seeded %d VS Code UI-state keys into %s" % (len(seeds), path))
-'@
-    & $venvPy -c $py $db
+'@ | Set-Content -Path $tmp -Encoding UTF8
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    & $venvPy $tmp $db
+    $rc = $LASTEXITCODE
+    $ErrorActionPreference = $prev
+    if ($rc -ne 0) { throw "VS Code UI-state seed failed (python exit $rc)" }
     Note "seeded VS Code UI-state (skip first-run onboarding/theme picker)"
 }
 

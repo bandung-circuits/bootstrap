@@ -1,0 +1,8 @@
+{
+  "workbench.startupEditor": "none",
+  "workbench.welcomePage.walkthroughsVisible": false,
+  "update.showReleaseNotes": false,
+  "security.workspace.trust.enabled": false,
+  "claudeCode.initialPermissionMode": "acceptEdits",
+  "claudeCode.preferredLocation": "panel"
+}
