@@ -2,7 +2,7 @@
 # DeepSeek V4 Flash 0731, with the crawl4ai MCP. Config lives in ~/ai-workspace
 # (self-contained). No Node.js or standalone CLI -- the VS Code extension bundles its own.
 #
-# deployed: pending  pending (Beijing)   [auto-updated by ci/tag-version workflow]
+# deployed: f9a694f5  2026-08-27 16:50:42 +0800 (Beijing)
 #
 # Usage (PowerShell):
 #   irm https://bandung-circuits.github.io/bootstrap/install.ps1 | iex
