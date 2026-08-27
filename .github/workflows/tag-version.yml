@@ -1,0 +1,47 @@
+name: tag-version
+# On each push to main, stamp the deployed commit (short SHA + Beijing time) into
+# index.html (footer) and install.ps1 (header comment), then commit back. The
+# commit-back uses the default GITHUB_TOKEN, which does NOT re-trigger workflows
+# (GitHub's built-in loop prevention), so this runs once per real push.
+#
+# The served files thus DECLARE which commit they correspond to — if GitHub Pages
+# CDN serves a stale build, the stale commit SHA shows on the page, making it
+# obvious. No change to the Pages source (still main/root); zero site-down risk.
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject deploy version
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          SHA8="${SHA:0:8}"
+          TIME="$(TZ='Asia/Shanghai' git log -1 --format=%cd --date=iso "$SHA")"
+          python3 - "$SHA8" "$TIME" <<'PY'
+          import re, sys
+          sha, t = sys.argv[1], sys.argv[2]
+          # install.ps1 header comment
+          s = open("install.ps1").read()
+          s = re.sub(r'(?m)^# deployed:.*$',
+                     f'# deployed: {sha}  {t} (Beijing)', s, count=1)
+          open("install.ps1","w").write(s)
+          # index.html footer span
+          s = open("index.html").read()
+          s = re.sub(r'(?s)<span class="deploy-version">.*?</span>',
+                     f'<span class="deploy-version">deployed: <code>{sha}</code> · {t} (Beijing)</span>',
+                     s)
+          open("index.html","w").write(s)
+          PY
+      - name: Commit version tag
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add install.ps1 index.html
+          git commit -m "chore(deploy): stamp version ${{ github.sha }}" || exit 0
+          git push
