@@ -35,14 +35,22 @@ if (Test-Path (Join-Path $ws 'NEXT-STEPS.md')) { Ok 'NEXT-STEPS.md present' } el
 if (Test-Path (Join-Path $ws 'CLAUDE.md')) { Ok 'CLAUDE.md present' } else { No 'CLAUDE.md' }
 
 $vsc = Join-Path $env:APPDATA 'Code\User\settings.json'
-if ((Test-Path $vsc) -and (Select-String -Path $vsc -Quiet 'security.workspace.trust.enabled.*false') -and (Select-String -Path $vsc -Quiet 'claudeCode.initialPermissionMode.*acceptEdits') -and (Select-String -Path $vsc -Quiet 'claudeCode.preferredLocation.*panel') -and (Select-String -Path $vsc -Quiet 'claudeCode.disableLoginPrompt.*true')) {
-    Ok 'VS Code user settings (trust off + Claude Code panel + skip login)'
+if ((Test-Path $vsc) -and (Select-String -Path $vsc -Quiet 'security.workspace.trust.enabled.*false') -and (Select-String -Path $vsc -Quiet 'claudeCode.initialPermissionMode.*acceptEdits') -and (Select-String -Path $vsc -Quiet 'claudeCode.preferredLocation.*sidebar') -and (Select-String -Path $vsc -Quiet 'claudeCode.disableLoginPrompt.*true')) {
+    Ok 'VS Code user settings (trust off + Claude Code sidebar + skip login)'
 } else { No 'VS Code user settings' }
 
 $wvs = Join-Path $ws '.vscode\settings.json'
 if ((Test-Path $wvs) -and (Select-String -Path $wvs -Quiet 'claudeCode.preferredLocation') -and (Select-String -Path $wvs -Quiet 'chat.commandCenter.enabled')) {
     Ok 'workspace .vscode/settings.json seeded'
 } else { No 'workspace .vscode/settings.json' }
+
+$sdb = Join-Path $env:APPDATA 'Code\User\globalStorage\state.vscdb'
+$vp = Join-Path $env:USERPROFILE '.bootstrap\crawl4ai-mcp-server\venv\Scripts\python.exe'
+if ((Test-Path $sdb) -and (Test-Path $vp)) {
+    $py = "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); r=c.execute('SELECT value FROM ItemTable WHERE key=\"welcomeOnboarding.state\"').fetchone(); c.close(); print(r)"
+    $out = & $vp -c $py $sdb 2>$null
+    if ($out -match 'true') { Ok 'VS Code UI-state seeded (onboarding suppressed)' } else { No 'VS Code UI-state seeded' }
+} else { No 'VS Code UI-state seeded' }
 
 if (code --list-extensions 2>$null | Select-String -Quiet 'github.copilot') {
     No 'github.copilot still installed'

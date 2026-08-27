@@ -44,13 +44,13 @@ if [ -f "$HOME/ai-workspace/NEXT-STEPS.md" ]; then ok 'NEXT-STEPS.md present'; e
 # CLAUDE.md workspace rules
 if [ -f "$HOME/ai-workspace/CLAUDE.md" ]; then ok 'CLAUDE.md present'; else no 'CLAUDE.md'; fi
 
-# VS Code user settings: trust off, Claude Code panel + skip login, Copilot off
+# VS Code user settings: trust off, Claude Code sidebar + skip login, Copilot off
 vsc="$HOME/.config/Code/User/settings.json"
 if [ -f "$vsc" ] && grep -q '"security.workspace.trust.enabled": false' "$vsc" 2>/dev/null \
    && grep -q '"claudeCode.initialPermissionMode": "acceptEdits"' "$vsc" 2>/dev/null \
-   && grep -q '"claudeCode.preferredLocation": "panel"' "$vsc" 2>/dev/null \
+   && grep -q '"claudeCode.preferredLocation": "sidebar"' "$vsc" 2>/dev/null \
    && grep -q '"claudeCode.disableLoginPrompt": true' "$vsc" 2>/dev/null; then
-  ok 'VS Code user settings (trust off + Claude Code panel + skip login)'
+  ok 'VS Code user settings (trust off + Claude Code sidebar + skip login)'
 else no 'VS Code user settings'; fi
 
 # workspace .vscode/settings.json mirrors the Claude Code / Copilot settings
@@ -59,6 +59,18 @@ if [ -f "$wvs" ] && grep -q 'claudeCode.preferredLocation' "$wvs" 2>/dev/null \
    && grep -q 'chat.commandCenter.enabled' "$wvs" 2>/dev/null; then
   ok 'workspace .vscode/settings.json seeded'
 else no 'workspace .vscode/settings.json'; fi
+
+# state.vscdb seeded: first-run onboarding/theme picker suppressed
+sdb="$HOME/.config/Code/User/globalStorage/state.vscdb"
+if [ -f "$sdb" ] && python3 - "$sdb" <<'PY' 2>/dev/null | grep -q 'onboarding=true'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+r = c.execute('SELECT value FROM ItemTable WHERE key="welcomeOnboarding.state"').fetchone()
+c.close()
+print('onboarding=' + (r[0] if r else 'none'))
+PY
+then ok 'VS Code UI-state seeded (onboarding suppressed)'
+else no 'VS Code UI-state seeded'; fi
 
 # GitHub Copilot not installed as a marketplace extension (best-effort suppress)
 if code --list-extensions 2>/dev/null | grep -qi 'github.copilot'; then

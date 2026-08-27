@@ -114,6 +114,9 @@ main() {
   crawl4ai_install
   crawl4ai_postinstall_hint
 
+  note "Seeding VS Code UI state (skip first-run onboarding/theme picker)"
+  vscode_seed_state
+
   note "Done."
   cat <<'NEXT'
 

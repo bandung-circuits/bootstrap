@@ -124,8 +124,8 @@ function New-Workspace {
 # My AI workspace
 
 Default workspace for Claude Code. Open this folder in VS Code; the Claude Code
-panel opens as an editor tab (Spark icon, top-right, if it doesn't). Ask, e.g.
-"create a hello.py and run it".
+panel opens in the sidebar (right) — Spark icon, top-right, if it doesn't. Ask,
+e.g. "create a hello.py and run it".
 
 Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
 '@ | Set-Content -Path $readme -Encoding UTF8
@@ -141,7 +141,7 @@ Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
         New-Item -ItemType Directory -Force -Path $vsDir | Out-Null
         @'
 {
-  "claudeCode.preferredLocation": "panel",
+  "claudeCode.preferredLocation": "sidebar",
   "claudeCode.disableLoginPrompt": true,
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
@@ -219,7 +219,7 @@ function Write-VSCodeUserSettings {
     Set-Prop $data 'update.showReleaseNotes' $false
     Set-Prop $data 'security.workspace.trust.enabled' $false
     Set-Prop $data 'claudeCode.initialPermissionMode' 'acceptEdits'
-    Set-Prop $data 'claudeCode.preferredLocation' 'panel'
+    Set-Prop $data 'claudeCode.preferredLocation' 'sidebar'
     Set-Prop $data 'claudeCode.disableLoginPrompt' $true
     Set-Prop $data 'claudeCode.hideOnboarding' $true
     Set-Prop $data 'chat.commandCenter.enabled' $false
@@ -277,7 +277,7 @@ Replace  PASTE-YOUR-API-KEY-HERE  with your real key. Save the file.$keyNote
 Open VS Code in this workspace:
   code $WS
 
-The Claude Code chat panel opens automatically (as an editor tab). If it
+The Claude Code chat panel opens automatically in the sidebar (right). If it
 doesn't, click the Spark icon (top-right of the editor). Ask it anything,
 e.g.  "create a hello.py and run it".
 
@@ -350,6 +350,38 @@ function Install-Crawl4ai {
     Write-Host "`n  crawl4ai note: first call downloads a headless browser (Playwright). Automatic, no key needed." -ForegroundColor DarkGray
 }
 
+# ---------- seed VS Code UI state (skip first-run onboarding/theme picker) ----------
+# The "choose interface style"/theme picker on first launch is UI state, not a
+# setting — settings.json can't suppress it. Seed state.vscdb with
+# welcomeOnboarding.state=true + newDefaultThemeNotification=true (portable
+# booleans, verified against the golden template — no machine paths). Uses the
+# crawl4ai venv python (stdlib sqlite3); best-effort (skip if python missing).
+function Seed-VSCodeState {
+    $db = Join-Path $env:APPDATA 'Code\User\globalStorage\state.vscdb'
+    $venvPy = Join-Path $CrawlDir 'venv\Scripts\python.exe'
+    if (-not (Test-Path $venvPy)) { Note "crawl4ai venv python not found — skipping VS Code UI-state seed (first-run onboarding may show)"; return }
+    $dir = Split-Path $db -Parent
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    $py = @'
+import sqlite3, os, sys
+path = sys.argv[1]
+os.makedirs(os.path.dirname(path), exist_ok=True)
+con = sqlite3.connect(path)
+con.execute("CREATE TABLE IF NOT EXISTS ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB)")
+seeds = {
+    "welcomeOnboarding.state": "true",
+    "workbench.newDefaultThemeNotification": "true",
+}
+cur = con.cursor()
+for k, v in seeds.items():
+    cur.execute("INSERT OR REPLACE INTO ItemTable (key, value) VALUES (?, ?)", (k, v))
+con.commit(); con.close()
+print("seeded %d VS Code UI-state keys into %s" % (len(seeds), path))
+'@
+    & $venvPy -c $py $db
+    Note "seeded VS Code UI-state (skip first-run onboarding/theme picker)"
+}
+
 # ---------- run (resilient: each step in try/catch, one failure doesn't abort the rest) ----------
 $ErrorActionPreference = 'Stop'
 $steps = @(
@@ -359,7 +391,8 @@ $steps = @(
     @{ Name='AI workspace';                Action={ New-Workspace } },
     @{ Name='settings.local.json';         Action={ Write-Settings } },
     @{ Name='NEXT-STEPS.md';               Action={ Write-NextSteps } },
-    @{ Name='crawl4ai MCP';                Action={ Install-Crawl4ai } }
+    @{ Name='crawl4ai MCP';                Action={ Install-Crawl4ai } },
+    @{ Name='VS Code UI-state seed';       Action={ Seed-VSCodeState } }
 )
 $failed = @()
 $logFile = Join-Path $env:USERPROFILE 'bootstrap-install.log'

@@ -177,7 +177,7 @@ if that key is the one you intend to use.)" )
 Open VS Code in this workspace:
   code ~/ai-workspace
 
-The Claude Code chat panel opens automatically (as an editor tab). If it
+The Claude Code chat panel opens automatically in the sidebar (right). If it
 doesn't, click the Spark icon (top-right of the editor). Ask it anything,
 e.g.  "create a hello.py and run it".
 

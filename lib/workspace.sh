@@ -19,7 +19,7 @@ This folder is your default workspace for Claude Code. Keep your projects here.
 ## Quick start
 
 1. Open this folder in VS Code.
-2. The Claude Code panel opens as an editor tab (click the Spark icon, top-right, if not).
+2. The Claude Code panel opens in the sidebar (right) — click the Spark icon, top-right, if not.
 3. Tell the AI what you want, e.g.:
    - "create a hello.py and run it"
    - "find recent news about <topic> and save it to news.md"
@@ -52,7 +52,7 @@ GI
     mkdir -p "$vscode_dir"
     cat > "$vscode_dir/settings.json" <<'VSC'
 {
-  "claudeCode.preferredLocation": "panel",
+  "claudeCode.preferredLocation": "sidebar",
   "claudeCode.disableLoginPrompt": true,
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,

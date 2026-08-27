@@ -71,13 +71,26 @@ vscode_user_settings_path() {
   esac
 }
 
+# Path to the VS Code UI-state DB (state.vscdb), per OS. Seeding the first-run
+# onboarding/theme flags here suppresses the "choose interface style" picker
+# that settings.json can't control. Keys seeded are portable (no machine paths).
+vscode_state_db_path() {
+  case "$DETECT_OS" in
+    macos) printf '%s/Library/Application Support/Code/User/globalStorage/state.vscdb' "$HOME" ;;
+    linux|wsl) printf '%s/.config/Code/User/globalStorage/state.vscdb' "$HOME" ;;
+    windows) printf '%s\\AppData\\Roaming\\Code\\User\\globalStorage\\state.vscdb' "$HOME" ;;
+  esac
+}
+
 # Write VS Code user settings to make first-run frictionless:
 #   - no Welcome tab / walkthroughs / release notes
 #   - workspace trust disabled (no Restricted Mode prompt)
 #   - Claude Code extension starts in "Edit automatically" mode
-#   - Claude Code opens as an editor tab (panel), login prompt skipped
+#   - Claude Code opens in the sidebar (right), login prompt skipped
 #     (third-party provider), onboarding checklist hidden
 #   - Copilot completions disabled + its command-center button hidden
+# Note: the first-run "choose interface style" / theme picker can NOT be
+# suppressed via settings (it's UI state) — see vscode_seed_state for that.
 # Merges into any existing settings (python3 for safe JSON merge).
 vscode_write_user_settings() {
   local settings; settings=$(vscode_user_settings_path)
@@ -96,7 +109,7 @@ data["workbench.welcomePage.walkthroughsVisible"] = False
 data["update.showReleaseNotes"] = False
 data["security.workspace.trust.enabled"] = False
 data["claudeCode.initialPermissionMode"] = "acceptEdits"
-data["claudeCode.preferredLocation"] = "panel"
+data["claudeCode.preferredLocation"] = "sidebar"
 data["claudeCode.disableLoginPrompt"] = True
 data["claudeCode.hideOnboarding"] = True
 data["chat.commandCenter.enabled"] = False
@@ -113,7 +126,7 @@ PY
   "update.showReleaseNotes": false,
   "security.workspace.trust.enabled": false,
   "claudeCode.initialPermissionMode": "acceptEdits",
-  "claudeCode.preferredLocation": "panel",
+  "claudeCode.preferredLocation": "sidebar",
   "claudeCode.disableLoginPrompt": true,
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
@@ -121,5 +134,37 @@ PY
 }
 EOF
   fi
-  note "wrote VS Code user settings (skip welcome, trust on, Claude Code panel + skip login, Copilot off)"
+  note "wrote VS Code user settings (skip welcome, trust on, Claude Code sidebar + skip login, Copilot off)"
+}
+
+# Seed the VS Code UI-state DB (state.vscdb) with first-run-onboarding-done flags
+# so a fresh install skips the "choose interface style"/theme picker, which
+# settings.json CANNOT suppress (it's UI state, not a setting). The keys seeded
+# are portable (booleans, no machine paths — verified against the golden
+# template). Best-effort: needs python3 (system, or the crawl4ai venv python
+# passed as $1). CREATE TABLE IF NOT EXISTS + INSERT (UNIQUE ON CONFLICT REPLACE
+# merges into an existing DB; creates fresh if absent, so VS Code's first launch
+# reads the seeded flags).
+vscode_seed_state() {
+  local db; db=$(vscode_state_db_path)
+  local py="${1:-}"
+  if [ -z "$py" ]; then command -v python3 >/dev/null 2>&1 && py=python3; fi
+  if [ -z "$py" ]; then warn "no python3 to seed VS Code UI state — first-run onboarding may show"; return 0; fi
+  "$py" - "$db" <<'PY'
+import sqlite3, os, sys
+path = sys.argv[1]
+os.makedirs(os.path.dirname(path), exist_ok=True)
+con = sqlite3.connect(path)
+con.execute("CREATE TABLE IF NOT EXISTS ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB)")
+seeds = {
+    "welcomeOnboarding.state": "true",
+    "workbench.newDefaultThemeNotification": "true",
+}
+cur = con.cursor()
+for k, v in seeds.items():
+    cur.execute("INSERT OR REPLACE INTO ItemTable (key, value) VALUES (?, ?)", (k, v))
+con.commit(); con.close()
+print("seeded %d VS Code UI-state keys into %s" % (len(seeds), path))
+PY
+  note "seeded VS Code UI-state (skip first-run onboarding/theme picker)"
 }
