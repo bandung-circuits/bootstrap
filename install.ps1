@@ -56,20 +56,20 @@ $UV_BIN = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
 
 function Refresh-Path { $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:USERPROFILE + '\.local\bin' }
 
-# Run a native command via .NET Process so PS 5.1 NEVER sees the native stderr.
-# Under $ErrorActionPreference='Stop', PS 5.1 wraps any native stderr (uv
-# progress, node deprecation, code warnings) as a terminating NativeCommandError
-# that can escape a function-scope try/catch and crash the whole script (the
-# crawl4ai step died this way on a real machine: 6 steps [OK] then the window
-# closed, no [FAIL] logged). 2>$null and cmd /c 2>nul do NOT reliably stop it.
-# Redirecting stderr to .NET (PS never sees the stream) is bulletproof.
+# Run a native command via .NET Process. PS 5.1 under
+# $ErrorActionPreference='Stop' wraps native-command stderr (uv progress, node
+# deprecation) as a terminating NativeCommandError that can escape a
+# function-scope try/catch and kill the whole script. .NET Process.Start is NOT
+# a PS native-command invocation, so PS never sees the child's stderr — no
+# NativeCommandError. Stderr/stdout are intentionally NOT redirected: redirecting
+# them without draining deadlocks (child blocks on a full pipe under TTY progress).
+# Leaving them un-redirected lets output inherit the console (visible progress),
+# with no deadlock and no NativeCommandError.
 function Invoke-Native([string]$exe, [string]$argStr) {
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo.FileName = $exe
     $p.StartInfo.Arguments = $argStr
     $p.StartInfo.UseShellExecute = $false
-    $p.StartInfo.RedirectStandardError = $true
-    $p.StartInfo.RedirectStandardOutput = $true
     [void]$p.Start()
     $p.WaitForExit()
     return $p.ExitCode
@@ -288,7 +288,19 @@ The crawl4ai MCP (web fetch/search) is already configured -- no key needed.
 function Ensure-Uv {
     if (Test-Path $UV_BIN) { return }
     Note 'Installing uv (Python runtime manager)'
-    Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+    # The astral installer refuses to run under a Restricted ExecutionPolicy (its
+    # Initialize-Environment throws "requires an execution policy in [...]"), and
+    # its top-level catch does `exit 1` — when iex'd here that kills THIS whole
+    # process (exit isn't catchable, so the resilient loop can't log [FAIL] and
+    # the window just dies). Run it in a CHILD powershell with
+    # -ExecutionPolicy Bypass via Invoke-Native: the child's Bypass passes the
+    # check, and its exit only kills the child; we get the exit code and throw
+    # on failure (caught by the resilient loop as [FAIL], no flash).
+    $installer = Join-Path $env:TEMP 'astral-uv-install.ps1'
+    Invoke-WebRequest 'https://astral.sh/uv/install.ps1' -OutFile $installer
+    $psExe = Join-Path $PSHOME 'powershell.exe'
+    $rc = Invoke-Native $psExe "-NoProfile -ExecutionPolicy Bypass -File `"$installer`""
+    if ($rc -ne 0) { throw "uv installer failed (exit $rc)" }
     Refresh-Path
 }
 
