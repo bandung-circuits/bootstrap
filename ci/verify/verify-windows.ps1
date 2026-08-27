@@ -47,8 +47,15 @@ if ((Test-Path $wvs) -and (Select-String -Path $wvs -Quiet 'claudeCode.preferred
 $sdb = Join-Path $env:APPDATA 'Code\User\globalStorage\state.vscdb'
 $vp = Join-Path $env:USERPROFILE '.bootstrap\crawl4ai-mcp-server\venv\Scripts\python.exe'
 if ((Test-Path $sdb) -and (Test-Path $vp)) {
-    $py = "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); r=c.execute('SELECT value FROM ItemTable WHERE key=\"welcomeOnboarding.state\"').fetchone(); c.close(); print(r)"
-    $out = & $vp -c $py $sdb 2>$null
+    $tmp = Join-Path $env:TEMP 'check-vscode-state.py'
+    @'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+r = c.execute('SELECT value FROM ItemTable WHERE key=?', ('welcomeOnboarding.state',)).fetchone()
+c.close()
+print(r[0] if r else 'none')
+'@ | Set-Content -Path $tmp -Encoding UTF8
+    $out = & $vp $tmp $sdb 2>$null
     if ($out -match 'true') { Ok 'VS Code UI-state seeded (onboarding suppressed)' } else { No 'VS Code UI-state seeded' }
 } else { No 'VS Code UI-state seeded' }
 

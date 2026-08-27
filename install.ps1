@@ -62,7 +62,7 @@ function Refresh-Path { $env:Path = [Environment]::GetEnvironmentVariable('Path'
 # $ErrorActionPreference='Stop' wraps native-command stderr (uv progress, node
 # deprecation) as a terminating NativeCommandError that can escape a
 # function-scope try/catch and kill the whole script. .NET Process.Start is NOT
-# a PS native-command invocation, so PS never sees the child's stderr — no
+# a PS native-command invocation, so PS never sees the child's stderr -- no
 # NativeCommandError. Stderr/stdout are intentionally NOT redirected: redirecting
 # them without draining deadlocks (child blocks on a full pipe under TTY progress).
 # Leaving them un-redirected lets output inherit the console (visible progress),
@@ -124,7 +124,7 @@ function New-Workspace {
 # My AI workspace
 
 Default workspace for Claude Code. Open this folder in VS Code; the Claude Code
-panel opens in the sidebar (right) — Spark icon, top-right, if it doesn't. Ask,
+panel opens in the sidebar (right) -- Spark icon, top-right, if it doesn't. Ask,
 e.g. "create a hello.py and run it".
 
 Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
@@ -292,7 +292,7 @@ function Ensure-Uv {
     Note 'Installing uv (Python runtime manager)'
     # The astral installer refuses to run under a Restricted ExecutionPolicy (its
     # Initialize-Environment throws "requires an execution policy in [...]"), and
-    # its top-level catch does `exit 1` — when iex'd here that kills THIS whole
+    # its top-level catch does `exit 1` -- when iex'd here that kills THIS whole
     # process (exit isn't catchable, so the resilient loop can't log [FAIL] and
     # the window just dies). Run it in a CHILD powershell with
     # -ExecutionPolicy Bypass via Invoke-Native: the child's Bypass passes the
@@ -326,7 +326,7 @@ function Install-Crawl4ai {
         $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
         if (-not $uv) { $uv = $UV_BIN }
         # Run uv via .NET Process (Invoke-Native) so PS 5.1 never sees uv's
-        # stderr progress — under ErrorActionPreference=Stop that becomes a
+        # stderr progress -- under ErrorActionPreference=Stop that becomes a
         # terminating NativeCommandError that crashes the whole script (this
         # was the crawl4ai flash-exit: 6 steps [OK] then the window died).
         $rc = Invoke-Native $uv 'python install 3.10'
@@ -352,14 +352,14 @@ function Install-Crawl4ai {
 
 # ---------- seed VS Code UI state (skip first-run onboarding/theme picker) ----------
 # The "choose interface style"/theme picker on first launch is UI state, not a
-# setting — settings.json can't suppress it. Seed state.vscdb with
+# setting -- settings.json can't suppress it. Seed state.vscdb with
 # welcomeOnboarding.state=true + newDefaultThemeNotification=true (portable
-# booleans, verified against the golden template — no machine paths). Uses the
+# booleans, verified against the golden template -- no machine paths). Uses the
 # crawl4ai venv python (stdlib sqlite3); best-effort (skip if python missing).
 function Seed-VSCodeState {
     $db = Join-Path $env:APPDATA 'Code\User\globalStorage\state.vscdb'
     $venvPy = Join-Path $CrawlDir 'venv\Scripts\python.exe'
-    if (-not (Test-Path $venvPy)) { Note "crawl4ai venv python not found — skipping VS Code UI-state seed (first-run onboarding may show)"; return }
+    if (-not (Test-Path $venvPy)) { Note "crawl4ai venv python not found -- skipping VS Code UI-state seed (first-run onboarding may show)"; return }
     $dir = Split-Path $db -Parent
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     $py = @'

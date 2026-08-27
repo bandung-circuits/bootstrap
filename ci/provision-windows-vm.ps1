@@ -1,4 +1,4 @@
-# provision-windows-vm.ps1 — run INSIDE the Windows 11 ARM template VM.
+# provision-windows-vm.ps1 -- run INSIDE the Windows 11 ARM template VM.
 # Readies it for CI: OpenSSH server, winget, PowerShell policy, VMware Tools check.
 # Run once before snapshotting 'clean-base'.
 
