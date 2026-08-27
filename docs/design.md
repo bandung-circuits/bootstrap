@@ -73,6 +73,6 @@ DSH（DeepSeek Harness）：成熟度与使用体验还不够，暂不纳入 boo
 
 ## 发布架构
 
-- GitHub Pages 从仓库 root 发布（`Settings → Pages → Source: main /root` + `.nojekyll`）。落地页 root `index.html`，站点 URL `https://bandung-circuits.github.io/bootstrap/`。
+- GitHub Pages 经 `ci/deploy-pages` workflow 部署（`Settings → Pages → Source: GitHub Actions` + `.nojekyll`）。落地页 root `index.html`，站点 URL `https://bandung-circuits.github.io/bootstrap/`。每次 push 到 main，workflow 在内存里把部署提交的 SHA8 + 北京时间注入到 install.ps1 头注释和 index.html 页脚（不 commit），再 upload + deploy——线上文件自己声明对应提交，Pages CDN 若 serve 旧版一眼能看出。
 - 安装脚本也经 Pages 域名下发（`/bootstrap/install.sh`、`/bootstrap/lib/*.sh`、`/bootstrap/install.ps1`）。选 Pages 而非 `raw.githubusercontent.com`：后者国内常被墙，`github.io` 国内可达，对默认国内路径（百炼）的可达性更关键。
 - `install.sh` 被管道执行时若本地无 `lib/`，就从 Pages 域名拉 `lib/*.sh` 进临时目录 source。
