@@ -79,6 +79,12 @@ function Install-ClaudeCode {
         Note 'Installing Claude Code VS Code extension'
         code --install-extension anthropic.claude-code --force
     }
+    # Suppress GitHub Copilot so the only AI chat surface is Claude Code.
+    # Best-effort: built-in Copilot can't be uninstalled (disabled via
+    # settings in Write-VSCodeUserSettings); marketplace Copilot is removed.
+    foreach ($ext in 'github.copilot','github.copilot-chat') {
+        code --uninstall-extension $ext 2>$null | Out-Null
+    }
 }
 
 # ---------- workspace ----------
@@ -89,8 +95,9 @@ function New-Workspace {
         @'
 # My AI workspace
 
-Default workspace for Claude Code. Open this folder in VS Code, open the Claude Code
-panel (Spark icon), and ask, e.g. "create a hello.py and run it".
+Default workspace for Claude Code. Open this folder in VS Code; the Claude Code
+panel opens as an editor tab (Spark icon, top-right, if it doesn't). Ask, e.g.
+"create a hello.py and run it".
 
 Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
 '@ | Set-Content -Path $readme -Encoding UTF8
@@ -98,6 +105,21 @@ Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
     $gi = Join-Path $WS '.gitignore'
     if (-not (Test-Path $gi)) {
         "node_modules/`n.venv/`nvenv/`n__pycache__/`n*.log`n.DS_Store`n.claude/settings.local.json" | Set-Content -Path $gi -Encoding UTF8
+    }
+    # workspace .vscode/settings.json -- mirror Claude Code / Copilot settings
+    $vsDir = Join-Path $WS '.vscode'
+    $vsSettings = Join-Path $vsDir 'settings.json'
+    if (-not (Test-Path $vsSettings)) {
+        New-Item -ItemType Directory -Force -Path $vsDir | Out-Null
+        @'
+{
+  "claudeCode.preferredLocation": "panel",
+  "claudeCode.disableLoginPrompt": true,
+  "claudeCode.hideOnboarding": true,
+  "chat.commandCenter.enabled": false,
+  "github.copilot.enable": { "*": false }
+}
+'@ | Set-Content -Path $vsSettings -Encoding UTF8
     }
     $claudeMd = Join-Path $WS 'CLAUDE.md'
     if (-not (Test-Path $claudeMd)) {
@@ -156,7 +178,7 @@ function Write-Settings {
     Note "wrote $settings"
 }
 
-# ---------- VS Code user settings (skip welcome, trust on, Claude Code = Edit automatically) ----------
+# ---------- VS Code user settings (skip welcome, trust on, Claude Code panel, Copilot off) ----------
 function Write-VSCodeUserSettings {
     $dir = Join-Path $env:APPDATA 'Code\User'
     $settings = Join-Path $dir 'settings.json'
@@ -169,8 +191,19 @@ function Write-VSCodeUserSettings {
     Set-Prop $data 'update.showReleaseNotes' $false
     Set-Prop $data 'security.workspace.trust.enabled' $false
     Set-Prop $data 'claudeCode.initialPermissionMode' 'acceptEdits'
+    Set-Prop $data 'claudeCode.preferredLocation' 'panel'
+    Set-Prop $data 'claudeCode.disableLoginPrompt' $true
+    Set-Prop $data 'claudeCode.hideOnboarding' $true
+    Set-Prop $data 'chat.commandCenter.enabled' $false
+    # github.copilot.enable is an object { "*": false }; build it as a map.
+    $cop = [PSCustomObject]@{ '*' = $false }
+    if ($data.PSObject.Properties.Name -contains 'github.copilot.enable') {
+        $data.'github.copilot.enable' = $cop
+    } else {
+        $data | Add-Member -NotePropertyName 'github.copilot.enable' -NotePropertyValue $cop
+    }
     $data | ConvertTo-Json -Depth 10 | Set-Content -Path $settings -Encoding UTF8
-    Note 'wrote VS Code user settings (skip welcome, trust on, Claude Code = Edit automatically)'
+    Note 'wrote VS Code user settings (skip welcome, trust on, Claude Code panel + skip login, Copilot off)'
 }
 
 # ---------- NEXT-STEPS.md ----------
@@ -216,8 +249,9 @@ Replace  PASTE-YOUR-API-KEY-HERE  with your real key. Save the file.$keyNote
 Open VS Code in this workspace:
   code $WS
 
-Click the Spark icon (top-right of the editor, or in the sidebar) to open the
-Claude Code panel. Ask it anything, e.g.  "create a hello.py and run it".
+The Claude Code chat panel opens automatically (as an editor tab). If it
+doesn't, click the Spark icon (top-right of the editor). Ask it anything,
+e.g.  "create a hello.py and run it".
 
 The crawl4ai MCP (web fetch/search) is already configured -- no key needed.
 "@ | Set-Content -Path $steps -Encoding UTF8
@@ -306,7 +340,14 @@ Write-Host @'
   See  ~/ai-workspace/NEXT-STEPS.md  (where to get a key, which file to edit,
   and how to start Claude Code).
 
-  Then open VS Code in  ~/ai-workspace  and click the Spark icon.
+  Then open VS Code in  ~/ai-workspace  -- the Claude Code panel opens on its own.
   crawl4ai MCP (web fetch/search) is registered and ready.
 '@
-if (Get-Command code -ErrorAction SilentlyContinue) { Start-Process code -ArgumentList "`"$WS`"" }
+if (Get-Command code -ErrorAction SilentlyContinue) {
+    # Open the workspace folder (loads .claude/.mcp.json/.vscode) AND
+    # NEXT-STEPS.md (makes the Spark icon visible as a fallback), then pop
+    # the Claude Code chat panel via the documented vscode:// URI handler.
+    Start-Process code -ArgumentList "`"$WS`"", "`"$(Join-Path $WS 'NEXT-STEPS.md')`""
+    Start-Sleep -Seconds 3
+    try { Start-Process "vscode://anthropic.claude-code/open" } catch {}
+}

@@ -16,4 +16,10 @@ claude_code_extension_install() {
     code --install-extension "$CLAUDE_CODE_EXT_ID" --force \
       || err "failed to install extension $CLAUDE_CODE_EXT_ID"
   fi
+  # Suppress GitHub Copilot so the only AI chat surface is Claude Code.
+  # Best-effort: built-in Copilot can't be uninstalled, only disabled via
+  # settings (see vscode_write_user_settings); marketplace Copilot is removed.
+  for ext in github.copilot github.copilot-chat; do
+    code --uninstall-extension "$ext" >/dev/null 2>&1 || true
+  done
 }

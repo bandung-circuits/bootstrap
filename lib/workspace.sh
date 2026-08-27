@@ -19,7 +19,7 @@ This folder is your default workspace for Claude Code. Keep your projects here.
 ## Quick start
 
 1. Open this folder in VS Code.
-2. Open the Claude Code panel (sidebar).
+2. The Claude Code panel opens as an editor tab (click the Spark icon, top-right, if not).
 3. Tell the AI what you want, e.g.:
    - "create a hello.py and run it"
    - "find recent news about <topic> and save it to news.md"
@@ -42,6 +42,24 @@ __pycache__/
 # settings.local.json contains your API key — keep it in the folder, out of git.
 .claude/settings.local.json
 GI
+  fi
+
+  # workspace .vscode/settings.json — mirror the Claude Code / Copilot settings
+  # (belt; user settings are the authoritative place, but this covers the case
+  # of a user who later wipes their user settings).
+  local vscode_dir="$WORKSPACE_DIR/.vscode"
+  if [ ! -f "$vscode_dir/settings.json" ]; then
+    mkdir -p "$vscode_dir"
+    cat > "$vscode_dir/settings.json" <<'VSC'
+{
+  "claudeCode.preferredLocation": "panel",
+  "claudeCode.disableLoginPrompt": true,
+  "claudeCode.hideOnboarding": true,
+  "chat.commandCenter.enabled": false,
+  "github.copilot.enable": { "*": false }
+}
+VSC
+    note "seeded $vscode_dir/settings.json"
   fi
 
   # default CLAUDE.md — workspace rules for Claude Code (web-tool priority + grounded search)
@@ -69,11 +87,27 @@ MD
   fi
 }
 
-# Open VS Code in the workspace (best-effort; don't fail the install if it can't).
+# Open VS Code in the workspace with NEXT-STEPS.md open, then pop the Claude
+# Code chat panel via the documented vscode:// URI handler (opens a new
+# conversation). Opening the folder (not just the file) makes VS Code load
+# .claude/settings.local.json, .mcp.json, and .vscode/settings.json. Opening
+# the file too makes the Spark icon visible in the editor toolbar as a
+# fallback if the URI handler can't fire (e.g. no opener on a headless box).
 workspace_open() {
   if command -v code >/dev/null 2>&1; then
-    note "opening VS Code in $WORKSPACE_DIR"
-    code "$WORKSPACE_DIR" >/dev/null 2>&1 || warn "could not open VS Code automatically; run: code $WORKSPACE_DIR"
+    note "opening VS Code in $WORKSPACE_DIR (NEXT-STEPS.md + Claude Code panel)"
+    code "$WORKSPACE_DIR" "$WORKSPACE_DIR/NEXT-STEPS.md" >/dev/null 2>&1 \
+      || warn "could not open VS Code automatically; run: code $WORKSPACE_DIR"
+    # Give VS Code + the Claude Code extension a moment to activate, then
+    # open the chat panel. Best-effort; degrades to the Spark icon fallback.
+    local opener=""
+    if command -v xdg-open >/dev/null 2>&1; then opener=xdg-open
+    elif command -v open >/dev/null 2>&1; then opener=open
+    fi
+    if [ -n "$opener" ]; then
+      ( sleep 3; "$opener" "vscode://anthropic.claude-code/open" >/dev/null 2>&1 ) \
+        >/dev/null 2>&1 &
+    fi
   else
     warn "open VS Code manually in: $WORKSPACE_DIR"
   fi

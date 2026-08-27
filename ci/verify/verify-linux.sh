@@ -44,12 +44,26 @@ if [ -f "$HOME/ai-workspace/NEXT-STEPS.md" ]; then ok 'NEXT-STEPS.md present'; e
 # CLAUDE.md workspace rules
 if [ -f "$HOME/ai-workspace/CLAUDE.md" ]; then ok 'CLAUDE.md present'; else no 'CLAUDE.md'; fi
 
-# VS Code user settings: trust off + Claude Code Edit-automatically
+# VS Code user settings: trust off, Claude Code panel + skip login, Copilot off
 vsc="$HOME/.config/Code/User/settings.json"
 if [ -f "$vsc" ] && grep -q '"security.workspace.trust.enabled": false' "$vsc" 2>/dev/null \
-   && grep -q '"claudeCode.initialPermissionMode": "acceptEdits"' "$vsc" 2>/dev/null; then
-  ok 'VS Code user settings (trust off + Edit-automatically)'
+   && grep -q '"claudeCode.initialPermissionMode": "acceptEdits"' "$vsc" 2>/dev/null \
+   && grep -q '"claudeCode.preferredLocation": "panel"' "$vsc" 2>/dev/null \
+   && grep -q '"claudeCode.disableLoginPrompt": true' "$vsc" 2>/dev/null; then
+  ok 'VS Code user settings (trust off + Claude Code panel + skip login)'
 else no 'VS Code user settings'; fi
+
+# workspace .vscode/settings.json mirrors the Claude Code / Copilot settings
+wvs="$HOME/ai-workspace/.vscode/settings.json"
+if [ -f "$wvs" ] && grep -q 'claudeCode.preferredLocation' "$wvs" 2>/dev/null \
+   && grep -q 'chat.commandCenter.enabled' "$wvs" 2>/dev/null; then
+  ok 'workspace .vscode/settings.json seeded'
+else no 'workspace .vscode/settings.json'; fi
+
+# GitHub Copilot not installed as a marketplace extension (best-effort suppress)
+if code --list-extensions 2>/dev/null | grep -qi 'github.copilot'; then
+  no 'github.copilot still installed'
+else ok 'github.copilot not installed (marketplace)'; fi
 
 # model connectivity — actually call the backend
 if [ -n "${TEST_API_KEY:-}" ]; then

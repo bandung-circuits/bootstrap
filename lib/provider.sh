@@ -177,8 +177,9 @@ if that key is the one you intend to use.)" )
 Open VS Code in this workspace:
   code ~/ai-workspace
 
-Click the Spark icon (top-right of the editor, or in the sidebar) to open the
-Claude Code panel. Ask it anything, e.g.  "create a hello.py and run it".
+The Claude Code chat panel opens automatically (as an editor tab). If it
+doesn't, click the Spark icon (top-right of the editor). Ask it anything,
+e.g.  "create a hello.py and run it".
 
 The crawl4ai MCP (web fetch/search) is already configured — no key needed.
 EOF

@@ -35,9 +35,18 @@ if (Test-Path (Join-Path $ws 'NEXT-STEPS.md')) { Ok 'NEXT-STEPS.md present' } el
 if (Test-Path (Join-Path $ws 'CLAUDE.md')) { Ok 'CLAUDE.md present' } else { No 'CLAUDE.md' }
 
 $vsc = Join-Path $env:APPDATA 'Code\User\settings.json'
-if ((Test-Path $vsc) -and (Select-String -Path $vsc -Quiet 'security.workspace.trust.enabled.*false') -and (Select-String -Path $vsc -Quiet 'claudeCode.initialPermissionMode.*acceptEdits')) {
-    Ok 'VS Code user settings (trust off + Edit-automatically)'
+if ((Test-Path $vsc) -and (Select-String -Path $vsc -Quiet 'security.workspace.trust.enabled.*false') -and (Select-String -Path $vsc -Quiet 'claudeCode.initialPermissionMode.*acceptEdits') -and (Select-String -Path $vsc -Quiet 'claudeCode.preferredLocation.*panel') -and (Select-String -Path $vsc -Quiet 'claudeCode.disableLoginPrompt.*true')) {
+    Ok 'VS Code user settings (trust off + Claude Code panel + skip login)'
 } else { No 'VS Code user settings' }
+
+$wvs = Join-Path $ws '.vscode\settings.json'
+if ((Test-Path $wvs) -and (Select-String -Path $wvs -Quiet 'claudeCode.preferredLocation') -and (Select-String -Path $wvs -Quiet 'chat.commandCenter.enabled')) {
+    Ok 'workspace .vscode/settings.json seeded'
+} else { No 'workspace .vscode/settings.json' }
+
+if (code --list-extensions 2>$null | Select-String -Quiet 'github.copilot') {
+    No 'github.copilot still installed'
+} else { Ok 'github.copilot not installed (marketplace)' }
 
 if ($env:TEST_API_KEY) {
     switch ($env:TEST_PROVIDER) {

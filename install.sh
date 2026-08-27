@@ -121,7 +121,7 @@ main() {
   See  ~/ai-workspace/NEXT-STEPS.md  (open it: it tells you where to get a key,
   which file to edit, and how to start Claude Code).
 
-  Then open VS Code in  ~/ai-workspace  and click the Spark icon.
+  Then VS Code opens in  ~/ai-workspace  with the Claude Code panel ready.
   The crawl4ai MCP (web fetch/search) is registered and ready.
 NEXT
   workspace_open

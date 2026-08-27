@@ -23,7 +23,7 @@ vscode_install() {
         apt)
           note "installing VS Code via apt (Microsoft source)"
           sudo apt-get update -y
-          sudo apt-get install -y wget gpg
+          sudo apt-get install -y wget gpg xdg-utils
           wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
           sudo install -D -o root -g root -m 644 /tmp/packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
           echo "deb [arch=$DETECT_ARCH signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" \
@@ -75,13 +75,16 @@ vscode_user_settings_path() {
 #   - no Welcome tab / walkthroughs / release notes
 #   - workspace trust disabled (no Restricted Mode prompt)
 #   - Claude Code extension starts in "Edit automatically" mode
+#   - Claude Code opens as an editor tab (panel), login prompt skipped
+#     (third-party provider), onboarding checklist hidden
+#   - Copilot completions disabled + its command-center button hidden
 # Merges into any existing settings (python3 for safe JSON merge).
 vscode_write_user_settings() {
   local settings; settings=$(vscode_user_settings_path)
   mkdir -p "$(dirname "$settings")"
   if command -v python3 >/dev/null 2>&1; then
     python3 - "$settings" <<'PY'
-import json, os, sys
+import json, sys
 path = sys.argv[1]
 try:
     with open(path) as f:
@@ -93,6 +96,11 @@ data["workbench.welcomePage.walkthroughsVisible"] = False
 data["update.showReleaseNotes"] = False
 data["security.workspace.trust.enabled"] = False
 data["claudeCode.initialPermissionMode"] = "acceptEdits"
+data["claudeCode.preferredLocation"] = "panel"
+data["claudeCode.disableLoginPrompt"] = True
+data["claudeCode.hideOnboarding"] = True
+data["chat.commandCenter.enabled"] = False
+data["github.copilot.enable"] = {"*": False}
 with open(path, "w") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
     f.write("\n")
@@ -104,9 +112,14 @@ PY
   "workbench.welcomePage.walkthroughsVisible": false,
   "update.showReleaseNotes": false,
   "security.workspace.trust.enabled": false,
-  "claudeCode.initialPermissionMode": "acceptEdits"
+  "claudeCode.initialPermissionMode": "acceptEdits",
+  "claudeCode.preferredLocation": "panel",
+  "claudeCode.disableLoginPrompt": true,
+  "claudeCode.hideOnboarding": true,
+  "chat.commandCenter.enabled": false,
+  "github.copilot.enable": { "*": false }
 }
 EOF
   fi
-  note "wrote VS Code user settings (skip welcome, trust on, Claude Code = Edit automatically)"
+  note "wrote VS Code user settings (skip welcome, trust on, Claude Code panel + skip login, Copilot off)"
 }
