@@ -69,15 +69,10 @@ else no 'workspace .vscode/settings.json'; fi
 
 # state.vscdb seeded: first-run onboarding suppressed + Claude docked in the
 # right (secondary) sidebar and the bar marked non-empty (so it opens on
-# first launch with Claude Code in it)
+# first launch with Claude Code in it). One script, one grep line (pairing a
+# heredoc body with a different command's grep breaks the check).
 sdb="$HOME/.config/Code/User/globalStorage/state.vscdb"
-if [ -f "$sdb" ] && python3 - "$sdb" <<'PY' 2>/dev/null | grep -q 'dock=yes' && python3 - "$sdb" <<'PY' 2>/dev/null | grep -q 'bar=notempty'
-import sqlite3, sys
-c = sqlite3.connect(sys.argv[1])
-r = c.execute('SELECT value FROM ItemTable WHERE key=?', ('workbench.auxiliaryBar.empty',)).fetchone()
-c.close()
-print('bar=' + ('notempty' if r and r[0] == 'false' else 'empty'))
-PY
+if [ -f "$sdb" ] && python3 - "$sdb" <<'PY' 2>/dev/null | grep -q 'dock=yes.*bar=notempty'
 import sqlite3, sys
 c = sqlite3.connect(sys.argv[1])
 def get(k):
@@ -85,8 +80,11 @@ def get(k):
     return r[0] if r else None
 onb = get('welcomeOnboarding.state')
 pin = get('workbench.auxiliarybar.pinnedPanels')
-print('onboarding=' + (onb if onb else 'none'))
-print('dock=' + ('yes' if pin and 'claude-sidebar-secondary' in pin else 'no'))
+emp = get('workbench.auxiliaryBar.empty')
+flags = 'onboarding=' + (onb if onb else 'none')
+flags += ' dock=' + ('yes' if pin and 'claude-sidebar-secondary' in pin else 'no')
+flags += ' bar=' + ('notempty' if emp == 'false' else 'empty')
+print(flags)
 c.close()
 PY
 then ok 'VS Code UI-state seeded (onboarding + Claude docked, right sidebar opens)'
