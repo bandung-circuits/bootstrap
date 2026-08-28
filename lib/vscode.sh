@@ -91,6 +91,11 @@ vscode_state_db_path() {
 #   - Copilot completions disabled + its command-center button hidden
 # Note: the first-run "choose interface style" / theme picker can NOT be
 # suppressed via settings (it's UI state) — see vscode_seed_state for that.
+# Note: workbench.secondarySideBar.defaultVisibility is deliberately NOT set
+# here — its default is "visibleInWorkspace", which shows the right (secondary)
+# sidebar on first launch when a folder is open AND the bar is non-empty (the
+# seeded UI state docks Claude there, so it's non-empty). Setting it to
+# "hidden" (as scheme C used to) is exactly what collapsed the right sidebar.
 # Merges into any existing settings (python3 for safe JSON merge).
 vscode_write_user_settings() {
   local settings; settings=$(vscode_user_settings_path)
@@ -114,7 +119,6 @@ data["claudeCode.disableLoginPrompt"] = True
 data["claudeCode.hideOnboarding"] = True
 data["chat.commandCenter.enabled"] = False
 data["chat.disableAIFeatures"] = True
-data["workbench.secondarySideBar.defaultVisibility"] = "hidden"
 data["github.copilot.enable"] = {"*": False}
 with open(path, "w") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
@@ -133,7 +137,6 @@ PY
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
   "chat.disableAIFeatures": true,
-  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "github.copilot.enable": { "*": false }
 }
 EOF
@@ -141,14 +144,30 @@ EOF
   note "wrote VS Code user settings (skip welcome, trust on, Claude Code sidebar + skip login, Copilot off)"
 }
 
-# Seed the VS Code UI-state DB (state.vscdb) with first-run-onboarding-done flags
-# so a fresh install skips the "choose interface style"/theme picker, which
-# settings.json CANNOT suppress (it's UI state, not a setting). The keys seeded
-# are portable (booleans, no machine paths — verified against the golden
-# template). Best-effort: needs python3 (system, or the crawl4ai venv python
-# passed as $1). CREATE TABLE IF NOT EXISTS + INSERT (UNIQUE ON CONFLICT REPLACE
-# merges into an existing DB; creates fresh if absent, so VS Code's first launch
-# reads the seeded flags).
+# Seed the VS Code UI-state DB (state.vscdb) so a fresh install reproduces the
+# captured golden state (see wip/golden-state-keys.md + wip/golden-state.vscdb):
+#   - first-run flags (welcomeOnboarding.state, theme notification) suppress the
+#     "choose interface style"/theme picker, which settings.json CANNOT suppress
+#     (it's UI state, not a setting);
+#   - the pinnedPanels + secondary-sidebar view-state keys dock the Claude Code
+#     view in the RIGHT (secondary) sidebar, and auxiliaryBar.empty=false marks
+#     the bar non-empty. Together with the default
+#     workbench.secondarySideBar.defaultVisibility ("visibleInWorkspace", so
+#     we do NOT set that setting), VS Code opens the right sidebar ON FIRST
+#     LAUNCH with Claude Code in it (verified against workbench.desktop.main.js
+#     AUXILIARYBAR_HIDDEN.defaultValue + the golden capture). THIS is what
+#     places the plugin — the installer no longer auto-opens Claude Code via
+#     the vscode://anthropic.claude-code/open URI, because that handler opens a
+#     CENTER editor tab (primaryEditor.open) and ignores preferredLocation;
+#   - the extension-global-state flags (Anthropic.claude-code) stop the
+#     first-activation walkthrough from auto-opening in the editor and keep the
+#     onboarding checklist off. Seeded INSERT OR IGNORE (fresh installs only) so
+#     a re-run never clobbers the extension's own state.
+# All keys are portable (booleans/JSON, no machine paths — verified against the
+# golden template). Best-effort: needs python3 (system, or the crawl4ai venv
+# python passed as $1). CREATE TABLE IF NOT EXISTS + INSERT merge into an
+# existing DB; creates fresh if absent, so VS Code's first launch reads the
+# seeded state.
 vscode_seed_state() {
   local db; db=$(vscode_state_db_path)
   local py="${1:-}"
@@ -160,15 +179,31 @@ path = sys.argv[1]
 os.makedirs(os.path.dirname(path), exist_ok=True)
 con = sqlite3.connect(path)
 con.execute("CREATE TABLE IF NOT EXISTS ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB)")
+# Written on every run (idempotent): first-run flags + Claude docked in the
+# right (secondary) sidebar, shown on first launch -- values cut 1:1 from
+# wip/golden-state.vscdb (auxiliaryBar.empty=false is what keeps the right
+# sidebar from auto-collapsing).
 seeds = {
     "welcomeOnboarding.state": "true",
     "workbench.newDefaultThemeNotification": "true",
+    "workbench.auxiliarybar.pinnedPanels": '[{"id":"workbench.panel.chat","pinned":true,"visible":false,"order":1},{"id":"workbench.view.extension.claude-sidebar-secondary","pinned":true,"visible":false,"order":101}]',
+    "workbench.view.extension.claude-sidebar-secondary.state.hidden": '[{"id":"claudeVSCodeSidebarSecondary","isHidden":false}]',
+    "workbench.auxiliaryBar.empty": "false",
+}
+# Written only when absent (INSERT OR IGNORE beats the schema's REPLACE):
+# Claude Code extension state -- lastClaudeLocationMigrated stops the
+# first-activation walkthrough auto-open, tengu_vscode_onboarding:false hides
+# the onboarding checklist (from the golden capture).
+fresh = {
+    "Anthropic.claude-code": '{"settingsMigrated20251024":true,"lastClaudeLocationMigrated":true,"experimentGates":{"tengu_vscode_onboarding":false}}',
 }
 cur = con.cursor()
 for k, v in seeds.items():
     cur.execute("INSERT OR REPLACE INTO ItemTable (key, value) VALUES (?, ?)", (k, v))
+for k, v in fresh.items():
+    cur.execute("INSERT OR IGNORE INTO ItemTable (key, value) VALUES (?, ?)", (k, v))
 con.commit(); con.close()
-print("seeded %d VS Code UI-state keys into %s" % (len(seeds), path))
+print("seeded %d VS Code UI-state keys (+%d fresh-only) into %s" % (len(seeds), len(fresh), path))
 PY
-  note "seeded VS Code UI-state (skip first-run onboarding/theme picker)"
+  note "seeded VS Code UI-state (skip first-run onboarding; Claude Code docked + shown in the right sidebar)"
 }

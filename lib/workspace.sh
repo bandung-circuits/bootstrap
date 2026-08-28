@@ -19,7 +19,7 @@ This folder is your default workspace for Claude Code. Keep your projects here.
 ## Quick start
 
 1. Open this folder in VS Code.
-2. The Claude Code panel opens in the sidebar (right) — click the Spark icon, top-right, if not.
+2. The Claude Code panel is docked in the sidebar (right) and opens with VS Code. It never opens in the center editor tab by itself.
 3. Tell the AI what you want, e.g.:
    - "create a hello.py and run it"
    - "find recent news about <topic> and save it to news.md"
@@ -46,7 +46,10 @@ GI
 
   # workspace .vscode/settings.json — mirror the Claude Code / Copilot settings
   # (belt; user settings are the authoritative place, but this covers the case
-  # of a user who later wipes their user settings).
+  # of a user who later wipes their user settings). No
+  # workbench.secondarySideBar.defaultVisibility here: its default
+  # ("visibleInWorkspace") + the seeded UI state show the right sidebar with
+  # Claude Code on first launch.
   local vscode_dir="$WORKSPACE_DIR/.vscode"
   if [ ! -f "$vscode_dir/settings.json" ]; then
     mkdir -p "$vscode_dir"
@@ -57,7 +60,6 @@ GI
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
   "chat.disableAIFeatures": true,
-  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "github.copilot.enable": { "*": false }
 }
 VSC
@@ -89,12 +91,23 @@ MD
   fi
 }
 
-# Open VS Code in the workspace with NEXT-STEPS.md open, then pop the Claude
-# Code chat panel via the documented vscode:// URI handler (opens a new
-# conversation). Opening the folder (not just the file) makes VS Code load
-# .claude/settings.local.json, .mcp.json, and .vscode/settings.json. Opening
-# the file too makes the Spark icon visible in the editor toolbar as a
-# fallback if the URI handler can't fire (e.g. no opener on a headless box).
+# Open VS Code in the workspace with NEXT-STEPS.md open. Opening the folder
+# (not just the file) makes VS Code load .claude/settings.local.json, .mcp.json,
+# and .vscode/settings.json; opening the file too puts the user's next step
+# (add the API key) right in front of them.
+#
+# Deliberately does NOT auto-open the Claude Code panel via the
+# vscode://anthropic.claude-code/open URI. That handler resolves to the
+# extension's `primaryEditor.open` command, which opens a NEW TAB in the CENTER
+# editor area and ignores claudeCode.preferredLocation (verified in
+# anthropic.claude-code v2.1.247 extension.js, in the official docs — the docs
+# describe the URI as "open a new Claude Code tab" — and upstream issue
+# anthropics/claude-code#89511). The panel's position comes from the seeded
+# UI state instead: vscode_seed_state docks the Claude view in the right
+# (secondary) sidebar from the captured golden state, and
+# claudeCode.preferredLocation=sidebar in settings keeps every normal "Open"
+# (Spark icon, status-bar "Claude Code", Cmd+Shift+Esc) in the right sidebar.
+# The user opens it with the Spark icon (top-right) — it lands on the right.
 workspace_open() {
   # CI runs the installer over SSH with no desktop session; launching `code`
   # (a GUI) there spins and can freeze the VM so hard that vmrun can't stop
@@ -105,19 +118,9 @@ workspace_open() {
     return
   fi
   if command -v code >/dev/null 2>&1; then
-    note "opening VS Code in $WORKSPACE_DIR (NEXT-STEPS.md + Claude Code panel)"
+    note "opening VS Code in $WORKSPACE_DIR (NEXT-STEPS.md; Claude Code opens in the right sidebar)"
     code "$WORKSPACE_DIR" "$WORKSPACE_DIR/NEXT-STEPS.md" >/dev/null 2>&1 \
       || warn "could not open VS Code automatically; run: code $WORKSPACE_DIR"
-    # Give VS Code + the Claude Code extension a moment to activate, then
-    # open the chat panel. Best-effort; degrades to the Spark icon fallback.
-    local opener=""
-    if command -v xdg-open >/dev/null 2>&1; then opener=xdg-open
-    elif command -v open >/dev/null 2>&1; then opener=open
-    fi
-    if [ -n "$opener" ]; then
-      ( sleep 3; "$opener" "vscode://anthropic.claude-code/open" >/dev/null 2>&1 ) \
-        >/dev/null 2>&1 &
-    fi
   else
     warn "open VS Code manually in: $WORKSPACE_DIR"
   fi

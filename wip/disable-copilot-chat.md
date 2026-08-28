@@ -1,5 +1,7 @@
 # 修复 vscode.sh：关闭内置 Copilot Chat 面板
 
+> 2026-08-28 更新：`workbench.secondarySideBar.defaultVisibility = "hidden"` 这一条已**撤销**（见 docs/design.md "面板位置"一节）。新目标是首次启动右侧栏直接展开、里面停靠 Claude Code；右侧栏可见性由 UI 状态种入 + 不写该设置实现（默认 `visibleInWorkspace`）。Copilot 由 `chat.disableAIFeatures=true` 单独压制，且 golden 的 `pinnedPanels` 里 Copilot chat 是 `visible:false`，不会出现在右侧栏。本笔记的 `chat.disableAIFeatures = True` 部分仍然有效。
+
 ## 背景
 
 右侧 sidebar 里 "Build with Agent" 那个 AI 聊天窗是 VS Code 内置的 GitHub Copilot Chat（已并入核心发行版，物理删不掉，`code --uninstall-extension GitHub.copilot-chat` 无效）。

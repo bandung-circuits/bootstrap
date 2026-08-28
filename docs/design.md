@@ -8,6 +8,14 @@
 
 只装 **VS Code + "Claude Code for VS Code" 扩展**（marketplace ID `anthropic.claude-code`）。扩展自带聊天面板用的 CLI（官方文档原文："The extension bundles its own copy of the CLI for the chat panel"），**不装 Node.js、不装独立 claude CLI**。模型后端通过 `settings.local.json` 的 `env` 块接任意 Anthropic 兼容端点。
 
+### 面板位置：不自动打开插件，靠 UI 状态指定（2026-08-28）
+
+早期版本在安装后延时调 `vscode://anthropic.claude-code/open` "弹出聊天面板"。该 URI 在扩展内解析为 `primaryEditor.open`（v2.1.247 extension.js 实证），固定把 Claude Code 开在中间编辑区新标签，且无视 `claudeCode.preferredLocation`（官方文档称其为 "open a new Claude Code tab"，上游 feature request anthropics/claude-code#89511 正在要求该路由尊重 preferredLocation）。这违背"Claude 在右侧 sidebar"的目标，已去掉。
+
+现在位置完全由 UI 状态指定：`vscode_seed_state` 把 golden 状态（`wip/golden-state.vscdb`）里的可移植键种进 `state.vscdb`：`workbench.auxiliarybar.pinnedPanels` 加 `workbench.view.extension.claude-sidebar-secondary.state.hidden` 把 Claude 视图停靠在右侧次侧边栏，`workbench.auxiliaryBar.empty=false` 标记右侧栏非空，`Anthropic.claude-code` 标志（仅新装时 INSERT OR IGNORE）关掉首启 walkthrough（它也会在中间区自动开）。配合 `claudeCode.preferredLocation: sidebar` 设置，首次启动右侧栏直接展开、里面就是 Claude Code。
+
+明确不写 `workbench.secondarySideBar.defaultVisibility`：该设置默认值 `visibleInWorkspace`，打开文件夹时右侧栏可见。曾写入 `hidden` 反而把右侧栏压没（这是"首启右侧栏不展开"的根因，已去掉）。右侧栏可见性机制实证自 workbench.desktop.main.js 的 `AUXILIARYBAR_HIDDEN.defaultValue`：仅在设置显式 `hidden`、或默认设置加右侧栏为空时隐藏。
+
 配置写进**工作区**（`~/ai-workspace/.claude/settings.local.json`，项目域、自包含），不是全局 `~/.claude/`。这样工作区换机器复制即用；`settings.local.json` 含 API key，工作区 `.gitignore` 忽略它。crawl4ai 注册进工作区 `.mcp.json`（无密钥，可提交）。
 
 ```json

@@ -177,8 +177,8 @@ if that key is the one you intend to use.)" )
 Open VS Code in this workspace:
   code ~/ai-workspace
 
-The Claude Code chat panel opens automatically in the sidebar (right). If it
-doesn't, click the Spark icon (top-right of the editor). Ask it anything,
+The Claude Code panel is docked in the sidebar (right) and opens with VS Code.
+It never opens in the center tab by itself. Ask it anything,
 e.g.  "create a hello.py and run it".
 
 The crawl4ai MCP (web fetch/search) is already configured — no key needed.

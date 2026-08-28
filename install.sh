@@ -124,7 +124,8 @@ main() {
   See  ~/ai-workspace/NEXT-STEPS.md  (open it: it tells you where to get a key,
   which file to edit, and how to start Claude Code).
 
-  Then VS Code opens in  ~/ai-workspace  with the Claude Code panel ready.
+  Then VS Code opens in  ~/ai-workspace  -- Claude Code opens in the right
+  sidebar, ready to use.
   The crawl4ai MCP (web fetch/search) is registered and ready.
 NEXT
   workspace_open

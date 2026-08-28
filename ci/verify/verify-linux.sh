@@ -53,6 +53,13 @@ if [ -f "$vsc" ] && grep -q '"security.workspace.trust.enabled": false' "$vsc" 2
   ok 'VS Code user settings (trust off + Claude Code sidebar + skip login)'
 else no 'VS Code user settings'; fi
 
+# The right sidebar must OPEN on first launch: the "hidden" defaultVisibility
+# must NOT be present (its default "visibleInWorkspace" + seeded UI state
+# shows the bar with Claude Code).
+if [ -f "$vsc" ] && ! grep -q 'secondarySideBar.defaultVisibility' "$vsc" 2>/dev/null; then
+  ok 'no secondarySideBar.defaultVisibility (right sidebar opens by default)'
+else no 'secondarySideBar.defaultVisibility still set (would collapse the right sidebar)'; fi
+
 # workspace .vscode/settings.json mirrors the Claude Code / Copilot settings
 wvs="$HOME/ai-workspace/.vscode/settings.json"
 if [ -f "$wvs" ] && grep -q 'claudeCode.preferredLocation' "$wvs" 2>/dev/null \
@@ -60,17 +67,40 @@ if [ -f "$wvs" ] && grep -q 'claudeCode.preferredLocation' "$wvs" 2>/dev/null \
   ok 'workspace .vscode/settings.json seeded'
 else no 'workspace .vscode/settings.json'; fi
 
-# state.vscdb seeded: first-run onboarding/theme picker suppressed
+# state.vscdb seeded: first-run onboarding suppressed + Claude docked in the
+# right (secondary) sidebar and the bar marked non-empty (so it opens on
+# first launch with Claude Code in it)
 sdb="$HOME/.config/Code/User/globalStorage/state.vscdb"
-if [ -f "$sdb" ] && python3 - "$sdb" <<'PY' 2>/dev/null | grep -q 'onboarding=true'
+if [ -f "$sdb" ] && python3 - "$sdb" <<'PY' 2>/dev/null | grep -q 'dock=yes' && python3 - "$sdb" <<'PY' 2>/dev/null | grep -q 'bar=notempty'
 import sqlite3, sys
 c = sqlite3.connect(sys.argv[1])
-r = c.execute('SELECT value FROM ItemTable WHERE key="welcomeOnboarding.state"').fetchone()
+r = c.execute('SELECT value FROM ItemTable WHERE key=?', ('workbench.auxiliaryBar.empty',)).fetchone()
 c.close()
-print('onboarding=' + (r[0] if r else 'none'))
+print('bar=' + ('notempty' if r and r[0] == 'false' else 'empty'))
 PY
-then ok 'VS Code UI-state seeded (onboarding suppressed)'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+def get(k):
+    r = c.execute('SELECT value FROM ItemTable WHERE key=?', (k,)).fetchone()
+    return r[0] if r else None
+onb = get('welcomeOnboarding.state')
+pin = get('workbench.auxiliarybar.pinnedPanels')
+print('onboarding=' + (onb if onb else 'none'))
+print('dock=' + ('yes' if pin and 'claude-sidebar-secondary' in pin else 'no'))
+c.close()
+PY
+then ok 'VS Code UI-state seeded (onboarding + Claude docked, right sidebar opens)'
 else no 'VS Code UI-state seeded'; fi
+
+# The installer must NOT auto-open Claude Code anymore: the
+# vscode://anthropic.claude-code/open URI opens a CENTER editor tab (the
+# extension's primaryEditor.open), ignoring preferredLocation. Placement comes
+# from the seeded UI state above instead. Docs/comments legitimately mention
+# the URI, so match only the removed invocation patterns.
+if grep -rnE 'Start-Process .*vscode://anthropic|opener.*claude-code/open' \
+     "$HOME/bootstrap"/install.sh "$HOME/bootstrap"/install-wsl.sh "$HOME/bootstrap"/install.ps1 "$HOME/bootstrap/lib" 2>/dev/null; then
+  no 'stale vscode://anthropic.claude-code/open auto-open in installer'
+else ok 'no auto-open URI (Claude placed via seeded UI state)'; fi
 
 # GitHub Copilot not installed as a marketplace extension (best-effort suppress)
 if code --list-extensions 2>/dev/null | grep -qi 'github.copilot'; then

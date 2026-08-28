@@ -39,6 +39,13 @@ if ((Test-Path $vsc) -and (Select-String -Path $vsc -Quiet 'security.workspace.t
     Ok 'VS Code user settings (trust off + Claude Code sidebar + skip login)'
 } else { No 'VS Code user settings' }
 
+# The right sidebar must OPEN on first launch: the "hidden" defaultVisibility
+# must NOT be present (its default "visibleInWorkspace" + seeded UI state
+# shows the bar with Claude Code).
+if ((Test-Path $vsc) -and -not (Select-String -Path $vsc -Quiet 'secondarySideBar.defaultVisibility')) {
+    Ok 'no secondarySideBar.defaultVisibility (right sidebar opens by default)'
+} else { No 'secondarySideBar.defaultVisibility still set (would collapse the right sidebar)' }
+
 $wvs = Join-Path $ws '.vscode\settings.json'
 if ((Test-Path $wvs) -and (Select-String -Path $wvs -Quiet 'claudeCode.preferredLocation') -and (Select-String -Path $wvs -Quiet 'chat.commandCenter.enabled')) {
     Ok 'workspace .vscode/settings.json seeded'
@@ -51,12 +58,17 @@ if ((Test-Path $sdb) -and (Test-Path $vp)) {
     @'
 import sqlite3, sys
 c = sqlite3.connect(sys.argv[1])
-r = c.execute('SELECT value FROM ItemTable WHERE key=?', ('welcomeOnboarding.state',)).fetchone()
+def get(k):
+    r = c.execute('SELECT value FROM ItemTable WHERE key=?', (k,)).fetchone()
+    return r[0] if r else None
+onb = get('welcomeOnboarding.state')
+pin = get('workbench.auxiliarybar.pinnedPanels')
+emp = get('workbench.auxiliaryBar.empty')
 c.close()
-print(r[0] if r else 'none')
+print(('true' if onb else 'none'), ('yes' if pin and 'claude-sidebar-secondary' in pin else 'no'), ('notempty' if emp == 'false' else 'empty'))
 '@ | Set-Content -Path $tmp -Encoding UTF8
     $out = & $vp $tmp $sdb 2>$null
-    if ($out -match 'true') { Ok 'VS Code UI-state seeded (onboarding suppressed)' } else { No 'VS Code UI-state seeded' }
+    if ($out -match 'true.*yes.*notempty') { Ok 'VS Code UI-state seeded (onboarding + Claude docked, right sidebar opens)' } else { No 'VS Code UI-state seeded' }
 } else { No 'VS Code UI-state seeded' }
 
 if (code --list-extensions 2>$null | Select-String -Quiet 'github.copilot') {

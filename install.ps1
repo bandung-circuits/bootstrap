@@ -124,8 +124,8 @@ function New-Workspace {
 # My AI workspace
 
 Default workspace for Claude Code. Open this folder in VS Code; the Claude Code
-panel opens in the sidebar (right) -- Spark icon, top-right, if it doesn't. Ask,
-e.g. "create a hello.py and run it".
+panel is docked in the sidebar (right) and opens with VS Code. Ask, e.g.
+"create a hello.py and run it".
 
 Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
 '@ | Set-Content -Path $readme -Encoding UTF8
@@ -146,7 +146,6 @@ Backend: DeepSeek V4 Flash 0731. crawl4ai MCP (web fetch/search) is registered.
   "claudeCode.hideOnboarding": true,
   "chat.commandCenter.enabled": false,
   "chat.disableAIFeatures": true,
-  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "github.copilot.enable": { "*": false }
 }
 '@ | Set-Content -Path $vsSettings -Encoding UTF8
@@ -226,7 +225,9 @@ function Write-VSCodeUserSettings {
     Set-Prop $data 'claudeCode.hideOnboarding' $true
     Set-Prop $data 'chat.commandCenter.enabled' $false
     Set-Prop $data 'chat.disableAIFeatures' $true
-    Set-Prop $data 'workbench.secondarySideBar.defaultVisibility' 'hidden'
+    # NOTE: no workbench.secondarySideBar.defaultVisibility here -- its default
+    # ("visibleInWorkspace") plus the seeded UI state show the right sidebar
+    # with Claude Code on first launch; "hidden" would collapse it.
     # github.copilot.enable is an object { "*": false }; build it as a map.
     $cop = [PSCustomObject]@{ '*' = $false }
     if ($data.PSObject.Properties.Name -contains 'github.copilot.enable') {
@@ -281,9 +282,9 @@ Replace  PASTE-YOUR-API-KEY-HERE  with your real key. Save the file.$keyNote
 Open VS Code in this workspace:
   code $WS
 
-The Claude Code chat panel opens automatically in the sidebar (right). If it
-doesn't, click the Spark icon (top-right of the editor). Ask it anything,
-e.g.  "create a hello.py and run it".
+The Claude Code panel is docked in the sidebar (right) and opens with VS Code.
+It never opens in the center tab by itself. Ask it anything, e.g.  "create a
+hello.py and run it".
 
 The crawl4ai MCP (web fetch/search) is already configured -- no key needed.
 "@ | Set-Content -Path $steps -Encoding UTF8
@@ -354,12 +355,23 @@ function Install-Crawl4ai {
     Write-Host "`n  crawl4ai note: first call downloads a headless browser (Playwright). Automatic, no key needed." -ForegroundColor DarkGray
 }
 
-# ---------- seed VS Code UI state (skip first-run onboarding/theme picker) ----------
+# ---------- seed VS Code UI state (onboarding flags + Claude docked RIGHT) ----------
 # The "choose interface style"/theme picker on first launch is UI state, not a
-# setting -- settings.json can't suppress it. Seed state.vscdb with
-# welcomeOnboarding.state=true + newDefaultThemeNotification=true (portable
-# booleans, verified against the golden template -- no machine paths). Uses the
-# crawl4ai venv python (stdlib sqlite3); best-effort (skip if python missing).
+# setting -- settings.json can't suppress it. Seed state.vscdb from the captured
+# golden template (wip/golden-state.vscdb, portable keys only -- no machine
+# paths): welcomeOnboarding.state + newDefaultThemeNotification suppress the
+# picker; workbench.auxiliarybar.pinnedPanels +
+# workbench.view.extension.claude-sidebar-secondary.state.hidden dock the Claude
+# Code view in the RIGHT (secondary) sidebar and auxiliaryBar.empty=false keeps
+# the bar non-empty, so with the default secondarySideBar.defaultVisibility
+# ("visibleInWorkspace", not set anywhere) the right sidebar OPENS ON FIRST
+# LAUNCH with Claude Code in it. Position comes from this UI state
+# -- the installer intentionally does NOT auto-open Claude Code via the
+# vscode://anthropic.claude-code/open URI, because that handler opens a CENTER
+# editor tab (extension's primaryEditor.open, ignores preferredLocation).
+# The Anthropic.claude-code flags (walkthrough off) are seeded INSERT OR IGNORE
+# (fresh installs only) so re-runs never clobber the extension's own state.
+# Uses the crawl4ai venv python (stdlib sqlite3); best-effort (skip if missing).
 function Seed-VSCodeState {
     $db = Join-Path $env:APPDATA 'Code\User\globalStorage\state.vscdb'
     $venvPy = Join-Path $CrawlDir 'venv\Scripts\python.exe'
@@ -378,15 +390,29 @@ path = sys.argv[1]
 os.makedirs(os.path.dirname(path), exist_ok=True)
 con = sqlite3.connect(path)
 con.execute("CREATE TABLE IF NOT EXISTS ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB)")
+# Written on every run (idempotent): first-run flags + Claude docked in the
+# right (secondary) sidebar -- values cut 1:1 from wip/golden-state.vscdb.
 seeds = {
     "welcomeOnboarding.state": "true",
     "workbench.newDefaultThemeNotification": "true",
+    "workbench.auxiliarybar.pinnedPanels": '[{"id":"workbench.panel.chat","pinned":true,"visible":false,"order":1},{"id":"workbench.view.extension.claude-sidebar-secondary","pinned":true,"visible":false,"order":101}]',
+    "workbench.view.extension.claude-sidebar-secondary.state.hidden": '[{"id":"claudeVSCodeSidebarSecondary","isHidden":false}]',
+    "workbench.auxiliaryBar.empty": "false",
+}
+# Written only when absent (INSERT OR IGNORE beats the schema's REPLACE):
+# Claude Code extension state -- lastClaudeLocationMigrated stops the
+# first-activation walkthrough auto-open, tengu_vscode_onboarding:false hides
+# the onboarding checklist (from the golden capture).
+fresh = {
+    "Anthropic.claude-code": '{"settingsMigrated20251024":true,"lastClaudeLocationMigrated":true,"experimentGates":{"tengu_vscode_onboarding":false}}',
 }
 cur = con.cursor()
 for k, v in seeds.items():
     cur.execute("INSERT OR REPLACE INTO ItemTable (key, value) VALUES (?, ?)", (k, v))
+for k, v in fresh.items():
+    cur.execute("INSERT OR IGNORE INTO ItemTable (key, value) VALUES (?, ?)", (k, v))
 con.commit(); con.close()
-print("seeded %d VS Code UI-state keys into %s" % (len(seeds), path))
+print("seeded %d VS Code UI-state keys (+%d fresh-only) into %s" % (len(seeds), len(fresh), path))
 '@ | Set-Content -Path $tmp -Encoding UTF8
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -394,7 +420,7 @@ print("seeded %d VS Code UI-state keys into %s" % (len(seeds), path))
     $rc = $LASTEXITCODE
     $ErrorActionPreference = $prev
     if ($rc -ne 0) { throw "VS Code UI-state seed failed (python exit $rc)" }
-    Note "seeded VS Code UI-state (skip first-run onboarding/theme picker)"
+    Note "seeded VS Code UI-state (skip onboarding; Claude Code docked in the right sidebar)"
 }
 
 # ---------- run (resilient: each step in try/catch, one failure doesn't abort the rest) ----------
@@ -435,7 +461,8 @@ Write-Host @'
   See  ~/ai-workspace/NEXT-STEPS.md  (where to get a key, which file to edit,
   and how to start Claude Code).
 
-  Then open VS Code in  ~/ai-workspace  -- the Claude Code panel opens on its own.
+  Then open VS Code in  ~/ai-workspace  -- Claude Code opens in the right
+  sidebar, ready to use.
   crawl4ai MCP (web fetch/search) is registered and ready.
 '@
 # CI runs the installer over SSH with no desktop session; launching VS Code
@@ -444,10 +471,13 @@ Write-Host @'
 if ($env:BOOTSTRAP_NO_LAUNCH -eq '1') {
     Note 'skipping VS Code launch (BOOTSTRAP_NO_LAUNCH=1)'
 } elseif (Get-Command code -ErrorAction SilentlyContinue) {
-    # Open the workspace folder (loads .claude/.mcp.json/.vscode) AND
-    # NEXT-STEPS.md (makes the Spark icon visible as a fallback), then pop
-    # the Claude Code chat panel via the documented vscode:// URI handler.
+    # Open the workspace folder (loads .claude/.mcp.json/.vscode) and
+    # NEXT-STEPS.md (the file with the API-key instructions). Deliberately NO
+    # vscode://anthropic.claude-code/open here: that URI resolves to the
+    # extension's primaryEditor.open command and opens Claude Code in a CENTER
+    # editor tab, ignoring claudeCode.preferredLocation (official docs: "open a
+    # new Claude Code tab"; upstream issue anthropics/claude-code#89511). The
+    # Claude view is docked in the right sidebar by the seeded UI state
+    # (Seed-VSCodeState) instead; the user opens it with the Spark icon.
     Start-Process code -ArgumentList "`"$WS`"", "`"$(Join-Path $WS 'NEXT-STEPS.md')`""
-    Start-Sleep -Seconds 3
-    try { Start-Process "vscode://anthropic.claude-code/open" } catch {}
 }
