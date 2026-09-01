@@ -63,11 +63,11 @@
 
 ## crawl4ai MCP
 
-随环境下发（免费无 key）：clone `gigix/crawl4ai-mcp-server` 的 `fix/migrate-to-ddgs-library` 分支（main 用已废弃的 duckduckgo_search，是坏的），用 **uv** 钉 Python 3.10 建 venv（依赖 lxml/pillow/pydantic-core 在 3.10 有预编译 wheel；系统 Python 太新如 3.14 会逼源码编译，pydantic-core 还要 Rust，死路），注册进工作区 `.mcp.json`。serper/oxylabs 带私钥，不下发，站上给文字指导让用户用自己的 key 加。
+随环境下发（免费无 key）：在维护者本人使用的调用方式下，注册进工作区 `.mcp.json` 的命令是 `uvx --from crawl4ai-search-mcp==0.1.1 crawl4ai-search`。该包是 `gigix/crawl4ai-mcp-server` 的打包版（PyPI 发布，ddgs 迁移已修好，版本钉 0.1.1）。uvx 随 uv 自带（安装器本就要装 uv），首次调用时 uv 自动拉镜像环境，本地不 clone、不建 venv。serper/oxylabs 带私钥，不下发，站上给文字指导让用户用自己的 key 加。
 
 ## Windows
 
-PowerShell `irm | iex` 一行脚本为主推（winget 装 VS Code + Git + uv）。WSL 路径为备选（复用 install.sh）。Windows 上跑的是 Windows 11 ARM（CI 服务器是 Apple Silicon Mac）。设计同 Linux：只装扩展，配置进工作区，crawl4ai 用 uv。
+PowerShell `irm | iex` 一行脚本为主推（winget 装 VS Code + Git + uv）。WSL 路径为备选（复用 install.sh）。Windows 上跑的是 Windows 11 ARM（CI 服务器是 Apple Silicon Mac）。设计同 Linux：只装扩展，配置进工作区，crawl4ai 同样注册 uvx 条目（uv 自带 uvx）。
 
 ## CI
 

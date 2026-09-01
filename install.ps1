@@ -52,8 +52,6 @@ else { $script:KeyIsPlaceholder = $false }
 
 # ---------- paths ----------
 $WS = Join-Path $env:USERPROFILE 'ai-workspace'
-$Bootstrap = Join-Path $env:USERPROFILE '.bootstrap'
-$CrawlDir = Join-Path $Bootstrap 'crawl4ai-mcp-server'
 $UV_BIN = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
 
 function Refresh-Path { $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:USERPROFILE + '\.local\bin' }
@@ -311,48 +309,20 @@ function Ensure-Uv {
     Refresh-Path
 }
 
-# ---------- crawl4ai MCP (download zip, no git; uv venv) ----------
+# ---------- crawl4ai MCP (uvx; runs from the published package, nothing to build) ----------
 function Install-Crawl4ai {
-    $venvPy = Join-Path $CrawlDir 'venv\Scripts\python.exe'
-    if ((Test-Path $venvPy) -and (Test-Path (Join-Path $CrawlDir 'src\index.py'))) {
-        Note "crawl4ai MCP already installed at $CrawlDir"
-    } else {
-        Ensure-Uv
-        New-Item -ItemType Directory -Force -Path $Bootstrap | Out-Null
-        $zip = Join-Path $env:TEMP 'crawl4ai-mcp.zip'
-        Note 'Downloading crawl4ai-mcp-server (branch fix/migrate-to-ddgs-library)'
-        Invoke-WebRequest 'https://github.com/gigix/crawl4ai-mcp-server/archive/refs/heads/fix/migrate-to-ddgs-library.zip' -OutFile $zip
-        if (Test-Path $CrawlDir) { Remove-Item -Recurse -Force $CrawlDir }
-        Expand-Archive -Path $zip -DestinationPath $Bootstrap -Force
-        # extracted folder has a -suffix name; rename to crawl4ai-mcp-server
-        $extracted = Get-ChildItem -Path $Bootstrap -Directory | Where-Object Name -like 'crawl4ai-mcp-server-*' | Select-Object -First 1
-        if ($extracted) { Move-Item $extracted.FullName $CrawlDir -Force }
-        Note 'Provisioning Python 3.10 + venv via uv (prebuilt wheels for deps)'
-        $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
-        if (-not $uv) { $uv = $UV_BIN }
-        # Run uv via .NET Process (Invoke-Native) so PS 5.1 never sees uv's
-        # stderr progress -- under ErrorActionPreference=Stop that becomes a
-        # terminating NativeCommandError that crashes the whole script (this
-        # was the crawl4ai flash-exit: 6 steps [OK] then the window died).
-        $rc = Invoke-Native $uv 'python install 3.10'
-        if ($rc -ne 0) { throw "uv python install failed (exit $rc)" }
-        $rc = Invoke-Native $uv "venv --python 3.10 `"$CrawlDir\venv`""
-        if ($rc -ne 0) { throw "uv venv creation failed (exit $rc)" }
-        Note 'Installing dependencies via uv (may take a minute)'
-        $rc = Invoke-Native $uv "pip install --python `"$venvPy`" -r `"$CrawlDir\requirements.txt`""
-        if ($rc -ne 0) { throw "uv pip install failed (exit $rc)" }
-    }
+    Ensure-Uv   # uv/uvx land together in ~/.local/bin
     $mcpFile = Join-Path $WS '.mcp.json'
     $mcp = $null
     if (Test-Path $mcpFile) { try { $mcp = Get-Content $mcpFile -Raw | ConvertFrom-Json } catch { $mcp = $null } }
     if (-not $mcp) { $mcp = [PSCustomObject]@{} }
     if (-not ($mcp.PSObject.Properties.Name -contains 'mcpServers')) { $mcp | Add-Member -NotePropertyName mcpServers -NotePropertyValue ([PSCustomObject]@{}) }
-    $entry = [PSCustomObject]@{ command=$venvPy; args=@((Join-Path $CrawlDir 'src\index.py')); cwd=$CrawlDir }
+    $entry = [PSCustomObject]@{ command='uvx'; args=@('--from','crawl4ai-search-mcp==0.1.1','crawl4ai-search') }
     if ($mcp.mcpServers.PSObject.Properties.Name -contains 'crawl4ai') { $mcp.mcpServers.crawl4ai = $entry }
     else { $mcp.mcpServers | Add-Member -NotePropertyName crawl4ai -NotePropertyValue $entry }
     $mcp | ConvertTo-Json -Depth 10 | Set-Content -Path $mcpFile -Encoding UTF8
-    Note "registered crawl4ai in $mcpFile"
-    Write-Host "`n  crawl4ai note: first call downloads a headless browser (Playwright). Automatic, no key needed." -ForegroundColor DarkGray
+    Note "registered crawl4ai (uvx) in $mcpFile"
+    Write-Host "`n  crawl4ai note: first call lets uvx fetch the crawl4ai-search-mcp env; a headless browser (Playwright) may download too. Automatic, no key needed." -ForegroundColor DarkGray
 }
 
 # ---------- seed VS Code UI state (onboarding flags + Claude docked RIGHT) ----------
@@ -371,18 +341,19 @@ function Install-Crawl4ai {
 # editor tab (extension's primaryEditor.open, ignores preferredLocation).
 # The Anthropic.claude-code flags (walkthrough off) are seeded INSERT OR IGNORE
 # (fresh installs only) so re-runs never clobber the extension's own state.
-# Uses the crawl4ai venv python (stdlib sqlite3); best-effort (skip if missing).
+# Uses a uv-managed CPython (stdlib sqlite3; uv is ensured by the crawl4ai
+# step); best-effort (skip if uv is missing).
 function Seed-VSCodeState {
     $db = Join-Path $env:APPDATA 'Code\User\globalStorage\state.vscdb'
-    $venvPy = Join-Path $CrawlDir 'venv\Scripts\python.exe'
-    if (-not (Test-Path $venvPy)) { Note "crawl4ai venv python not found -- skipping VS Code UI-state seed (first-run onboarding may show)"; return }
+    if (-not (Test-Path $UV_BIN)) { Note "uv not found -- skipping VS Code UI-state seed (first-run onboarding may show)"; return }
     $dir = Split-Path $db -Parent
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     # Write the seeder to a temp .py and run THAT (not `python -c $py`): PS strips
     # the embedded double-quotes when passing a string to a native -c arg, so
     # python gets `con.execute(CREATE ...` (no quotes) -> SyntaxError. Reading
-    # from a file avoids PS's native-arg quote-mangling. Local EAP=Continue so a
-    # stray python stderr line doesn't raise a NativeCommandError under Stop.
+    # from a file avoids PS's native-arg quote-mangling. `uv run` via Invoke-
+    # Native returns the child's exit code without PS seeing its stderr
+    # progress, so no NativeCommandError risk here.
     $tmp = Join-Path $env:TEMP 'seed-vscode-state.py'
     @'
 import sqlite3, os, sys
@@ -414,12 +385,8 @@ for k, v in fresh.items():
 con.commit(); con.close()
 print("seeded %d VS Code UI-state keys (+%d fresh-only) into %s" % (len(seeds), len(fresh), path))
 '@ | Set-Content -Path $tmp -Encoding UTF8
-    $prev = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    & $venvPy $tmp $db
-    $rc = $LASTEXITCODE
-    $ErrorActionPreference = $prev
-    if ($rc -ne 0) { throw "VS Code UI-state seed failed (python exit $rc)" }
+    $rc = Invoke-Native $UV_BIN "run --no-project --python 3.12 -- `"$tmp`" `"$db`""
+    if ($rc -ne 0) { throw "VS Code UI-state seed failed (uv run exit $rc)" }
     Note "seeded VS Code UI-state (skip onboarding; Claude Code docked in the right sidebar)"
 }
 

@@ -19,13 +19,14 @@ if ((Test-Path $s) -and (Select-String -Path $s -Quiet 'ANTHROPIC_BASE_URL') -an
 } else { No 'settings.local.json env block' }
 
 $m = Join-Path $ws '.mcp.json'
-if ((Test-Path $m) -and (Select-String -Path $m -Quiet 'crawl4ai')) { Ok '.mcp.json crawl4ai entry' } else { No '.mcp.json crawl4ai' }
+if ((Test-Path $m) -and (Select-String -Path $m -Quiet 'crawl4ai-search-mcp')) { Ok '.mcp.json crawl4ai uvx entry' } else { No '.mcp.json crawl4ai uvx entry' }
 
-$venvPy = Join-Path $env:USERPROFILE '.bootstrap\crawl4ai-mcp-server\venv\Scripts\python.exe'
-if (Test-Path $venvPy) {
-    & $venvPy -c 'import crawl4ai' 2>$null
-    if ($LASTEXITCODE -eq 0) { Ok 'crawl4ai importable in venv' } else { No 'crawl4ai importable in venv' }
-} else { No 'crawl4ai importable in venv' }
+$uvx = Join-Path $env:USERPROFILE '.local\bin\uvx.exe'
+if (Test-Path $uvx) {
+    # first uvx run downloads the env; give the check some headroom
+    & $uvx --from crawl4ai-search-mcp==0.1.1 python -c 'import crawl4ai_mcp_server' 2>$null
+    if ($LASTEXITCODE -eq 0) { Ok 'crawl4ai-search-mcp importable via uvx' } else { No 'crawl4ai-search-mcp importable via uvx' }
+} else { No 'crawl4ai-search-mcp importable via uvx (uvx missing)' }
 
 $ws = Join-Path $env:USERPROFILE 'ai-workspace'
 if ((Test-Path $ws) -and (Test-Path (Join-Path $ws 'README.md'))) { Ok 'ai-workspace created' } else { No 'ai-workspace' }
@@ -52,8 +53,8 @@ if ((Test-Path $wvs) -and (Select-String -Path $wvs -Quiet 'claudeCode.preferred
 } else { No 'workspace .vscode/settings.json' }
 
 $sdb = Join-Path $env:APPDATA 'Code\User\globalStorage\state.vscdb'
-$vp = Join-Path $env:USERPROFILE '.bootstrap\crawl4ai-mcp-server\venv\Scripts\python.exe'
-if ((Test-Path $sdb) -and (Test-Path $vp)) {
+$uv = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
+if ((Test-Path $sdb) -and (Test-Path $uv)) {
     $tmp = Join-Path $env:TEMP 'check-vscode-state.py'
     @'
 import sqlite3, sys
@@ -67,7 +68,7 @@ emp = get('workbench.auxiliaryBar.empty')
 c.close()
 print(('true' if onb else 'none'), ('yes' if pin and 'claude-sidebar-secondary' in pin else 'no'), ('notempty' if emp == 'false' else 'empty'))
 '@ | Set-Content -Path $tmp -Encoding UTF8
-    $out = & $vp $tmp $sdb 2>$null
+    $out = & $uv run --no-project --python 3.12 $tmp $sdb 2>$null
     if ($out -match 'true.*yes.*notempty') { Ok 'VS Code UI-state seeded (onboarding + Claude docked, right sidebar opens)' } else { No 'VS Code UI-state seeded' }
 } else { No 'VS Code UI-state seeded' }
 

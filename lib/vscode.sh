@@ -164,9 +164,9 @@ EOF
 #     onboarding checklist off. Seeded INSERT OR IGNORE (fresh installs only) so
 #     a re-run never clobbers the extension's own state.
 # All keys are portable (booleans/JSON, no machine paths — verified against the
-# golden template). Best-effort: needs python3 (system, or the crawl4ai venv
-# python passed as $1). CREATE TABLE IF NOT EXISTS + INSERT merge into an
-# existing DB; creates fresh if absent, so VS Code's first launch reads the
+# golden template). Best-effort: needs python3 (system, or a python passed as
+# $1). CREATE TABLE IF NOT EXISTS + INSERT merge into an existing DB; creates
+# fresh if absent, so VS Code's first launch reads the
 # seeded state.
 vscode_seed_state() {
   local db; db=$(vscode_state_db_path)

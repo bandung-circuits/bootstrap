@@ -9,7 +9,6 @@ no(){ printf '  FAIL  %s\n' "$*"; fail=$((fail+1)); }
 have(){ command -v "$1" >/dev/null 2>&1 && ok "$1 on PATH" || no "$1 on PATH"; }
 
 have code
-have git
 have python3
 
 # VS Code Claude Code extension installed
@@ -23,15 +22,21 @@ if [ -f "$s" ] && grep -q ANTHROPIC_BASE_URL "$s" && grep -q ANTHROPIC_AUTH_TOKE
   ok 'settings.local.json env block present'
 else no 'settings.local.json env block'; fi
 
-# .mcp.json crawl4ai (workspace, self-contained)
+# .mcp.json crawl4ai (workspace, self-contained) — uvx entry
 m="$HOME/ai-workspace/.mcp.json"
-if [ -f "$m" ] && grep -q crawl4ai "$m"; then ok '.mcp.json crawl4ai entry'; else no '.mcp.json crawl4ai'; fi
+if [ -f "$m" ] && grep -q '"crawl4ai-search-mcp==0.1.1"' "$m"; then
+  ok '.mcp.json crawl4ai uvx entry'
+else no '.mcp.json crawl4ai uvx entry'; fi
 
-# crawl4ai venv importable
-venvpy="$HOME/.bootstrap/crawl4ai-mcp-server/venv/bin/python"
-if [ -x "$venvpy" ] && "$venvpy" -c 'import crawl4ai' 2>/dev/null; then
-  ok 'crawl4ai importable in venv'
-else no 'crawl4ai importable in venv'; fi
+# uvx available (uvx ships with uv; installer runs PATH-agnostic via ~/.local/bin)
+uvx_bin="$HOME/.local/bin/uvx"
+command -v uvx >/dev/null 2>&1 && uvx_bin="$(command -v uvx)"
+if [ -x "$uvx_bin" ]; then ok 'uvx available'; else no 'uvx available'; fi
+
+# crawl4ai-search-mcp resolvable from PyPI (first uvx run builds the env)
+if [ -x "$uvx_bin" ] && timeout 600 "$uvx_bin" --from crawl4ai-search-mcp==0.1.1 python -c 'import crawl4ai_mcp_server' >/dev/null 2>&1; then
+  ok 'crawl4ai-search-mcp importable via uvx'
+else no 'crawl4ai-search-mcp importable via uvx'; fi
 
 # workspace created
 if [ -d "$HOME/ai-workspace" ] && [ -f "$HOME/ai-workspace/README.md" ]; then
