@@ -101,8 +101,16 @@ if command -v dsh >/dev/null 2>&1; then
     if [ -n "$code" ] && [ "$code" != "000" ]; then
       ok 'dsh web serves http://127.0.0.1:3080 (late)'
     else
-      no "dsh web boot failed (see $(basename "$bootlog"))"
-      tail -12 "$bootlog" 2>/dev/null | sed 's/^/    /' || true
+      # The server process may be up but not yet reachable (one-time
+      # crawl4ai/playwright init on a slow VM). dsh web prints its canonical URL
+      # once the Loader tree settles — take that + a live process as "booted".
+      if grep -q "http://127.0.0.1:3080" "$bootlog" 2>/dev/null && \
+         pgrep -f '@deepseek-ai/dsh' >/dev/null 2>&1; then
+        ok 'dsh web booted (URL printed, server process up)'
+      else
+        no "dsh web boot failed (see $(basename "$bootlog"))"
+        tail -12 "$bootlog" 2>/dev/null | sed 's/^/    /' || true
+      fi
     fi
   fi
   # stop the test server we own

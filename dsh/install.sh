@@ -154,6 +154,9 @@ main() {
   note "Installing uv/uvx (crawl4ai MCP runtime)"
   ensure_uv
 
+  note "Warming the crawl4ai runtime cache (first MCP call is then fast)"
+  crawl4ai_warm 2>/dev/null || warn "crawl4ai pre-warm skipped (will download on first call)"
+
   note "Creating the AI workspace and seeding ~/ai-workspace"
   workspace_create
 

@@ -26,6 +26,18 @@ ensure_uv() {
   note "uv $(uv --version 2>/dev/null || echo installed)"
 }
 
+# Warm the uvx cache for the crawl4ai MCP package so the harness's first spawn
+# is fast. Best-effort (a slow network just skips; the MCP still works on first
+# call). Also pulls the Playwright Chromium browser if missing.
+crawl4ai_warm() {
+  command -v uvx >/dev/null 2>&1 || return 0
+  local uvx_bin=uvx
+  [ -x "$UV_DIR/uvx" ] && uvx_bin="$UV_DIR/uvx"
+  ( timeout 420 "$uvx_bin" --from crawl4ai-search-mcp==0.1.1 python -c 'import crawl4ai_mcp_server' >/dev/null 2>&1 \
+    && timeout 420 "$uvx_bin" --from crawl4ai-search-mcp==0.1.1 python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(); b.close(); p.stop()' >/dev/null 2>&1 ) \
+    && note "crawl4ai runtime warmed" || return 1
+}
+
 mcp_ensure_patch() {
   local patch="$DSH_HOME/cordis.patch.yml"
   local full_template="${TEMPLATES_DSH_HOME}/cordis.patch.yml"
