@@ -115,25 +115,26 @@ note "=== Bootstrap CI run $stamp ==="
 # ensure the host repo is current (tests latest committed code)
 git pull -q --ff-only origin main 2>/dev/null || note "(git pull skipped/failed — using current tree)"
 
-declare -A results
+# Results as plain vars — macOS system bash is 3.2 and has no associative arrays.
+linux_rc="" ; win_rc=""
 for scheme in "${SCHEMES[@]}"; do
-  test_linux_scheme "$scheme"; rc=$?
-  results["$scheme-linux"]=$rc
+  test_linux_scheme "$scheme"; linux_rc="$linux_rc $scheme:$?"
   if [ -n "${WIN_VMX:-}" ]; then
-    test_windows_scheme "$scheme"; results["$scheme-win"]=$?
+    test_windows_scheme "$scheme"; win_rc="$win_rc $scheme:$?"
   else
     note "[Win/$scheme] skipped (WIN_VMX not set in .env)"
-    results["$scheme-win"]=0
+    win_rc="$win_rc $scheme:0"
   fi
 done
 
 echo
 for scheme in "${SCHEMES[@]}"; do
-  note "=== SUMMARY: $scheme  Linux=$([ ${results["$scheme-linux"]} -eq 0 ] && echo PASS || echo FAIL)  Windows=$([ ${results["$scheme-win"]} -eq 0 ] && echo PASS || echo FAIL) ==="
+  lr=$(printf '%s\n' "$linux_rc" | tr ' ' '\n' | awk -F: -v s="$scheme" '$1==s{print $2; exit}')
+  wr=$(printf '%s\n' "$win_rc"   | tr ' ' '\n' | awk -F: -v s="$scheme" '$1==s{print $2; exit}')
+  note "=== SUMMARY: $scheme  Linux=$([ "$lr" = 0 ] && echo PASS || echo FAIL)  Windows=$([ "$wr" = 0 ] && echo PASS || echo FAIL) ==="
 done
 final=0
-for scheme in "${SCHEMES[@]}"; do
-  [ ${results["$scheme-linux"]} -ne 0 ] && final=1
-  [ ${results["$scheme-win"]} -ne 0 ] && final=1
+for s in $linux_rc $win_rc; do
+  rc="${s#*:}"; [ "$rc" != 0 ] && final=1
 done
 exit $final

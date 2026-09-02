@@ -54,3 +54,24 @@ TEST_API_KEY=sk-...
 ssh <CI_USER>@<CI_HOST> 'cd <repo path> && git pull && bash ci/run-test.sh'
 ```
 稳定后可挂 crontab（如每次 push 后或每日一次），结果写进 `ci/logs/`。
+
+## CI 环境体检（2026-09-02，重跑前就绪清单）
+
+一次完整 CI 前，先确认三件事（任一项不满足就是环境问题，不是被测代码问题，修好后再 `bash ci/run-ci.sh`）：
+
+```bash
+ssh yuan@<CI_HOST>
+# 1) CI 主机有外网（installer 要下 Node/npm/VS Code/uv/crawl4ai；run-test 开头要 git pull）
+nc -z -G 6 github.com 443 && echo OK
+nc -z -G 6 registry.npmjs.org 443 && echo OK
+# 2) Linux VM 能正常起 sshd + open-vm-tools（VMware Tools 必须在 guest 内跑）
+export PATH="$PATH:/Applications/VMware Fusion.app/Contents/Public"
+VMX="/Users/yuan/Virtual Machines.localized/Ubuntu 64-bit Arm 26.04.vmwarevm/Ubuntu 64-bit Arm 26.04.vmx"
+vmrun start "$VMX" nogui         # 等 ~1-2 分钟
+nc -z -G 3 172.16.97.129 22      # 应为 OPEN
+vmrun getGuestIPAddress "$VMX"   # 应返回 IP，不是 "VMware Tools are not running"
+# 3) 主机虚拟化可用（Apple Silicon 上 VMware 依赖 Virtualization.framework）
+sysctl -n kern.hv_vmm_present    # 应为 1；为 0 说明本机是嵌套虚拟化实例，guest 会起不来/极慢
+```
+
+2026-09-02 实测三查全挂：主机无外网（github/npmjs/baidu 均 CLOSED）；Linux VM 还原 clean-base 后 10 分钟仍无 sshd、Tools 不跑（guest 网络层在、进程不达多用户）；`kern.hv_vmm_present=0`（疑似云上嵌套虚拟化）。历史 08-27 `ci/logs/linux-verify-20260827-131335.log` 是 `12 passed, 0 failed`，说明环境是后来退化，修好即可重跑。Windows 腿 08-27 已 `1 passed, 8 failed`，优先级次之。
