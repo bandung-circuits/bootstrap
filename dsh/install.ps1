@@ -9,8 +9,9 @@
 #   .\dsh\install.ps1 [-Provider bailian|bailian-intl|deepseek|openrouter] [-ApiKey KEY]
 #
 # Notes:
-#   - Uses winget to install Node.js LTS if a supported Node is missing
-#     (engine requirement: ^22.19.0 || >=24.0.0).
+#   - Downloads the official Node.js LTS zip into %LOCALAPPDATA%\nodejs if a
+#     supported Node is missing (engine requirement: ^22.19.0 || >=24.0.0; no
+#     winget/admin needed).
 #   - dsh is pinned:  @deepseek-ai/dsh@0.1.1-rc.2
 #   - Config lives in  ~\ai-workspace\.dsh\  (settings.yaml, secrets.env, cordis.patch.yml
 #     with the crawl4ai MCP row). Templates are fetched from the same GitHub
