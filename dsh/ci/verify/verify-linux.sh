@@ -104,8 +104,10 @@ if command -v dsh >/dev/null 2>&1; then
       # The server process may be up but not yet reachable (one-time
       # crawl4ai/playwright init on a slow VM). dsh web prints its canonical URL
       # once the Loader tree settles — take that + a live process as "booted".
+      # pgrep matches the shim argv ("node ~/.local/bin/dsh web ..."), not the
+      # resolved @deepseek-ai path.
       if grep -q "http://127.0.0.1:3080" "$bootlog" 2>/dev/null && \
-         pgrep -f '@deepseek-ai/dsh' >/dev/null 2>&1; then
+         pgrep -f 'dsh web' >/dev/null 2>&1; then
         ok 'dsh web booted (URL printed, server process up)'
       else
         no "dsh web boot failed (see $(basename "$bootlog"))"

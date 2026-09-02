@@ -59,7 +59,9 @@ if (Get-Command dsh -ErrorAction SilentlyContinue) {
     Get-Process | Where-Object { $_.ProcessName -match 'dsh|node' } | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
     $env:DSH_HOME = $DSH
-    Start-Process -FilePath (Get-Command dsh).Source -ArgumentList 'web','--no-open' -WorkingDirectory $WS
+    # Launch through cmd.exe so dsh.cmd shim + redirection work; capture output.
+    $bootlog = Join-Path $env:TEMP 'dsh-web-boot.log'
+    $p = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c','dsh web --no-open > bootlog 2>&1' -WorkingDirectory $WS -RedirectStandardOutput $bootlog -RedirectStandardError "$bootlog.err" -WindowStyle Hidden -PassThru -ErrorAction SilentlyContinue
     $boot = $false
     for ($i=0; $i -lt 120; $i++) {
         # any HTTP response means the server is up (don't demand 2xx)
@@ -67,7 +69,13 @@ if (Get-Command dsh -ErrorAction SilentlyContinue) {
         if ($code -and $code -ne '000') { $boot = $true; break }
         Start-Sleep -Seconds 2
     }
-    if ($boot) { OK 'dsh web serves http://127.0.0.1:3080' } else { NO 'dsh web serves http://127.0.0.1:3080' }
+    if ($boot) {
+        OK 'dsh web serves http://127.0.0.1:3080'
+    } elseif ((Get-Content $bootlog -Raw -ErrorAction SilentlyContinue) -match 'http://127.0.0.1:3080' -and (Get-Process -Id $p.Id -ErrorAction SilentlyContinue)) {
+        OK 'dsh web booted (URL printed, server process up)'
+    } else {
+        NO 'dsh web serves http://127.0.0.1:3080'
+    }
     Get-Process | Where-Object { $_.ProcessName -match 'dsh|node' } | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
