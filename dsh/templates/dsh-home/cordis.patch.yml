@@ -1,0 +1,15 @@
+# DeepSeek Harness home-level patch — applies to every profile.
+# Enables the crawl4ai MCP server through the official @deepseek-ai/dsh-mcp-client
+# plugin, which ships with the dsh CLI (no plugin install needed; an inserted row
+# resolves it). Each row mounts one MCP server over stdio.
+# Server commands run OUTSIDE the agent sandbox, so only pinned, trusted
+# executables are enabled here. Restart the harness (Ctrl+C, start-dsh.sh again)
+# after changing this file.
+- insert:
+    - id: mcp-crawl4ai
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: crawl4ai
+        transport: stdio
+        command: uvx
+        args: ['--from', 'crawl4ai-search-mcp==0.1.1', 'crawl4ai-search']

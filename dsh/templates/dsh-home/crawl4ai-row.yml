@@ -1,0 +1,10 @@
+# Standalone crawl4ai MCP insert — appended to the home patch when the patch
+# file already exists and does not yet enable crawl4ai (keeps user customizations).
+- insert:
+    - id: mcp-crawl4ai
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: crawl4ai
+        transport: stdio
+        command: uvx
+        args: ['--from', 'crawl4ai-search-mcp==0.1.1', 'crawl4ai-search']

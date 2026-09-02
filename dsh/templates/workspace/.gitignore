@@ -1,0 +1,8 @@
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.log
+.DS_Store
+# DeepSeek Harness home — credentials, session logs, plugin state. Never commit.
+.dsh/

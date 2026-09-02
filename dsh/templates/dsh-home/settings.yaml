@@ -1,0 +1,14 @@
+# DeepSeek Harness user settings ($DSH_HOME = ~/ai-workspace/.dsh).
+# Rendered by the bootstrap installer: the model provider route is chosen by
+# your region (China -> Alibaba Bailian, elsewhere -> Alibaba Cloud Model
+# Studio international) unless you overrode it with --provider.
+# Reference: https://deepseek-harness.github.io/deepseek-harness/
+llm-pi-ai:
+  providers:
+    {{PROVIDER_ID}}:
+      apiKeyEnv: DSH_API_KEY
+      api: {{PROVIDER_API}}
+      baseURL: {{PROVIDER_BASE_URL}}
+{{COMPAT_BLOCK}}
+      models:
+        - id: {{PROVIDER_MODEL}}
