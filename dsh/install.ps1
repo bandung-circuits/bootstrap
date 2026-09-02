@@ -138,7 +138,9 @@ function Ensure-Node {
 function Ensure-Dsh {
     if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { Err 'npm not available after Node install; restart the terminal and re-run.' }
     Note "Installing dsh CLI: npm install -g $DSH_NPM_PKG"
-    npm install -g $DSH_NPM_PKG
+    # npm>=11 blocks postinstall scripts by default; dsh's native deps need
+    # theirs — mirrors the allow-list npm prints for this package.
+    npm install -g --allow-scripts '@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs' $DSH_NPM_PKG
 }
 
 # ---------- seed ----------

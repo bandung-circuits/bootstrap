@@ -87,8 +87,10 @@ node_link_bin() {
   done
 }
 
-# Install the dsh CLI globally for the user (~/.local/bin/dsh). Uses --prefix so
-# a machine with a root-owned npm prefix never prompts for sudo.
+# Install the dsh CLI globally for the user (~/.local/bin/dsh). Uses --prefix
+# pointing at the PREFIX root (~/.local, not ~/.local/bin) so a machine with a
+# root-owned npm prefix never prompts for sudo and the bin shim lands where the
+# launchers look for it.
 dsh_install() {
   if command -v dsh >/dev/null 2>&1; then
     note "dsh already installed ($(dsh --version 2>/dev/null | head -1 || echo 'version unknown'))"
@@ -98,10 +100,15 @@ dsh_install() {
   if ! command -v npm >/dev/null 2>&1; then
     err "npm not available after Node install; run again in a new terminal"
   fi
-  note "installing dsh CLI: npm install -g --prefix $LOCAL_BIN $DSH_NPM_PKG"
-  npm install -g --prefix "$LOCAL_BIN" "$DSH_NPM_PKG" || err "npm install -g $DSH_NPM_PKG failed"
-  [ -x "$LOCAL_BIN/dsh" ] || [ -x "$(command -v dsh)" ] \
-    || err "dsh installed but not found on PATH"
+  local npm_prefix="${HOME}/.local"
+  note "installing dsh CLI: npm install -g --prefix $npm_prefix $DSH_NPM_PKG"
+  # npm>=11 blocks postinstall scripts by default; dsh's native deps
+  # (subprocess-local helper, koffi, node-pty, ...) need theirs — mirrors the
+  # allow-list npm itself prints for this package.
+  npm install -g --prefix "$npm_prefix" \
+    --allow-scripts="@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs" \
+    "$DSH_NPM_PKG" || err "npm install -g $DSH_NPM_PKG failed"
+  [ -x "$LOCAL_BIN/dsh" ] || err "dsh installed but not found at $LOCAL_BIN/dsh (npm prefix issue?)"
   export PATH="$LOCAL_BIN:$PATH"
   note "dsh $(dsh --version 2>/dev/null | head -1 || echo 'installed')"
 }
