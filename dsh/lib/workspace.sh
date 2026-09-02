@@ -55,7 +55,7 @@ dsh_home_create() {
     note "kept existing $home/settings.yaml"
   fi
 
-  if render_file "${TEMPLATES_DSH_HOME}/secrets.env" "$home/secrets.env"; then
+  if render_file "${TEMPLATES_DSH_HOME}/secrets.env.template" "$home/secrets.env"; then
     chmod 600 "$home/secrets.env"
     note "wrote $home/secrets.env (API key env; mode 600)"
   else
@@ -63,7 +63,4 @@ dsh_home_create() {
   fi
 
   mcp_ensure_patch   # crawl4ai via the official mcp-client row
-
-  copy_file "${TEMPLATES_DSH_HOME}/.gitignore" "$home/.gitignore" >/dev/null 2>&1 \
-    && note "wrote $home/.gitignore" || true
 }

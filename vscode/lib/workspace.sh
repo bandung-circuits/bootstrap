@@ -9,12 +9,13 @@
 
 WORKSPACE_DIR="${HOME}/ai-workspace"
 
-# Copy one template leaf into the workspace if absent. Never overwrites an
-# existing file, so re-running the installer keeps user edits.
-workspace_seed_file() { # <templates-relative-path>
-  local rel="$1"
+# Copy one template leaf into the workspace if absent, optionally under a
+# different installed name. Never overwrites an existing file, so re-running
+# the installer keeps user edits.
+workspace_seed_file() { # <templates-relative-path> [installed-name]
+  local rel="$1" name="${2:-$1}"
   local src="${TEMPLATES_DIR}/${rel}"
-  local dst="${WORKSPACE_DIR}/${rel}"
+  local dst="${WORKSPACE_DIR}/${name}"
   [ -f "$dst" ] && return 0
   mkdir -p "$(dirname "$dst")"
   cp "$src" "$dst"
@@ -28,7 +29,7 @@ workspace_create() {
   fi
 
   workspace_seed_file "README.md"
-  workspace_seed_file ".gitignore"
+  workspace_seed_file "_gitignore" ".gitignore"
   # workspace .vscode/settings.json — mirror the Claude Code / Copilot settings
   # (belt; user settings are the authoritative place, but this covers the case
   # of a user who later wipes their user settings). No

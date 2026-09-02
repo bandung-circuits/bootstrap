@@ -70,12 +70,23 @@ function Refresh-Path { $env:Path = [Environment]::GetEnvironmentVariable('Path'
 
 # ---------- fetch templates ----------
 function Get-Templates {
-    New-Item -ItemType Directory -Force -Path (Join-Path $TMP 'workspace'), (Join-Path $TMP 'dsh-home') | Out-Null
-    foreach ($f in 'AGENTS.md','README.md','.gitignore','NEXT-STEPS.md','start-dsh.sh','start-dsh.cmd','start-dsh.ps1') {
-        Invoke-WebRequest "$REPO_RAW/templates/workspace/$f" -OutFile (Join-Path $TMP "workspace\$f")
+    # Prefer a local templates/ tree beside this script — CI runs from a clone
+    # and must test the latest committed code, not the (possibly stale) Pages
+    # CDN. Fall back to downloading the templates from the Pages origin for the
+    # plain `irm | iex` path.
+    $local = Join-Path $PSScriptRoot 'templates'
+    if (Test-Path (Join-Path $local 'workspace')) {
+        $script:TemplatesRoot = $local
+        Note 'Using local templates/ tree (clone)'
+        return
     }
-    foreach ($f in 'settings.yaml','cordis.patch.yml','crawl4ai-row.yml','secrets.env','.gitignore') {
-        Invoke-WebRequest "$REPO_RAW/templates/dsh-home/$f" -OutFile (Join-Path $TMP "dsh-home\$f")
+    $script:TemplatesRoot = $TMP
+    New-Item -ItemType Directory -Force -Path "$TemplatesRoot\workspace", "$TemplatesRoot\dsh-home" | Out-Null
+    foreach ($f in 'AGENTS.md','README.md','_gitignore','NEXT-STEPS.md','start-dsh.sh','start-dsh.cmd','start-dsh.ps1') {
+        Invoke-WebRequest "$REPO_RAW/templates/workspace/$f" -OutFile (Join-Path $TemplatesRoot "workspace\$f")
+    }
+    foreach ($f in 'settings.yaml','cordis.patch.yml','crawl4ai-row.yml','secrets.env.template') {
+        Invoke-WebRequest "$REPO_RAW/templates/dsh-home/$f" -OutFile (Join-Path $TemplatesRoot "dsh-home\$f")
     }
 }
 
@@ -113,13 +124,16 @@ function Ensure-Dsh {
 # ---------- seed ----------
 function Seed-Workspace {
     if (-not (Test-Path $WS)) { New-Item -ItemType Directory -Force -Path $WS | Out-Null; Note "created $WS" }
-    foreach ($f in 'README.md','.gitignore','AGENTS.md','start-dsh.cmd','start-dsh.ps1') {
-        if (Write-IfAbsent (Join-Path $TMP "workspace\$f") (Join-Path $WS $f)) { Note "seeded $WS\$f" }
+    foreach ($f in 'README.md','AGENTS.md','start-dsh.cmd','start-dsh.ps1') {
+        if (Write-IfAbsent (Join-Path $TemplatesRoot "workspace\$f") (Join-Path $WS $f)) { Note "seeded $WS\$f" }
     }
+    # seeded .gitignore — in-repo template is named _gitignore so repo/global
+    # ignore rules can't drop it; installed under its real name.
+    if (Write-IfAbsent (Join-Path $TemplatesRoot 'workspace\_gitignore') (Join-Path $WS '.gitignore')) { Note "seeded $WS\.gitignore" }
     # NEXT-STEPS.md (rendered)
     $steps = Join-Path $WS 'NEXT-STEPS.md'
     if (-not (Test-Path $steps)) {
-        $c = (Get-Content -Raw (Join-Path $TMP 'workspace\NEXT-STEPS.md'))
+        $c = (Get-Content -Raw (Join-Path $TemplatesRoot 'workspace\NEXT-STEPS.md'))
         $c = $c.Replace('{{PROVIDER_NAME}}',$PName).Replace('{{PROVIDER_SITE}}',$PSite)
         Set-Content -Path $steps -Value $c -Encoding UTF8
         Note "wrote $steps"
@@ -131,7 +145,7 @@ function Seed-DshHome {
     # settings.yaml (rendered)
     $s = Join-Path $DSH 'settings.yaml'
     if (-not (Test-Path $s)) {
-        $c = (Get-Content -Raw (Join-Path $TMP 'dsh-home\settings.yaml'))
+        $c = (Get-Content -Raw (Join-Path $TemplatesRoot 'dsh-home\settings.yaml'))
         $c = $c.Replace('{{PROVIDER_ID}}',$ProviderId).Replace('{{PROVIDER_BASE_URL}}',$BaseUrl)
               .Replace('{{PROVIDER_MODEL}}',$Model).Replace('{{PROVIDER_API}}',$Api)
               .Replace('{{COMPAT_BLOCK}}',$CompatBlock)
@@ -141,21 +155,19 @@ function Seed-DshHome {
     # secrets.env (rendered, secret — launchers source it before dsh boots)
     $e = Join-Path $DSH 'secrets.env'
     if (-not (Test-Path $e)) {
-        $c = (Get-Content -Raw (Join-Path $TMP 'dsh-home\secrets.env')).Replace('{{DSH_API_KEY}}',$ApiKey)
+        $c = (Get-Content -Raw (Join-Path $TemplatesRoot 'dsh-home\secrets.env.template')).Replace('{{DSH_API_KEY}}',$ApiKey)
         Set-Content -Path $e -Value $c -Encoding UTF8 -NoNewline
         Note "wrote $e (API key env)"
     }
     # cordis.patch.yml — full template, or append the aliased row if present without it
     $p = Join-Path $DSH 'cordis.patch.yml'
     if (-not (Test-Path $p)) {
-        Copy-Item (Join-Path $TMP 'dsh-home\cordis.patch.yml') $p
+        Copy-Item (Join-Path $TemplatesRoot 'dsh-home\cordis.patch.yml') $p
         Note "enabled crawl4ai MCP in $p"
     } elseif (-not (Select-String -Path $p -SimpleMatch 'mcp-crawl4ai' -Quiet)) {
-        Add-Content -Path $p -Value (Get-Content -Raw (Join-Path $TMP 'dsh-home\crawl4ai-row.yml'))
+        Add-Content -Path $p -Value (Get-Content -Raw (Join-Path $TemplatesRoot 'dsh-home\crawl4ai-row.yml'))
         Note "appended crawl4ai MCP row to $p"
     } else { Note "crawl4ai MCP already enabled in $p" }
-    # inner .gitignore
-    if (Write-IfAbsent (Join-Path $TMP 'dsh-home\.gitignore') (Join-Path $DSH '.gitignore')) { Note "wrote $DSH\.gitignore" }
 }
 
 # ---------- run ----------

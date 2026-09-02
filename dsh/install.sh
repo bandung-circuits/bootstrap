@@ -103,7 +103,7 @@ load_templates() {
     fetch "${REPO_RAW}/templates/workspace/${f}" "${_TMP_TEMPLATES_DIR}/workspace/${f}" \
       || err "failed to fetch templates/workspace/${f}"
   done
-  for f in settings.yaml cordis.patch.yml crawl4ai-row.yml secrets.env .gitignore; do
+  for f in settings.yaml cordis.patch.yml crawl4ai-row.yml secrets.env.template; do
     fetch "${REPO_RAW}/templates/dsh-home/${f}" "${_TMP_TEMPLATES_DIR}/dsh-home/${f}" \
       || err "failed to fetch templates/dsh-home/${f}"
   done

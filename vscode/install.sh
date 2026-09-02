@@ -83,15 +83,18 @@ load_templates() {
     return
   fi
   _TMP_TEMPLATES_DIR="$(mktemp -d)"
-  for f in README.md .gitignore CLAUDE.md NEXT-STEPS.md; do
+  # In-repo template names never match the installed file names (_gitignore,
+  # settings.local.json.template), so repo/global .gitignore rules and Pages
+  # filters can't drop them. Installed names are written by the seed code.
+  for f in README.md _gitignore CLAUDE.md NEXT-STEPS.md; do
     fetch "${REPO_RAW}/templates/workspace/${f}" "${_TMP_TEMPLATES_DIR}/${f}" \
       || err "failed to fetch templates/workspace/${f} from repo"
   done
-  mkdir -p "${_TMP_TEMPLATES_DIR}/.vscode" "${_TMP_TEMPLATES_DIR}/.claude"
+  mkdir -p "${_TMP_TEMPLATES_DIR}/.vscode"
   fetch "${REPO_RAW}/templates/workspace/.vscode/settings.json" "${_TMP_TEMPLATES_DIR}/.vscode/settings.json" \
     || err "failed to fetch templates/workspace/.vscode/settings.json"
-  fetch "${REPO_RAW}/templates/workspace/.claude/settings.local.json" "${_TMP_TEMPLATES_DIR}/.claude/settings.local.json" \
-    || err "failed to fetch templates/workspace/.claude/settings.local.json"
+  fetch "${REPO_RAW}/templates/workspace/settings.local.json.template" "${_TMP_TEMPLATES_DIR}/settings.local.json.template" \
+    || err "failed to fetch templates/workspace/settings.local.json.template"
   TEMPLATES_DIR="$_TMP_TEMPLATES_DIR"
   export TEMPLATES_DIR
 }

@@ -94,9 +94,9 @@ test_windows_scheme(){
   local ip; ip=$(guest_ip "$vmx" "$host") || fail "windows: no guest IP ($scheme)"
   note "[Win/$scheme] guest IP: $ip — waiting for SSH"
   ssh_wait "$ip" "$user" || fail "windows SSH timeout ($scheme)"
-  note "[Win/$scheme] scp install.ps1 + verify-windows.ps1 into VM"
-  scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
-    "$scheme/install.ps1" "$scheme/ci/verify/verify-windows.ps1" "$user@$ip": 2>&1 | tail -1
+  note "[Win/$scheme] scp install.ps1 + verify-windows.ps1 + templates into VM"
+  scp -r -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
+    "$scheme/install.ps1" "$scheme/ci/verify/verify-windows.ps1" "$scheme/templates" "$user@$ip": 2>&1 | tail -1
   note "[Win/$scheme] running installer (with provider + key)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$user@$ip" \
     "set BOOTSTRAP_NO_LAUNCH=1&& powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Provider $TEST_PROVIDER -ApiKey $TEST_API_KEY" \

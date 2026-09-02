@@ -109,7 +109,7 @@ provider_write_settings() {
     # own leading comma so the template stays valid when the entry is absent.
     ANTHROPIC_EXTRA_ENV=$',\n    "ANTHROPIC_CUSTOM_HEADERS": "X-DashScope-DataInspection: {\\"input\\":\\"disable\\",\\"output\\":\\"disable\\"}"'
   fi
-  if render_template "${TEMPLATES_DIR}/.claude/settings.local.json" "${WORKSPACE_DIR}/.claude/settings.local.json"; then
+  if render_template "${TEMPLATES_DIR}/settings.local.json.template" "${WORKSPACE_DIR}/.claude/settings.local.json"; then
     chmod 600 "${WORKSPACE_DIR}/.claude/settings.local.json" 2>/dev/null || true
     note "wrote ${WORKSPACE_DIR}/.claude/settings.local.json"
   else

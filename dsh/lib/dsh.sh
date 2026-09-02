@@ -25,13 +25,28 @@ node_is_ok() {
   return 1
 }
 
-# Resolve the latest v$NODE_MAJOR.x patch from the official dist index.
+# Resolve the latest v$NODE_MAJOR.x LTS from the official dist index (the JSON
+# is newest-first). The lts field sits after several others inside each entry,
+# so a naive "version right before lts" grep never matches — parse real JSON.
 node_latest_lts() {
   local idx
   idx="$(curl -fsSL --max-time 30 https://nodejs.org/dist/index.json 2>/dev/null || \
          wget -qO- --timeout=30 https://nodejs.org/dist/index.json 2>/dev/null)" || return 1
-  printf '%s\n' "$idx" | grep -oE '"version":"v'"$NODE_MAJOR"'[^"]*"lts":"[A-Z]' \
-    | head -1 | sed -E 's/"version":"(v[^"]*)".*/\1/' || return 1
+  if command -v python3 >/dev/null 2>&1; then
+    printf '%s\n' "$idx" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+for e in d:
+    v = e["version"]
+    if v.startswith("v") and e.get("lts") and int(v.split(".")[0][1:]) == '"$NODE_MAJOR"':
+        print(v); break
+' | head -1
+  else
+    # sed fallback: first v-major entry that also declares an LTS codename.
+    printf '%s\n' "$idx" \
+      | sed -nE 's/.*"version":"(v'"$NODE_MAJOR"'[0-9.]+)"[^}]*"lts":"[A-Z][A-Za-z]*".*/\1/p' \
+      | head -1
+  fi
 }
 
 # Install Node LTS for the current user under ~/.local/nodejs (no sudo).
@@ -48,6 +63,7 @@ node_install() {
   fi
   local ver plat arch url
   ver="$(node_latest_lts)" || err "could not resolve the latest Node ${NODE_MAJOR}.x from nodejs.org"
+  [ -n "$ver" ] || err "could not resolve the latest Node ${NODE_MAJOR}.x from nodejs.org (empty result)"
   plat=linux; [ "$DETECT_OS" = "macos" ] && plat=darwin
   arch=x64;  [ "$DETECT_ARCH" = "arm64" ] && arch=arm64
   url="https://nodejs.org/dist/v${ver}/node-v${ver}-${plat}-${arch}.tar.gz"

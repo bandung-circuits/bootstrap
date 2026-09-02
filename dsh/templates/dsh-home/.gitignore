@@ -1,6 +1,0 @@
-# DeepSeek Harness home internals — never commit.
-secrets.env
-.credentials.yaml
-sessions/
-profiles/*/node_modules/
-*.log

@@ -1,0 +1,17 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "{{ANTHROPIC_BASE_URL}}",
+    "ANTHROPIC_AUTH_TOKEN": "{{ANTHROPIC_AUTH_TOKEN}}",
+    "ANTHROPIC_MODEL": "{{ANTHROPIC_MODEL}}",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "{{ANTHROPIC_MODEL}}",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "{{ANTHROPIC_MODEL}}",
+    "API_TIMEOUT_MS": "3000000"{{ANTHROPIC_EXTRA_ENV}}
+  },
+  "permissions": {
+    "allow": ["Bash(*)","Read","Write","Edit","Glob","Grep","Task","mcp__crawl4ai__search","mcp__crawl4ai__read_url"],
+    "deny": [],
+    "ask": []
+  },
+  "enabledMcpjsonServers": ["crawl4ai"],
+  "hasCompletedOnboarding": true
+}
