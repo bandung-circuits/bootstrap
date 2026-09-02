@@ -58,6 +58,7 @@ U
 cleanup() {
   [ -n "$_TMP_LIB_DIR" ] && rm -rf "$_TMP_LIB_DIR"
   [ -n "$_TMP_TEMPLATES_DIR" ] && rm -rf "$_TMP_TEMPLATES_DIR"
+  return 0
 }
 trap cleanup EXIT
 

@@ -92,12 +92,24 @@ dsh_install() {
 
 # Confirm dsh bootstraps its web profile + our patch (config dump). Best-effort;
 # the real UI boot is verified by CI or the user's first launch.
+#
+# Note: --dump-config composes the Cordis PATCH tree (bundle layers + the
+# home-level cordis.patch.yml). The model provider route lives in the
+# settings.yaml seam, which pi-ai reads per request — it is NOT a patch layer,
+# so it never appears in the dump. Check it on the file instead.
 dsh_smoke() {
   if [ "${BOOTSTRAP_SKIP_DUMP:-0}" = "1" ]; then return 0; fi
-  note "dumping composed config (--dump-config) to confirm the model route + MCP row"
   local out
+  note "dumping composed config (--dump-config) to confirm the MCP row"
   out="$(DSH_HOME="$DSH_HOME" dsh web --dump-config 2>&1 || true)"
-  printf '%s\n' "$out" | grep -Eq "$PROVIDER_ID:" && printf '%s\n' "$out" | grep -q 'mcp-crawl4ai' \
-    && note "config OK (provider route + mcp-crawl4ai present)"
-  printf '%s\n' "$out" | grep -E 'mcp-crawl4ai|provider|insert' | head -5 || true
+  if printf '%s\n' "$out" | grep -q 'mcp-crawl4ai'; then
+    note "config OK (mcp-crawl4ai MCP row present)"
+  else
+    warn "mcp-crawl4ai not found in --dump-config; check $DSH_HOME/cordis.patch.yml"
+  fi
+  if [ -f "$DSH_HOME/settings.yaml" ] && grep -q "baseURL: $PROVIDER_BASE_URL" "$DSH_HOME/settings.yaml"; then
+    note "provider route OK ($PROVIDER_ID)"
+  else
+    warn "provider route missing in $DSH_HOME/settings.yaml"
+  fi
 }

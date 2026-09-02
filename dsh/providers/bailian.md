@@ -14,7 +14,7 @@
 
 ## bootstrap 自动写入的配置
 
-dsh 方案把模型路由写进 `~/ai-workspace/.dsh/settings.yaml`（`llm-pi-ai` 插件），密钥写在 `~/ai-workspace/.dsh/.env` 的 `DSH_API_KEY=` 行（也可在 Web UI 的 Settings → Models 里粘贴）：
+dsh 方案把模型路由写进 `~/ai-workspace/.dsh/settings.yaml`（`llm-pi-ai` 插件），密钥写在 `~/ai-workspace/.dsh/secrets.env` 的 `DSH_API_KEY=` 行（也可在 Web UI 的 Settings → Models 里粘贴）：
 
 ```yaml
 # ~/ai-workspace/.dsh/settings.yaml

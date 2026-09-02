@@ -39,8 +39,10 @@ seed_file() { # <relative-path>
 }
 
 # Seed $DSH_HOME (~/ai-workspace/.dsh): provider settings (rendered), the
-# machine-local API key env (rendered, mode 600), the home-level patch with the
-# crawl4ai MCP row, and a .gitignore for harness internals.
+# machine-local API key env (rendered, mode 600 — stored as secrets.env, which
+# the start-dsh launchers source before boot; dsh 0.1.1-rc.2 refuses
+# launch-control names like DSH_API_KEY in its own .env files), the home-level
+# patch with the crawl4ai MCP row, and a .gitignore for harness internals.
 dsh_home_create() {
   local home="${WORKSPACE_DIR}/.dsh"
   export DSH_HOME="$home"
@@ -53,11 +55,11 @@ dsh_home_create() {
     note "kept existing $home/settings.yaml"
   fi
 
-  if render_file "${TEMPLATES_DSH_HOME}/.env" "$home/.env"; then
-    chmod 600 "$home/.env"
-    note "wrote $home/.env (API key env; mode 600)"
+  if render_file "${TEMPLATES_DSH_HOME}/secrets.env" "$home/secrets.env"; then
+    chmod 600 "$home/secrets.env"
+    note "wrote $home/secrets.env (API key env; mode 600)"
   else
-    note "kept existing $home/.env"
+    note "kept existing $home/secrets.env"
   fi
 
   mcp_ensure_patch   # crawl4ai via the official mcp-client row

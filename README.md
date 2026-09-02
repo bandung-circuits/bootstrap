@@ -20,7 +20,7 @@
   irm https://bandung-circuits.github.io/bootstrap/dsh/install.ps1 | iex
   ```
 
-装好后运行 `~/ai-workspace/start-dsh.sh`（或双击 `start-dsh.cmd`），浏览器打开 `http://127.0.0.1:3080`。安装器自动装好 Node（钉版 LTS v24）与 `dsh` CLI（钉版），按区域把后端接到 DeepSeek V4 Flash 0731，启用 crawl4ai MCP，并把 API key 写进 `~/ai-workspace/.dsh/.env`（或 UI 里粘贴）。dsh 是 dev preview，版本已钉死且脚本幂等，重跑即恢复。
+装好后运行 `~/ai-workspace/start-dsh.sh`（或双击 `start-dsh.cmd`），浏览器打开 `http://127.0.0.1:3080`。安装器自动装好 Node（钉版 LTS v24）与 `dsh` CLI（钉版），按区域把后端接到 DeepSeek V4 Flash 0731，启用 crawl4ai MCP，并把 API key 写进 `~/ai-workspace/.dsh/secrets.env`（或 UI 里粘贴）。dsh 是 dev preview，版本已钉死且脚本幂等，重跑即恢复。
 
 **后备：VS Code + Claude Code**
 

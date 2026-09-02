@@ -47,16 +47,16 @@ if [ -f "$s" ]; then
   esac
   grep -q "baseURL: $want_url" "$s" && grep -q "id: $want_model" "$s" \
     && ok "settings.yaml route ($TEST_PROVIDER)" || no "settings.yaml route ($TEST_PROVIDER)"
-  grep -q "'{{'" "$s" && no 'settings.yaml leftover placeholders' || ok 'settings.yaml no placeholders'
+  grep -q '{{' "$s" && no 'settings.yaml leftover placeholders' || ok 'settings.yaml no placeholders'
 else no 'settings.yaml'; fi
 
-# .env secret (mode 600, key present)
-e="$DSH/.env"
+# secrets.env secret (mode 600, key present — launchers source it before dsh boots)
+e="$DSH/secrets.env"
 if [ -f "$e" ]; then
-  grep -q '^DSH_API_KEY=' "$e" && ok '.env DSH_API_KEY present' || no '.env DSH_API_KEY present'
+  grep -q '^DSH_API_KEY=' "$e" && ok 'secrets.env DSH_API_KEY present' || no 'secrets.env DSH_API_KEY present'
   p=$(stat -c '%a' "$e" 2>/dev/null || stat -f '%Lp' "$e" 2>/dev/null)
-  [ "$p" = "600" ] && ok '.env mode 600' || no ".env mode 600 (got $p)"
-else no '.env'; fi
+  [ "$p" = "600" ] && ok 'secrets.env mode 600' || no "secrets.env mode 600 (got $p)"
+else no 'secrets.env'; fi
 
 # cordis.patch.yml: official mcp-client row for crawl4ai
 p="$DSH/cordis.patch.yml"

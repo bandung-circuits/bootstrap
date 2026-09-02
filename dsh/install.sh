@@ -16,7 +16,7 @@
 # What it does: detects OS/arch/region, pins Node 24 LTS + @deepseek-ai/dsh
 # (a dev-preview, so the exact versions matter — see lib/dsh.sh), writes the
 # model provider route into ~/ai-workspace/.dsh/settings.yaml, your API key into
-# ~/ai-workspace/.dsh/.env (mode 600), enables the crawl4ai MCP via the official
+# ~/ai-workspace/.dsh/secrets.env (mode 600), enables the crawl4ai MCP via the official
 # mcp-client row in ~/ai-workspace/.dsh/cordis.patch.yml, seeds
 # ~/ai-workspace (AGENTS.md, README, NEXT-STEPS, start-dsh launchers), and
 # launches dsh web. Every seeded file is a real template under dsh/templates/ —
@@ -58,7 +58,7 @@ recommended scheme; the VS Code + Claude Code alternative lives in vscode/.
 
   --provider=bailian|bailian-intl|deepseek|openrouter   override auto region routing
   --api-key=KEY                             (optional) bake the key into
-                                            ~/ai-workspace/.dsh/.env; if omitted,
+                                            ~/ai-workspace/.dsh/secrets.env; if omitted,
                                             a placeholder is written and
                                             NEXT-STEPS.md tells you how to add it
   --no-launch                              don't start dsh web at the end
@@ -73,6 +73,7 @@ U
 cleanup() {
   [ -n "$_TMP_LIB_DIR" ] && rm -rf "$_TMP_LIB_DIR"
   [ -n "$_TMP_TEMPLATES_DIR" ] && rm -rf "$_TMP_TEMPLATES_DIR"
+  return 0
 }
 trap cleanup EXIT
 
@@ -102,7 +103,7 @@ load_templates() {
     fetch "${REPO_RAW}/templates/workspace/${f}" "${_TMP_TEMPLATES_DIR}/workspace/${f}" \
       || err "failed to fetch templates/workspace/${f}"
   done
-  for f in settings.yaml cordis.patch.yml crawl4ai-row.yml .env .gitignore; do
+  for f in settings.yaml cordis.patch.yml crawl4ai-row.yml secrets.env .gitignore; do
     fetch "${REPO_RAW}/templates/dsh-home/${f}" "${_TMP_TEMPLATES_DIR}/dsh-home/${f}" \
       || err "failed to fetch templates/dsh-home/${f}"
   done
@@ -163,7 +164,7 @@ main() {
 
   Almost ready! One step left: add your API key (unless you passed --api-key).
   See  ~/ai-workspace/NEXT-STEPS.md  — it tells you where to get a key and
-  how to paste it into  ~/ai-workspace/.dsh/.env  (or use Settings -> Models
+  how to paste it into  ~/ai-workspace/.dsh/secrets.env  (or use Settings -> Models
   in the Web UI). Then start the assistant from the workspace:
       ~/ai-workspace/start-dsh.sh
   or double-click  start-dsh.cmd  on Windows. The browser opens

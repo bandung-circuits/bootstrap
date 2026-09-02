@@ -15,5 +15,5 @@ The backend is DeepSeek V4 Flash 0731. The crawl4ai MCP (web fetch/search) is re
 
 ## Notes
 
-- Your API key lives in `.dsh/.env` (or you can paste it in the UI under Settings → Models).
+- Your API key lives in `.dsh/secrets.env` (or you can paste it in the UI under Settings → Models).
 - `.dsh/` is the harness home — don't edit it by hand unless you know what you're doing.

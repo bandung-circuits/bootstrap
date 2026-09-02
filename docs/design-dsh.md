@@ -21,7 +21,8 @@ dsh Web UI 是浏览器界面，新手动线最短：双击启动器 → 浏览�
 
 - **安装**：Node（`^22.19.0 || >=24.0.0`，钉 LTS v24 大版本、装 `~/.local/nodejs` 免 sudo）+ `npm install -g --prefix ~/.local @deepseek-ai/dsh@0.1.1-rc.2`（钉死 rc 版）。`start-dsh` 启动器 pre-pend `~/.local/bin` 与 `~/.local/nodejs/bin` 到 PATH，避免用户终端 PATH 问题。
 - **$DSH_HOME 在工作区内**（用户拍板）：`~/ai-workspace/.dsh`。动机：与 vscode 方案 `~/ai-workspace/.claude` 一致，整个环境一个文件夹、拷走即用。代价（已知 & 文档化）：agent 的工作树里躺着 harness 自己的配置，AGENTS.md 明文告诫"never edit files under `.dsh/`"，`.gitignore` 整目录忽略 `.dsh/`。换机器恢复 = 拷贝文件夹 或 重跑一条 bootstrap。
-- **模型路由**：`$DSH_HOME/settings.yaml` 的 `llm-pi-ai.providers.<id>`（pi-ai 适配器）。route = `{apiKeyEnv, api, baseURL, models:[...]}`；API key 经 `apiKeyEnv: DSH_API_KEY` 引用，密钥本体写 `$DSH_HOME/.env`（dsh 官方文档明确 `$DSH_HOME/.env` 是普通启动环境层，会读取）。
+- **模型路由**：`$DSH_HOME/settings.yaml` 的 `llm-pi-ai.providers.<id>`（pi-ai 适配器）。route = `{apiKeyEnv, api, baseURL, models:[...]}`；API key 经 `apiKeyEnv: DSH_API_KEY` 引用。
+- **密钥不与配置同放**（2026-09-02 实测踩坑）：dsh 0.1.1-rc.2 会**拒绝从 `.env` 文件读取启动控制类变量名**（实测 `DSH_API_KEY` 命中：报错"`sets "DSH_API_KEY", which only the launching environment may set ... export ${name} instead of putting it in a .env file`"）。因此密钥不写 `$DSH_HOME/.env`，而是写在 `$DSH_HOME/secrets.env`（dsh 不自动读这个名字），由 `start-dsh` 启动器在启动前 source + export 进进程环境，再 `exec dsh web`。三条启动器（bash/cmd/ps1）同一逻辑。
 - **约定文件**：workspace 根 `AGENTS.md`（dsh 官方 `@deepseek-ai/dsh-agent-instructions` 插件会注入 AGENTS.md），当前为人工草稿，后续迭代继续完善（web tooling、安全默认、打包等留 scope note）。
 - **crawl4ai MCP（官方 mcp-client，不装第三方插件）**：CLI reference 原文——"The CLI also ships `@deepseek-ai/dsh-mcp-client` as a dependency for patch layers, but no MCP server is enabled by default"。所以**不需要 `dsh plugin add`**，只要在 `$DSH_HOME/cordis.patch.yml`（home 层，所有 profile 生效）写一行：
 
@@ -74,7 +75,7 @@ dsh Web UI 是浏览器界面，新手动线最短：双击启动器 → 浏览�
 - **pi-ai 的 `api:` 协议名**：Anthropic 兼容端点（百炼 `/apps/anthropic`、DeepSeek `/anthropic`）用 `api: anthropic`；OpenRouter 用 `api: openai-completions`。provers.md 的官方逃生路线：OpenAI 兼容网关拒 developer role / 只认 `max_tokens` 时加 `compat: {supportsDeveloperRole: false, maxTokensField: max_tokens}`（openrouter 已预置）。
   - **实测方法**：`DSH_HOME=~/ai-workspace/.dsh dsh web --dump-config` 看 `llm-pi-ai` 段 + 真实 key 首条消息。**若 `anthropic` 协议名不存在**，generated `dsh-llm-pi-ai` 配置目录是最新权威，改 `dsh/lib/providers.sh` 一处 + 重测。
 - **预播种 `$DSH_HOME` 与 web profile 自动初始化**：首次 `dsh web` 会按 shipped 模板初始化 `$DSH_HOME/profiles/web`。预播种只写 home 层（settings.yaml / cordis.patch.yml / .env），不与 profile 目录冲突；`--dump-config` 已作为安装器最后一步冒烟。若某版本 profile 初始化与预播种文件互踩，改 seed 顺序（先 `dsh web --dump-config` 触发初始化，再写配置）。
-- **凭据注入**：走 `$DSH_HOME/.env` + `apiKeyEnv` 引用（官方文档确认 dsh 读 `$DSH_HOME/.env`）。若未来版本不再读，逃生：改让启动器 source .env 或走 UI Settings → Models 由 dsh 写 `.credentials.yaml`。
+- **凭据注入**（已实测）：`DSH_API_KEY` 是启动控制类变量名，不能出现在 dsh 自读的 `.env`；改为 `$DSH_HOME/secrets.env` + 启动器 source/export。若未来版本对 `secrets.env` 或 `apiKeyEnv` 语义再变，逃生：UI Settings → Models 由 dsh 写 `.credentials.yaml`。
 - **Windows**：winget Node + `npm -g`（Windows 默认用户前缀可写）。未实测，见平台矩阵。
 - **首次启动时间**：`dsh web` 首次要建 profile + 拉 crawl4ai（uvx 首调），NEXT-STEPS 有提示。
 

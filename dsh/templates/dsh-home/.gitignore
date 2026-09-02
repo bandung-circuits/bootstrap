@@ -1,5 +1,5 @@
 # DeepSeek Harness home internals — never commit.
-.env
+secrets.env
 .credentials.yaml
 sessions/
 profiles/*/node_modules/

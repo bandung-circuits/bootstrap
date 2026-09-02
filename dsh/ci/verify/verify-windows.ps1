@@ -33,8 +33,8 @@ if (Test-Path (Join-Path $DSH 'settings.yaml')) {
     if ($s -match '\{\{') { NO 'settings.yaml leftover placeholders' } else { OK 'settings.yaml no placeholders' }
 } else { NO 'settings.yaml' }
 
-$e = Join-Path $DSH '.env'
-if ((Test-Path $e) -and ((Get-Content $e -Raw) -match '^DSH_API_KEY=')) { OK '.env DSH_API_KEY present' } else { NO '.env DSH_API_KEY present' }
+$e = Join-Path $DSH 'secrets.env'
+if ((Test-Path $e) -and ((Get-Content $e -Raw) -match '^DSH_API_KEY=')) { OK 'secrets.env DSH_API_KEY present' } else { NO 'secrets.env DSH_API_KEY present' }
 
 $p = Join-Path $DSH 'cordis.patch.yml'
 $pc = Get-Content $p -Raw -ErrorAction SilentlyContinue

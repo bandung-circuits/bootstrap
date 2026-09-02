@@ -138,10 +138,10 @@ function Seed-DshHome {
         Set-Content -Path $s -Value $c -Encoding UTF8
         Note "wrote $s"
     }
-    # .env (rendered, secret)
-    $e = Join-Path $DSH '.env'
+    # secrets.env (rendered, secret — launchers source it before dsh boots)
+    $e = Join-Path $DSH 'secrets.env'
     if (-not (Test-Path $e)) {
-        $c = (Get-Content -Raw (Join-Path $TMP 'dsh-home\.env')).Replace('{{DSH_API_KEY}}',$ApiKey)
+        $c = (Get-Content -Raw (Join-Path $TMP 'dsh-home\secrets.env')).Replace('{{DSH_API_KEY}}',$ApiKey)
         Set-Content -Path $e -Value $c -Encoding UTF8 -NoNewline
         Note "wrote $e (API key env)"
     }

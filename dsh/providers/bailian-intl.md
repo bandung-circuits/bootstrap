@@ -27,7 +27,7 @@ llm-pi-ai:
         - id: deepseek-v4-flash
 ```
 
-密钥在 `~/ai-workspace/.dsh/.env` 的 `DSH_API_KEY=` 行（或 Web UI Settings → Models 粘贴）。
+密钥在 `~/ai-workspace/.dsh/secrets.env` 的 `DSH_API_KEY=` 行（或 Web UI Settings → Models 粘贴）。
 
 ## 已知坑
 

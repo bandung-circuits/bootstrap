@@ -12,7 +12,7 @@ Get a key for DeepSeek V4 Flash 0731 from {{PROVIDER_NAME}}:
 ## 2. Add the key
 
 If you gave one to the installer it is already saved in
-  ~/ai-workspace/.dsh/.env   (line: DSH_API_KEY=...)
+  ~/ai-workspace/.dsh/secrets.env   (line: DSH_API_KEY=...)
 
 Otherwise open that file in any text editor and replace PASTE-YOUR-API-KEY-HERE.
 You can also add it later inside the assistant itself:
