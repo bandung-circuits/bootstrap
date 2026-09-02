@@ -6,6 +6,10 @@ $pass = 0; $fail = 0
 function OK($m){ Write-Host "  PASS  $m"; $script:pass++ }
 function NO($m){ Write-Host "  FAIL  $m"; $script:fail++ }
 
+# The installer puts Node in %LOCALAPPDATA%\nodejs and uv in ~\.local\bin; the
+# verify session is a fresh shell, so prepend both to PATH.
+$env:Path = "$env:LOCALAPPDATA\nodejs;" + $env:USERPROFILE + '\.local\bin;' + $env:Path
+
 $WS = Join-Path $env:USERPROFILE 'ai-workspace'
 $DSH = Join-Path $WS '.dsh'
 

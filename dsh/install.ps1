@@ -143,6 +143,19 @@ function Ensure-Dsh {
     npm install -g --allow-scripts '@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs' $DSH_NPM_PKG
 }
 
+function Ensure-Uv {
+    $uv = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
+    if (Test-Path $uv) { $env:Path = "$env:USERPROFILE\.local\bin;" + $env:Path; return }
+    Note 'Installing uv (Python runtime manager; provides uvx for crawl4ai)'
+    $installer = Join-Path $env:TEMP 'astral-uv-install.ps1'
+    Invoke-WebRequest 'https://astral.sh/uv/install.ps1' -OutFile $installer -TimeoutSec 60
+    $psExe = Join-Path $PSHOME 'powershell.exe'
+    $p = Start-Process -FilePath $psExe -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","`"$installer`"" -Wait -PassThru -NoNewWindow
+    if ($p.ExitCode -ne 0) { Err "uv installer failed (exit $($p.ExitCode))" }
+    $env:Path = "$env:USERPROFILE\.local\bin;" + $env:Path
+    Note 'uv installed'
+}
+
 # ---------- seed ----------
 function Seed-Workspace {
     if (-not (Test-Path $WS)) { New-Item -ItemType Directory -Force -Path $WS | Out-Null; Note "created $WS" }
@@ -201,6 +214,9 @@ Ensure-Node
 
 Note 'Installing dsh CLI'
 Ensure-Dsh
+
+Note 'Installing uv/uvx (crawl4ai MCP runtime)'
+Ensure-Uv
 
 Note 'Creating the AI workspace'
 Seed-Workspace

@@ -99,7 +99,7 @@ load_templates() {
   fi
   _TMP_TEMPLATES_DIR="$(mktemp -d)"
   mkdir -p "${_TMP_TEMPLATES_DIR}/workspace" "${_TMP_TEMPLATES_DIR}/dsh-home"
-  for f in AGENTS.md README.md .gitignore NEXT-STEPS.md start-dsh.sh start-dsh.cmd start-dsh.ps1; do
+  for f in AGENTS.md README.md _gitignore NEXT-STEPS.md start-dsh.sh start-dsh.cmd start-dsh.ps1; do
     fetch "${REPO_RAW}/templates/workspace/${f}" "${_TMP_TEMPLATES_DIR}/workspace/${f}" \
       || err "failed to fetch templates/workspace/${f}"
   done
@@ -150,6 +150,9 @@ main() {
   note "Installing Node (pinned LTS ${NODE_MAJOR}.x) and the dsh CLI (${DSH_NPM_PKG})"
   node_install
   dsh_install
+
+  note "Installing uv/uvx (crawl4ai MCP runtime)"
+  ensure_uv
 
   note "Creating the AI workspace and seeding ~/ai-workspace"
   workspace_create

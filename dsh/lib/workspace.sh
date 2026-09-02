@@ -13,7 +13,7 @@ workspace_create() {
     note "created workspace at $WORKSPACE_DIR"
   fi
   seed_file        "README.md"
-  seed_file        ".gitignore"
+  seed_file        "_gitignore" ".gitignore"
   seed_file        "AGENTS.md"
   seed_file        "start-dsh.sh"
   seed_file        "start-dsh.cmd"
@@ -29,20 +29,24 @@ workspace_create() {
 }
 
 # Seed one static workspace template if absent (logs "kept" when present).
-seed_file() { # <relative-path>
-  local rel="$1"
-  if copy_file "${TEMPLATES_DIR}/${rel}" "$WORKSPACE_DIR/$rel"; then
-    note "seeded $WORKSPACE_DIR/$rel"
+# Templates keep names that cannot collide with their installed form (e.g.
+# _gitignore -> .gitignore), so repo/global .gitignore and Pages filters can't
+# drop them.
+seed_file() { # <templates-relative-path> [installed-name]
+  local rel="$1" name="${2:-$1}"
+  if copy_file "${TEMPLATES_DIR}/${rel}" "$WORKSPACE_DIR/$name"; then
+    note "seeded $WORKSPACE_DIR/$name"
   else
-    note "kept existing $WORKSPACE_DIR/$rel"
+    note "kept existing $WORKSPACE_DIR/$name"
   fi
 }
 
 # Seed $DSH_HOME (~/ai-workspace/.dsh): provider settings (rendered), the
 # machine-local API key env (rendered, mode 600 — stored as secrets.env, which
 # the start-dsh launchers source before boot; dsh 0.1.1-rc.2 refuses
-# launch-control names like DSH_API_KEY in its own .env files), the home-level
-# patch with the crawl4ai MCP row, and a .gitignore for harness internals.
+# launch-control names like DSH_API_KEY in its own .env files), and the
+# home-level patch with the crawl4ai MCP row. Secrets under .dsh/ are ignored by
+# the workspace-root gitignore (the whole harness home is private).
 dsh_home_create() {
   local home="${WORKSPACE_DIR}/.dsh"
   export DSH_HOME="$home"

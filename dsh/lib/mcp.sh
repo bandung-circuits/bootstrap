@@ -7,6 +7,24 @@
 #
 # Server commands run OUTSIDE the agent sandbox, so only pinned, trusted
 # executables are enabled here (uvx + the pinned crawl4ai-search-mcp package).
+# uv/uvx are therefore installed as part of the bootstrap (no key needed).
+
+UV_DIR="${HOME}/.local/bin"
+UV_BIN="${UV_DIR}/uv"
+
+# Install uv (single binary) if not present; uvx comes bundled with it.
+ensure_uv() {
+  [ -x "$UV_BIN" ] && { export PATH="$UV_DIR:$PATH"; return 0; }
+  note "installing uv (Python package/runtime manager; provides uvx)"
+  if command -v curl >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  else
+    wget -qO- https://astral.sh/uv/install.sh | sh
+  fi
+  [ -x "$UV_BIN" ] || err "uv install failed"
+  export PATH="$UV_DIR:$PATH"
+  note "uv $(uv --version 2>/dev/null || echo installed)"
+}
 
 mcp_ensure_patch() {
   local patch="$DSH_HOME/cordis.patch.yml"
