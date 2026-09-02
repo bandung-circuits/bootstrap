@@ -1,4 +1,4 @@
-# dsh-desktop/prep.ps1 — one-command workspace prep for DSH Desktop (Windows).
+﻿# dsh-desktop/prep.ps1 — one-command workspace prep for DSH Desktop (Windows).
 #
 # deployed:  (stamped by ci/deploy-pages.yml)
 #
@@ -45,7 +45,7 @@ function Refresh-UVPath {
 
 # ---------- templates ----------
 function Get-Templates {
-    $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $here = Split-Path -Parent $PSCommandPath
     $local = Join-Path $here 'templates'
     if (Test-Path (Join-Path $local 'workspace')) {
         $script:TW = Join-Path $local 'workspace'
@@ -120,7 +120,7 @@ if (-not (Test-Path $AppData)) {
     Warn "from https://dshdesktop.com/en/ and launch it once, then re-run this if needed."
 }
 
-Remove-Item -Recurse -Force $_TmpTemplates -ErrorAction SilentlyContinue
+if ($_TmpTemplates) { Remove-Item -Recurse -Force $_TmpTemplates -ErrorAction SilentlyContinue }
 
 Note 'Done.'
 Write-Host @"
