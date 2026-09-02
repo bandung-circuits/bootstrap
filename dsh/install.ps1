@@ -181,9 +181,7 @@ function Seed-DshHome {
     $s = Join-Path $DSH 'settings.yaml'
     if (-not (Test-Path $s)) {
         $c = (Get-Content -Raw (Join-Path $TemplatesRoot 'dsh-home\settings.yaml'))
-        $c = $c.Replace('{{PROVIDER_ID}}',$ProviderId).Replace('{{PROVIDER_BASE_URL}}',$BaseUrl)
-              .Replace('{{PROVIDER_MODEL}}',$Model).Replace('{{PROVIDER_API}}',$Api)
-              .Replace('{{COMPAT_BLOCK}}',$CompatBlock)
+        $c = $c.Replace('{{PROVIDER_ID}}',$ProviderId).Replace('{{PROVIDER_BASE_URL}}',$BaseUrl).Replace('{{PROVIDER_MODEL}}',$Model).Replace('{{PROVIDER_API}}',$Api).Replace('{{COMPAT_BLOCK}}',$CompatBlock)
         Set-Content -Path $s -Value $c -Encoding UTF8
         Note "wrote $s"
     }

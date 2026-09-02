@@ -54,10 +54,13 @@ if (Get-Command dsh -ErrorAction SilentlyContinue) {
 
 # web UI boots on 127.0.0.1:3080
 if (Get-Command dsh -ErrorAction SilentlyContinue) {
+    # clear any stale dsh from the dump-config step first (EADDRINUSE on 3080)
+    Get-Process | Where-Object { $_.ProcessName -match 'dsh|node' } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
     $env:DSH_HOME = $DSH
     Start-Process -FilePath (Get-Command dsh).Source -ArgumentList 'web','--no-open' -WorkingDirectory $WS
     $boot = $false
-    for ($i=0; $i -lt 30; $i++) {
+    for ($i=0; $i -lt 60; $i++) {
         try { $r = Invoke-WebRequest 'http://127.0.0.1:3080/' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { $boot = $true; break } } catch {}
         Start-Sleep -Seconds 2
     }

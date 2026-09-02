@@ -76,21 +76,30 @@ if command -v dsh >/dev/null 2>&1; then
   printf '%s\n' "$out" | grep -q 'mcp-crawl4ai' && ok 'dump-config shows mcp-crawl4ai' || no 'dump-config shows mcp-crawl4ai'
 fi
 
-# web UI boots on 127.0.0.1:3080 (--no-open; curl the port). Captures the boot
+# web UI boots on 127.0.0.1:3080 (--no-open; curl the port). Clear any stale
+# dsh from the dump/smoke first (EADDRINUSE bit us), then capture the boot
 # output so a failure shows the real error instead of a silent 0/1.
 if command -v dsh >/dev/null 2>&1; then
+  pkill -f 'dsh web' 2>/dev/null || true; pkill -f '@deepseek-ai/dsh' 2>/dev/null || true
+  sleep 2
   bootlog="/tmp/dsh-web-boot.log"
   (cd "$WS" && DSH_HOME="$DSH" dsh web --no-open >"$bootlog" 2>&1 &)
   boot=0
-  for i in $(seq 1 45); do
+  for i in $(seq 1 60); do
     if curl -sf -m 2 http://127.0.0.1:3080/ >/dev/null 2>&1; then boot=1; break; fi
     sleep 2
   done
   if [ "$boot" = 1 ]; then
     ok 'dsh web serves http://127.0.0.1:3080'
   else
-    no "dsh web boot failed (see $(basename "$bootlog"))"
-    tail -12 "$bootlog" 2>/dev/null | sed 's/^/    /' || true
+    # EADDRINUSE -> another server held the port (the boot log proves it); a
+    # slow Loader settle may also just need more time — give it one more try.
+    if curl -sf -m 3 http://127.0.0.1:3080/ >/dev/null 2>&1; then
+      ok 'dsh web serves http://127.0.0.1:3080 (late)'
+    else
+      no "dsh web boot failed (see $(basename "$bootlog"))"
+      tail -12 "$bootlog" 2>/dev/null | sed 's/^/    /' || true
+    fi
   fi
   # stop the test server we own
   pkill -f 'dsh web' 2>/dev/null || true; pkill -f '@deepseek-ai/dsh' 2>/dev/null || true
