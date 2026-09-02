@@ -12,7 +12,7 @@
 #   - Uses winget to install Node.js LTS if a supported Node is missing
 #     (engine requirement: ^22.19.0 || >=24.0.0).
 #   - dsh is pinned:  @deepseek-ai/dsh@0.1.1-rc.2
-#   - Config lives in  ~\ai-workspace\.dsh\  (settings.yaml, .env, cordis.patch.yml
+#   - Config lives in  ~\ai-workspace\.dsh\  (settings.yaml, secrets.env, cordis.patch.yml
 #     with the crawl4ai MCP row). Templates are fetched from the same GitHub
 #     Pages origin; the installer never embeds config text.
 
@@ -74,7 +74,7 @@ function Get-Templates {
     foreach ($f in 'AGENTS.md','README.md','.gitignore','NEXT-STEPS.md','start-dsh.sh','start-dsh.cmd','start-dsh.ps1') {
         Invoke-WebRequest "$REPO_RAW/templates/workspace/$f" -OutFile (Join-Path $TMP "workspace\$f")
     }
-    foreach ($f in 'settings.yaml','cordis.patch.yml','crawl4ai-row.yml','.env','.gitignore') {
+    foreach ($f in 'settings.yaml','cordis.patch.yml','crawl4ai-row.yml','secrets.env','.gitignore') {
         Invoke-WebRequest "$REPO_RAW/templates/dsh-home/$f" -OutFile (Join-Path $TMP "dsh-home\$f")
     }
 }
@@ -182,7 +182,7 @@ Write-Host @'
 
   Almost ready! One step left: add your API key (unless you passed -ApiKey).
   See  ~\ai-workspace\NEXT-STEPS.md  — where to get a key and how to paste it
-  into  ~\ai-workspace\.dsh\.env  (or use Settings -> Models in the Web UI).
+  into  ~\ai-workspace\.dsh\secrets.env  (or use Settings -> Models in the Web UI).
 
   Then start the assistant: double-click  start-dsh.cmd  in the workspace.
   The browser opens  http://127.0.0.1:3080  and crawl4ai MCP is ready.
