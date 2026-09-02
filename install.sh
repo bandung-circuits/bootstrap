@@ -15,6 +15,7 @@ set -euo pipefail
 REPO_RAW="https://bandung-circuits.github.io/bootstrap"
 LIB_FILES=(detect.sh provider.sh vscode.sh claude-code.sh crawl4ai.sh workspace.sh)
 _TMP_LIB_DIR=""
+_TMP_TEMPLATES_DIR=""
 
 # ---------- logging ----------
 note() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
@@ -50,7 +51,11 @@ U
 }
 
 # ---------- lib loading ----------
-cleanup() { [ -n "$_TMP_LIB_DIR" ] && rm -rf "$_TMP_LIB_DIR"; }
+cleanup() {
+  [ -n "$_TMP_LIB_DIR" ] && rm -rf "$_TMP_LIB_DIR"
+  [ -n "$_TMP_TEMPLATES_DIR" ] && rm -rf "$_TMP_TEMPLATES_DIR"
+  return 0
+}
 trap cleanup EXIT
 
 # Fetch a URL to a file, using curl if available, else wget.
@@ -62,12 +67,41 @@ fetch() { # fetch <url> <out>
   fi
 }
 
+# Resolve ./templates/workspace — the static files seeded into the AI workspace.
+# Local clone: the dir beside this script. Piped: fetched from the Pages origin.
+# In-repo template names never match the installed file names (_gitignore,
+# settings.local.json.template), so repo/global .gitignore rules and Pages
+# filters can't drop them.
+# Sets: TEMPLATES_DIR
+load_templates() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd 2>/dev/null || true)"
+  if [ -d "${script_dir}/templates/workspace" ]; then
+    TEMPLATES_DIR="${script_dir}/templates/workspace"
+    export TEMPLATES_DIR
+    return
+  fi
+  _TMP_TEMPLATES_DIR="$(mktemp -d)"
+  for f in README.md _gitignore CLAUDE.md NEXT-STEPS.md; do
+    fetch "${REPO_RAW}/templates/workspace/${f}" "${_TMP_TEMPLATES_DIR}/${f}" \
+      || err "failed to fetch templates/workspace/${f} from repo"
+  done
+  mkdir -p "${_TMP_TEMPLATES_DIR}/.vscode"
+  fetch "${REPO_RAW}/templates/workspace/.vscode/settings.json" "${_TMP_TEMPLATES_DIR}/.vscode/settings.json" \
+    || err "failed to fetch templates/workspace/.vscode/settings.json"
+  fetch "${REPO_RAW}/templates/workspace/settings.local.json.template" "${_TMP_TEMPLATES_DIR}/settings.local.json.template" \
+    || err "failed to fetch templates/workspace/settings.local.json.template"
+  TEMPLATES_DIR="$_TMP_TEMPLATES_DIR"
+  export TEMPLATES_DIR
+}
+
 load_libs() {
   local script_dir
   # If run from a clone, lib/ sits next to this script.
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd 2>/dev/null || true)"
   if [ -f "${script_dir}/lib/detect.sh" ]; then
     for f in "${LIB_FILES[@]}"; do . "${script_dir}/lib/${f}"; done
+    load_templates
     return
   fi
   # Piped via curl|bash: fetch libs into a temp dir.
@@ -77,6 +111,7 @@ load_libs() {
       || err "failed to fetch lib/${f} from repo"
     . "${_TMP_LIB_DIR}/${f}"
   done
+  load_templates
 }
 
 # ---------- main ----------

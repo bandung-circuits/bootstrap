@@ -1,0 +1,8 @@
+{
+  "claudeCode.preferredLocation": "sidebar",
+  "claudeCode.disableLoginPrompt": true,
+  "claudeCode.hideOnboarding": true,
+  "chat.commandCenter.enabled": false,
+  "chat.disableAIFeatures": true,
+  "github.copilot.enable": { "*": false }
+}

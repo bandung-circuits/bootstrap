@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
-# workspace.sh — create a default AI workspace dir and seed it, then open VS Code there.
+# workspace.sh — create the default AI workspace dir and seed it from the static
+# templates/workspace tree, then open VS Code there.
+#
+# Every seeded file (README.md, .gitignore, .vscode/settings.json, CLAUDE.md)
+# is a real file under templates/workspace — nothing is embedded in this script.
+# The installer only copies templates in; provider.sh renders the key-bearing
+# settings.local.json / NEXT-STEPS.md from their own templates.
 
 WORKSPACE_DIR="${HOME}/ai-workspace"
+
+# Copy one template leaf into the workspace if absent, optionally under a
+# different installed name. Never overwrites an existing file, so re-running
+# the installer keeps user edits.
+workspace_seed_file() { # <templates-relative-path> [installed-name]
+  local rel="$1" name="${2:-$1}"
+  local src="${TEMPLATES_DIR}/${rel}"
+  local dst="${WORKSPACE_DIR}/${name}"
+  [ -f "$dst" ] && return 0
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  note "seeded $dst"
+}
 
 workspace_create() {
   if [ ! -d "$WORKSPACE_DIR" ]; then
@@ -9,86 +28,18 @@ workspace_create() {
     note "created workspace at $WORKSPACE_DIR"
   fi
 
-  local readme="$WORKSPACE_DIR/README.md"
-  if [ ! -f "$readme" ]; then
-    cat > "$readme" <<'MD'
-# My AI workspace
-
-This folder is your default workspace for Claude Code. Keep your projects here.
-
-## Quick start
-
-1. Open this folder in VS Code.
-2. The Claude Code panel is docked in the sidebar (right) and opens with VS Code. It never opens in the center editor tab by itself.
-3. Tell the AI what you want, e.g.:
-   - "create a hello.py and run it"
-   - "find recent news about <topic> and save it to news.md"
-   - "explain what's in this folder"
-
-The backend is DeepSeek V4 Flash 0731. The crawl4ai MCP (web fetch/search) is ready.
-MD
-    note "seeded $readme"
-  fi
-
-  # a per-user gitignore so AI-generated artifacts don't pollute
-  if [ ! -f "$WORKSPACE_DIR/.gitignore" ]; then
-    cat > "$WORKSPACE_DIR/.gitignore" <<'GI'
-node_modules/
-.venv/
-venv/
-__pycache__/
-*.log
-.DS_Store
-# settings.local.json contains your API key — keep it in the folder, out of git.
-.claude/settings.local.json
-GI
-  fi
-
+  workspace_seed_file "README.md"
+  workspace_seed_file "_gitignore" ".gitignore"
   # workspace .vscode/settings.json — mirror the Claude Code / Copilot settings
   # (belt; user settings are the authoritative place, but this covers the case
   # of a user who later wipes their user settings). No
   # workbench.secondarySideBar.defaultVisibility here: its default
   # ("visibleInWorkspace") + the seeded UI state show the right sidebar with
   # Claude Code on first launch.
-  local vscode_dir="$WORKSPACE_DIR/.vscode"
-  if [ ! -f "$vscode_dir/settings.json" ]; then
-    mkdir -p "$vscode_dir"
-    cat > "$vscode_dir/settings.json" <<'VSC'
-{
-  "claudeCode.preferredLocation": "sidebar",
-  "claudeCode.disableLoginPrompt": true,
-  "claudeCode.hideOnboarding": true,
-  "chat.commandCenter.enabled": false,
-  "chat.disableAIFeatures": true,
-  "github.copilot.enable": { "*": false }
-}
-VSC
-    note "seeded $vscode_dir/settings.json"
-  fi
-
-  # default CLAUDE.md — workspace rules for Claude Code (web-tool priority + grounded search)
-  if [ ! -f "$WORKSPACE_DIR/CLAUDE.md" ]; then
-    cat > "$WORKSPACE_DIR/CLAUDE.md" <<'MD'
-# CLAUDE.md — workspace rules for Claude Code
-
-## Web tools: prefer crawl4ai
-When you need to read a web page or search the web, prefer the crawl4ai MCP
-(`mcp__crawl4ai__read_url` to fetch a page, `mcp__crawl4ai__search` to search).
-It is free and needs no API key. If crawl4ai is unavailable for some reason,
-fall back to WebFetch / WebSearch.
-
-## Grounded search (avoid hallucination)
-When you search the web, never trust a search summary alone. Fetch the real web
-page (or PDF) in full with `mcp__crawl4ai__read_url` and read its actual content
-before you answer. Cite the source URL in your reply.
-
-## Backend
-This workspace talks to DeepSeek V4 Flash 0731 through the provider configured in
-`.claude/settings.local.json` (where you pasted your API key). No Anthropic sign-in
-is needed.
-MD
-    note "seeded $WORKSPACE_DIR/CLAUDE.md"
-  fi
+  workspace_seed_file ".vscode/settings.json"
+  # default CLAUDE.md — workspace rules for Claude Code (web-tool priority +
+  # grounded search + backend)
+  workspace_seed_file "CLAUDE.md"
 }
 
 # Open VS Code in the workspace with NEXT-STEPS.md open. Opening the folder

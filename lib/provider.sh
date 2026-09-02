@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# provider.sh — resolve provider from region/override, build settings.json env block.
+# provider.sh — resolve provider from region/override, render the workspace
+# settings from static templates.
 # Sourced by install.sh.
+#
+# The workspace-seeding config files live as real template files under
+# templates/workspace (single source of truth); the only thing this script does
+# beyond provider resolution is substitute the provider values + API key into
+# placeholders, then write the machine-local secret file.
 
 # Resolve PROVIDER from region unless overridden by --provider.
 # Sets: PROVIDER, PROVIDER_BASE_URL, PROVIDER_MODEL
@@ -57,131 +63,78 @@ provider_print() {
   printf '  Model:     %s\n' "$PROVIDER_MODEL"
 }
 
-# Write ~/ai-workspace/.claude/settings.local.json with the provider env block +
-# sensible default permissions (mirrors the training workspace, but with only the
-# free crawl4ai MCP — no key-bearing MCPs). Gitignored (contains the API key).
-provider_write_settings() {
-  local claude_dir="${WORKSPACE_DIR}/.claude"
-  local settings="$claude_dir/settings.local.json"
-  mkdir -p "$claude_dir"
-
-  # Bailian / DashScope (domestic & intl) benefits from disabling server-side data inspection.
-  local extra_env=""
-  if [ "$PROVIDER" = "bailian" ] || [ "$PROVIDER" = "bailian-intl" ]; then
-    extra_env='"ANTHROPIC_CUSTOM_HEADERS": "X-DashScope-DataInspection: {\"input\":\"disable\",\"output\":\"disable\"}",'
-  fi
-
+# Render a template file to a destination, substituting {{ANTHROPIC_*}} and
+# {{PROVIDER_NAME}}/{{PROVIDER_SITE}}/{{KEY_NOTICE}} placeholders. Never
+# overwrites an existing file (re-runs keep user edits). Returns 0 if written,
+# 1 if the destination already existed. Uses python3 when available, else sed.
+render_template() { # <src> <dst>
+  local src="$1" dst="$2"
+  [ -f "$dst" ] && return 1
+  mkdir -p "$(dirname "$dst")"
   if command -v python3 >/dev/null 2>&1; then
-    PROVIDER_BASE_URL="$PROVIDER_BASE_URL" PROVIDER_API_KEY="$PROVIDER_API_KEY" \
-    PROVIDER_MODEL="$PROVIDER_MODEL" EXTRA_ENV="$extra_env" \
-    python3 - "$settings" <<'PY'
-import json, os, sys
-path = sys.argv[1]
-base, key, model = os.environ["PROVIDER_BASE_URL"], os.environ["PROVIDER_API_KEY"], os.environ["PROVIDER_MODEL"]
-try:
-    with open(path) as f:
-        data = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError):
-    data = {}
-env = data.setdefault("env", {})
-env["ANTHROPIC_BASE_URL"]   = base
-env["ANTHROPIC_AUTH_TOKEN"] = key
-env["ANTHROPIC_MODEL"]      = model
-env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = model
-env["ANTHROPIC_DEFAULT_OPUS_MODEL"]   = model
-env["API_TIMEOUT_MS"] = "3000000"
-extra = os.environ.get("EXTRA_ENV", "").strip()
-if extra:
-    # extra is a fragment like '"k": "v",'; inject by parsing the wrapped object
-    try:
-        extra_obj = json.loads("{" + extra.rstrip(",") + "}")
-        env.update(extra_obj)
-    except Exception:
-        pass
-data.setdefault("permissions", {
-    "allow": ["Bash(*)","Read","Write","Edit","Glob","Grep","Task",
-              "mcp__crawl4ai__search","mcp__crawl4ai__read_url"],
-    "deny": [],
-    "ask": []
-})
-data.setdefault("enabledMcpjsonServers", ["crawl4ai"])
-data["hasCompletedOnboarding"] = True
-with open(path, "w") as f:
-    json.dump(data, f, indent=2, ensure_ascii=False)
-    f.write("\n")
+    ANTHROPIC_BASE_URL="$PROVIDER_BASE_URL" ANTHROPIC_AUTH_TOKEN="$PROVIDER_API_KEY" \
+    ANTHROPIC_MODEL="$PROVIDER_MODEL" ANTHROPIC_EXTRA_ENV="${ANTHROPIC_EXTRA_ENV:-}" \
+    PROVIDER_NAME="${PROVIDER_NAME:-}" PROVIDER_SITE="${PROVIDER_SITE:-}" KEY_NOTICE="${KEY_NOTICE:-}" \
+    python3 - "$src" "$dst" <<'PY'
+import os, sys
+src, dst = sys.argv[1], sys.argv[2]
+t = open(src, encoding="utf-8").read()
+for k in ("ANTHROPIC_BASE_URL","ANTHROPIC_AUTH_TOKEN","ANTHROPIC_MODEL",
+          "ANTHROPIC_EXTRA_ENV","PROVIDER_NAME","PROVIDER_SITE","KEY_NOTICE"):
+    t = t.replace("{{%s}}" % k, os.environ.get(k, ""))
+open(dst, "w", encoding="utf-8").write(t)
 PY
   else
-    cat > "$settings" <<EOF
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "$PROVIDER_BASE_URL",
-    "ANTHROPIC_AUTH_TOKEN": "$PROVIDER_API_KEY",
-    "ANTHROPIC_MODEL": "$PROVIDER_MODEL",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "$PROVIDER_MODEL",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "$PROVIDER_MODEL",
-    "API_TIMEOUT_MS": "3000000"
-  },
-  "permissions": {
-    "allow": ["Bash(*)","Read","Write","Edit","Glob","Grep","Task","mcp__crawl4ai__search","mcp__crawl4ai__read_url"],
-    "deny": [],
-    "ask": []
-  },
-  "enabledMcpjsonServers": ["crawl4ai"],
-  "hasCompletedOnboarding": true
-}
-EOF
+    sed -e "s|{{ANTHROPIC_BASE_URL}}|$PROVIDER_BASE_URL|g" \
+        -e "s|{{ANTHROPIC_AUTH_TOKEN}}|$PROVIDER_API_KEY|g" \
+        -e "s|{{ANTHROPIC_MODEL}}|$PROVIDER_MODEL|g" \
+        -e "s|{{ANTHROPIC_EXTRA_ENV}}|${ANTHROPIC_EXTRA_ENV:-}|g" \
+        -e "s|{{PROVIDER_NAME}}|${PROVIDER_NAME:-}|g" \
+        -e "s|{{PROVIDER_SITE}}|${PROVIDER_SITE:-}|g" \
+        -e "s|{{KEY_NOTICE}}|${KEY_NOTICE:-}|g" \
+        "$src" > "$dst" || err "failed to render $dst"
   fi
-  chmod 600 "$settings"
-  note "wrote $settings"
 }
 
-# Write ~/ai-workspace/NEXT-STEPS.md — actionable onboarding (where to get a key,
-# which file to edit, how to start). The installer doesn't prompt for a key, so
-# this file walks the user through adding it after install.
+# provider_write_settings — render ~/ai-workspace/.claude/settings.local.json
+# from its template (gitignored: contains the API key).
+provider_write_settings() {
+  # Bailian / DashScope (domestic & intl) benefits from disabling server-side
+  # data inspection. The template holds a prose JSON fragment on the previous
+  # env line; when empty a trailing comma must not leak, so the fragment
+  # carries its own leading comma.
+  ANTHROPIC_EXTRA_ENV=""
+  if [ "$PROVIDER" = "bailian" ] || [ "$PROVIDER" = "bailian-intl" ]; then
+    # JSON fragment injected right after the "API_TIMEOUT_MS" line; carries its
+    # own leading comma so the template stays valid when the entry is absent.
+    ANTHROPIC_EXTRA_ENV=$',\n    "ANTHROPIC_CUSTOM_HEADERS": "X-DashScope-DataInspection: {\\"input\\":\\"disable\\",\\"output\\":\\"disable\\"}"'
+  fi
+  if render_template "${TEMPLATES_DIR}/settings.local.json.template" "${WORKSPACE_DIR}/.claude/settings.local.json"; then
+    chmod 600 "${WORKSPACE_DIR}/.claude/settings.local.json" 2>/dev/null || true
+    note "wrote ${WORKSPACE_DIR}/.claude/settings.local.json"
+  else
+    note "kept existing ${WORKSPACE_DIR}/.claude/settings.local.json"
+  fi
+}
+
+# provider_write_next_steps — render ~/ai-workspace/NEXT-STEPS.md from its
+# template (which provider to get the key from depends on the route).
 provider_write_next_steps() {
-  local p_site p_name
   case "$PROVIDER" in
-    bailian)       p_site="https://bailian.console.aliyun.com/";            p_name="Alibaba Cloud Bailian (China)" ;;
-    bailian-intl)  p_site="https://dashscope-intl.console.aliyun.com/";     p_name="Alibaba Cloud Model Studio (international)" ;;
-    deepseek)      p_site="https://platform.deepseek.com/";                 p_name="DeepSeek" ;;
-    openrouter)    p_site="https://openrouter.ai/";                        p_name="OpenRouter" ;;
+    bailian)       PROVIDER_NAME="Alibaba Cloud Bailian (China)";                  PROVIDER_SITE="https://bailian.console.aliyun.com/" ;;
+    bailian-intl)  PROVIDER_NAME="Alibaba Cloud Model Studio (international)";     PROVIDER_SITE="https://dashscope-intl.console.aliyun.com/" ;;
+    deepseek)      PROVIDER_NAME="DeepSeek";                                      PROVIDER_SITE="https://platform.deepseek.com/" ;;
+    openrouter)    PROVIDER_NAME="OpenRouter";                                    PROVIDER_SITE="https://openrouter.ai/" ;;
   esac
-  local steps="$WORKSPACE_DIR/NEXT-STEPS.md"
-  cat > "$steps" <<EOF
-# Next steps
-
-Your AI workspace is set up at  ~/ai-workspace
-One thing left: add your API key, then start using Claude Code.
-
-## 1. Get an API key
-
-Get a key for DeepSeek V4 Flash 0731 from $p_name:
-  $p_site
-(Full guide: https://bandung-circuits.github.io/bootstrap/providers-guide.html )
-
-## 2. Paste your key into the config
-
-Open this file:
-  ~/ai-workspace/.claude/settings.local.json
-
-Find the line:
-  "ANTHROPIC_AUTH_TOKEN": "PASTE-YOUR-API-KEY-HERE"
-
-Replace  PASTE-YOUR-API-KEY-HERE  with your real key. Save the file.
-$( [ "${PROVIDER_KEY_IS_PLACEHOLDER:-0}" = "1" ] || echo "
-(Note: an API key was already provided to the installer — you can skip this step
-if that key is the one you intend to use.)" )
-
-## 3. Start using Claude Code
-
-Open VS Code in this workspace:
-  code ~/ai-workspace
-
-The Claude Code panel is docked in the sidebar (right) and opens with VS Code.
-It never opens in the center tab by itself. Ask it anything,
-e.g.  "create a hello.py and run it".
-
-The crawl4ai MCP (web fetch/search) is already configured — no key needed.
-EOF
-  note "wrote $steps"
+  KEY_NOTICE=""
+  if [ "${PROVIDER_KEY_IS_PLACEHOLDER:-0}" = "1" ]; then
+    KEY_NOTICE=" (Note: an API key was already provided to the installer — you may skip this step if that key is the one you intend to use.)"
+  fi
+  mkdir -p "$WORKSPACE_DIR"
+  local dst="$WORKSPACE_DIR/NEXT-STEPS.md"
+  if render_template "${TEMPLATES_DIR}/NEXT-STEPS.md" "$dst"; then
+    note "wrote $dst"
+  else
+    note "kept existing $dst"
+  fi
 }
