@@ -109,9 +109,28 @@ function Ensure-Node {
         }
         Warn "Node $v too old (need 22.19+ or 24+); installing LTS"
     }
-    Note 'Installing Node.js LTS via winget'
-    winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements
-    Refresh-Path
+    # No winget dependency (a clean Windows 11 ARM image may lack it): resolve
+    # the latest v24 LTS and download the official zip into the user's
+    # LocalAppData (no admin needed; npm's global prefix stays writable).
+    $idx = (Invoke-WebRequest 'https://nodejs.org/dist/index.json' -UseBasicParsing -TimeoutSec 30).Content | ConvertFrom-Json
+    $ver = (($idx | Where-Object { $_.version -like 'v24.*' -and $_.lts } | Select-Object -First 1).version) -replace '^v',''
+    if (-not $ver) { Err 'could not resolve the latest Node 24.x from nodejs.org' }
+    $arch = if ($env:PROCESSOR_ARCHITECTURE -match 'ARM') { 'arm64' } else { 'x64' }
+    $dir = Join-Path $env:LOCALAPPDATA 'nodejs'
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    $url = "https://nodejs.org/dist/v$ver/node-v$ver-win-$arch.zip"
+    $zip = Join-Path $env:TEMP "node-v$ver-win-$arch.zip"
+    Note "Downloading Node v$ver (win-$arch) from nodejs.org (no winget/admin)"
+    Invoke-WebRequest $url -OutFile $zip -TimeoutSec 120
+    Expand-Archive -Path $zip -DestinationPath $dir -Force
+    $inner = Join-Path $dir "node-v$ver-win-$arch"
+    if (Test-Path (Join-Path $inner 'node.exe')) {
+        Get-ChildItem $inner | Move-Item -Destination $dir -Force
+        Remove-Item $inner -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    $env:Path = "$dir;" + $env:Path
+    Note "Node $((node -v)) installed at $dir"
 }
 
 # ---------- dsh ----------

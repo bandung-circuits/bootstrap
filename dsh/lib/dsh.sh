@@ -39,12 +39,12 @@ d = json.load(sys.stdin)
 for e in d:
     v = e["version"]
     if v.startswith("v") and e.get("lts") and int(v.split(".")[0][1:]) == '"$NODE_MAJOR"':
-        print(v); break
+        print(v[1:]); break
 ' | head -1
   else
     # sed fallback: first v-major entry that also declares an LTS codename.
     printf '%s\n' "$idx" \
-      | sed -nE 's/.*"version":"(v'"$NODE_MAJOR"'[0-9.]+)"[^}]*"lts":"[A-Z][A-Za-z]*".*/\1/p' \
+      | sed -nE 's/.*"version":"v('"$NODE_MAJOR"'[0-9.]+)"[^}]*"lts":"[A-Z][A-Za-z]*".*/\1/p' \
       | head -1
   fi
 }
