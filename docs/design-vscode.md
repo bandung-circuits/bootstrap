@@ -1,4 +1,10 @@
-# 设计决策记录
+# 设计决策记录（vscode 方案）
+
+> 本记录对应 **VS Code + Claude Code** 方案。该方案现已整体迁入仓库的 `vscode/` 子树（安装脚本 `vscode/install.sh` / `install.ps1` / `install-wsl.sh`，lib 在 `vscode/lib/`，静态种子模板在 `vscode/templates/workspace/`，provider 指南在 `vscode/providers/`；共享区域检测在仓库根 `lib/detect.sh`）。
+>
+> 站点定位：vscode 方案是**后备**；推荐方案是 DeepSeek Harness（dsh），见 `design-dsh.md`。两条路径共用 `~/ai-workspace`。
+>
+> 历史记录保持原样；文中未标新路径的 `install.sh`/`lib/` 均指 `vscode/` 子树内。
 
 ## 目标
 

@@ -33,10 +33,11 @@ jobs:
           python3 - "$SHA8" "$TIME" <<'PY'
           import re, sys
           sha, t = sys.argv[1], sys.argv[2]
-          s = open("install.ps1").read()
-          s = re.sub(r'(?m)^# deployed:.*$',
-                     f'# deployed: {sha}  {t} (Beijing)', s, count=1)
-          open("install.ps1","w").write(s)
+          for f in ("vscode/install.ps1", "dsh/install.ps1"):
+              s = open(f).read()
+              s = re.sub(r'(?m)^# deployed:.*$',
+                         f'# deployed: {sha}  {t} (Beijing)', s, count=1)
+              open(f,"w").write(s)
           s = open("index.html").read()
           s = re.sub(r'(?s)<span class="deploy-version">.*?</span>',
                      f'<span class="deploy-version">deployed: <code>{sha}</code> · {t} (Beijing)</span>', s)

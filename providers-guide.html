@@ -24,7 +24,7 @@
 <div class="wrap">
   <a class="back" href="index.html">← Back</a>
   <h1>Get your API key</h1>
-  <p style="color:var(--muted)">The bootstrap installer connects Claude Code to DeepSeek V4 Flash 0731. You need one API key from a provider. The installer auto-picks one based on your region, but you can override with <code>--provider=</code>.</p>
+  <p style="color:var(--muted)">The bootstrap installer connects your AI workspace — DeepSeek Harness (dsh, recommended) or the VS Code + Claude Code alternative — to DeepSeek V4 Flash 0731. You need one API key from a provider. The installer auto-picks one based on your region, but you can override with <code>--provider=</code>. After install, paste the key into <code>~/ai-workspace/.dsh/.env</code> (dsh) or <code>~/ai-workspace/.claude/settings.local.json</code> (Claude Code) — or into the dsh Web UI (Settings → Models).</p>
 
   <div class="card">
     <span class="tag alt">China · default</span>
@@ -73,7 +73,7 @@
 
   <div class="card">
     <h2>Optional: Serper &amp; Oxylabs MCP</h2>
-    <p style="color:var(--muted)">The installer ships the free <strong>crawl4ai</strong> MCP (web fetch/search, no key). For heavier search needs you can add Serper or Oxylabs yourself — they need your own paid API keys. After bootstrap, edit <code>~/.claude/.mcp.json</code> and add a <code>serper-search</code> or <code>oxylabs</code> entry with your keys, then restart Claude Code.</p>
+    <p style="color:var(--muted)">The installer ships the free <strong>crawl4ai</strong> MCP (web fetch/search, no key). For heavier search needs you can add Serper or Oxylabs yourself — they need your own paid API keys. After bootstrap with Claude Code, edit <code>~/.claude/.mcp.json</code> and add a <code>serper-search</code> or <code>oxylabs</code> entry with your keys, then restart Claude Code. (With dsh, add them as <code>@deepseek-ai/dsh-mcp-client</code> rows in <code>~/ai-workspace/.dsh/cordis.patch.yml</code> — see <a href="https://github.com/bandung-circuits/bootstrap/blob/main/docs/design-dsh.md">design-dsh.md</a>.)</p>
   </div>
 
   <div class="foot">A Bandung Circuits project · <a href="https://github.com/bandung-circuits/bootstrap">source</a></div>

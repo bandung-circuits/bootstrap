@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# verify-linux.sh — run INSIDE the Linux VM after the dsh installer.
+# Asserts the DeepSeek Harness environment is correctly set up. Exits non-zero
+# on any failure.
+# Env: TEST_PROVIDER (bailian|bailian-intl|deepseek|openrouter), TEST_API_KEY
+set -uo pipefail
+pass=0; fail=0
+ok(){ printf '  PASS  %s\n' "$*"; pass=$((pass+1)); }
+no(){ printf '  FAIL  %s\n' "$*"; fail=$((fail+1)); }
+have(){ command -v "$1" >/dev/null 2>&1 && ok "$1 on PATH" || no "$1 on PATH"; }
+
+# Node + dsh (installed to ~/.local/nodejs + ~/.local/bin)
+export PATH="$HOME/.local/bin:$HOME/.local/nodejs/bin:$PATH"
+have node
+have dsh
+if command -v node >/dev/null 2>&1; then
+  v="$(node -v | tr -d v)"; maj="${v%%.*}"; min="${v#*.}"; min="${min%%.*}"
+  if [ "$maj" -ge 24 ] || { [ "$maj" -eq 22 ] && [ "$min" -ge 19 ]; }; then ok "node $v (engine ok)"; else no "node $v too old"; fi
+else no 'node engine check'; fi
+
+# uv/uvx (crawl4ai runtime)
+uvx_bin="$HOME/.local/bin/uvx"
+command -v uvx >/dev/null 2>&1 && uvx_bin="$(command -v uvx)"
+if [ -x "$uvx_bin" ]; then ok 'uvx available'; else no 'uvx available'; fi
+
+# workspace seeded
+WS="$HOME/ai-workspace"
+for f in README.md AGENTS.md NEXT-STEPS.md start-dsh.sh; do
+  [ -f "$WS/$f" ] && ok "$f present" || no "$f present"
+done
+[ -x "$WS/start-dsh.sh" ] && ok 'start-dsh.sh executable' || no 'start-dsh.sh executable'
+[ -f "$WS/.gitignore" ] && grep -q '\.dsh/' "$WS/.gitignore" && ok '.gitignore ignores .dsh/' || no '.gitignore ignores .dsh/'
+
+# $DSH_HOME inside the workspace
+DSH="$WS/.dsh"
+[ -d "$DSH" ] && ok '.dsh/ created' || no '.dsh/ created'
+
+# settings.yaml: provider route (api/baseURL/model) matches TEST_PROVIDER
+s="$DSH/settings.yaml"
+if [ -f "$s" ]; then
+  case "${TEST_PROVIDER:-bailian}" in
+    bailian)      want_url="https://dashscope.aliyuncs.com/apps/anthropic";     want_model="deepseek-v4-flash-0731" ;;
+    bailian-intl) want_url="https://dashscope-intl.aliyuncs.com/apps/anthropic"; want_model="deepseek-v4-flash" ;;
+    deepseek)     want_url="https://api.deepseek.com/anthropic";                want_model="deepseek-v4-flash" ;;
+    openrouter)   want_url="https://openrouter.ai/api/v1";                      want_model="deepseek/deepseek-v4-flash" ;;
+    *) want_url=""; want_model="";;
+  esac
+  grep -q "baseURL: $want_url" "$s" && grep -q "id: $want_model" "$s" \
+    && ok "settings.yaml route ($TEST_PROVIDER)" || no "settings.yaml route ($TEST_PROVIDER)"
+  grep -q "'{{'" "$s" && no 'settings.yaml leftover placeholders' || ok 'settings.yaml no placeholders'
+else no 'settings.yaml'; fi
+
+# .env secret (mode 600, key present)
+e="$DSH/.env"
+if [ -f "$e" ]; then
+  grep -q '^DSH_API_KEY=' "$e" && ok '.env DSH_API_KEY present' || no '.env DSH_API_KEY present'
+  p=$(stat -c '%a' "$e" 2>/dev/null || stat -f '%Lp' "$e" 2>/dev/null)
+  [ "$p" = "600" ] && ok '.env mode 600' || no ".env mode 600 (got $p)"
+else no '.env'; fi
+
+# cordis.patch.yml: official mcp-client row for crawl4ai
+p="$DSH/cordis.patch.yml"
+if [ -f "$p" ] && grep -q 'mcp-crawl4ai' "$p" && grep -q '@deepseek-ai/dsh-mcp-client' "$p" \
+   && grep -q "crawl4ai-search-mcp==0.1.1" "$p" && grep -q 'transport: stdio' "$p"; then
+  ok 'cordis.patch.yml enables crawl4ai (official mcp-client, stdio)'
+else no 'cordis.patch.yml enablement'; fi
+
+# crawl4ai-search-mcp resolvable from PyPI (first uvx run builds the env)
+if [ -x "$uvx_bin" ] && timeout 600 "$uvx_bin" --from crawl4ai-search-mcp==0.1.1 python -c 'import crawl4ai_mcp_server' >/dev/null 2>&1; then
+  ok 'crawl4ai-search-mcp importable via uvx'
+else no 'crawl4ai-search-mcp importable via uvx'; fi
+
+# composed config dump shows the mcp row (dead-code surfaces the render)
+if command -v dsh >/dev/null 2>&1; then
+  out="$(DSH_HOME="$DSH" dsh web --dump-config 2>/dev/null || true)"
+  printf '%s\n' "$out" | grep -q 'mcp-crawl4ai' && ok 'dump-config shows mcp-crawl4ai' || no 'dump-config shows mcp-crawl4ai'
+fi
+
+# web UI boots on 127.0.0.1:3080 (--no-open; curl the port)
+if command -v dsh >/dev/null 2>&1; then
+  (cd "$WS" && DSH_HOME="$DSH" dsh web --no-open >/dev/null 2>&1 &)
+  boot=0
+  for i in $(seq 1 30); do
+    if curl -sf -m 2 http://127.0.0.1:3080/ >/dev/null 2>&1; then boot=1; break; fi
+    sleep 2
+  done
+  [ "$boot" = 1 ] && ok 'dsh web serves http://127.0.0.1:3080' || no 'dsh web serves http://127.0.0.1:3080'
+  # stop the test server we own
+  pkill -f 'dsh web' 2>/dev/null || true; pkill -f '@deepseek-ai/dsh' 2>/dev/null || true
+fi
+
+# model connectivity — actually call the backend
+if [ -n "${TEST_API_KEY:-}" ]; then
+  case "${TEST_PROVIDER:-bailian}" in
+    bailian)  url="https://dashscope.aliyuncs.com/apps/anthropic/v1/messages"; model="deepseek-v4-flash-0731" ;;
+    bailian-intl) url="https://dashscope-intl.aliyuncs.com/apps/anthropic/v1/messages"; model="deepseek-v4-flash" ;;
+    deepseek) url="https://api.deepseek.com/anthropic/v1/messages";            model="deepseek-v4-flash" ;;
+    openrouter) url="https://openrouter.ai/api/v1/messages";                   model="deepseek/deepseek-v4-flash" ;;
+    *) url="https://api.deepseek.com/anthropic/v1/messages"; model="deepseek-v4-flash" ;;
+  esac
+  resp=$(curl -s -m 60 -X POST "$url" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TEST_API_KEY" \
+    -d "{\"model\":\"$model\",\"max_tokens\":32,\"messages\":[{\"role\":\"user\",\"content\":\"say hi\"}]}" 2>/dev/null || true)
+  if printf '%s' "$resp" | grep -q '"type":"message"'; then
+    ok 'model connectivity (got message response)'
+  else
+    no "model connectivity (response: $(printf '%s' "$resp" | head -c 200))"
+  fi
+else
+  echo '  SKIP  model connectivity (no TEST_API_KEY)'
+fi
+
+echo
+echo "RESULT: $pass passed, $fail failed"
+exit $fail

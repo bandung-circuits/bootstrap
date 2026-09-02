@@ -1,57 +1,70 @@
 # bootstrap
 
-帮几乎零 IT 背景的用户一条命令搭好智能体工作环境：Visual Studio Code + Claude Code，背后接 DeepSeek V4 Flash 0731。
+帮几乎零 IT 背景的用户一条命令搭好智能体工作环境。两种路径共用同一个工作区 `~/ai-workspace`：
 
-面向全球南方培训场景。最难的是设置工作环境这一步；搭好后，后续问题用户可以直接问 AI。
+- **推荐（首选）：DeepSeek Harness（dsh）** —— 免费开源的 agent harness，浏览器打开即用，无需装任何软件。
+- **后备：Visual Studio Code + Claude Code 扩展** —— 给已装 VS Code、想留在 IDE 里的用户。
+
+后端都接 DeepSeek V4 Flash 0731（便宜又强）。面向全球南方培训场景。最难的是设置环境这一步；搭好后，后续问题用户可以直接问 AI。
 
 ## 最终用户体验
 
-- **Linux / macOS**：一条 curl 命令。
+**首选：DeepSeek Harness（dsh）**
+
+- **Linux / macOS**（WSL 同命令）：
   ```bash
-  curl -fsSL https://bandung-circuits.github.io/bootstrap/install.sh | bash
+  curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh/install.sh | bash
   ```
-- **Windows**：PowerShell 一行（主推）。
+- **Windows**：
   ```powershell
-  irm https://bandung-circuits.github.io/bootstrap/install.ps1 | iex
+  irm https://bandung-circuits.github.io/bootstrap/dsh/install.ps1 | iex
   ```
-  或 WSL 路径（备选）：
+
+装好后运行 `~/ai-workspace/start-dsh.sh`（或双击 `start-dsh.cmd`），浏览器打开 `http://127.0.0.1:3080`。安装器自动装好 Node（钉版 LTS v24）与 `dsh` CLI（钉版），按区域把后端接到 DeepSeek V4 Flash 0731，启用 crawl4ai MCP，并把 API key 写进 `~/ai-workspace/.dsh/.env`（或 UI 里粘贴）。dsh 是 dev preview，版本已钉死且脚本幂等，重跑即恢复。
+
+**后备：VS Code + Claude Code**
+
+- **Linux / macOS**：
   ```bash
-  curl -fsSL https://bandung-circuits.github.io/bootstrap/install-wsl.sh | bash
+  curl -fsSL https://bandung-circuits.github.io/bootstrap/vscode/install.sh | bash
+  ```
+- **Windows**：
+  ```powershell
+  irm https://bandung-circuits.github.io/bootstrap/vscode/install.ps1 | iex
   ```
 
-脚本装好 VS Code、Claude Code 扩展与 CLI、crawl4ai MCP，并按用户所在区域把后端模型接到 DeepSeek V4 Flash 0731：
-- 国内默认走阿里云百炼（Anthropic 兼容端点，model `deepseek-v4-flash-0731`）。
-- 国外默认走 DeepSeek 官方（`https://api.deepseek.com/anthropic`，model `deepseek-v4-flash`，自动指向 0731）。
-- 备选 OpenRouter。
+旧入口 `https://bandung-circuits.github.io/bootstrap/install.sh` 等仍可用（兼容 shim 转发到 vscode 方案）。
 
-API key 由用户自助申请，站上给文字指导。
+API key 由用户自助申请，站上给文字指导：`bootstrap/providers-guide.html`。
 
-## 仓库与站点
-
-- 仓库：`git@github.com:bandung-circuits/bootstrap.git`
-- 站点（GitHub Pages）：`https://bandung-circuits.github.io/bootstrap/`
-
-## 开发
-
-本仓库结构：
+## 仓库结构
 
 ```
-install.sh / install.ps1 / install-wsl.sh   入口
-lib/        共享逻辑（detect / provider / vscode / claude-code / crawl4ai / workspace）
-providers/  各供应商 settings.json 模板与订阅指导
-index.html / providers-guide.html   GitHub Pages 站点（英文为主，从仓库 root 发布）
-ci/         CI：VMware Fusion Pro 上的 Linux ARM + Windows 11 ARM 模板机，快照恢复后跑安装脚本并自动验证（见 `ci/run-test.sh`）
-.env        本地私有配置（主机地址/VM 路径/API key），已 gitignore；`.env.example` 是模板
-docs/       设计决策
+bootstrap/
+├── index.html / providers-guide.html   GitHub Pages 站点：dsh 首选入口，vscode 后备
+├── lib/detect.sh                        共享：OS/arch/region 检测（两方案共用）
+├── install.sh / ps1 / install-wsl.sh    旧入口兼容 shim -> vscode/
+├── vscode/                              后备方案：VS Code + Claude Code
+│   ├── install.sh / install.ps1 / install-wsl.sh
+│   ├── lib/  providers/  templates/workspace/  ci/verify/  wip/
+├── dsh/                                 首选方案：DeepSeek Harness
+│   ├── install.sh / install.ps1
+│   ├── lib/  providers/  templates/  ci/verify/
+├── ci/run-test.sh                       共享 CI：VMware 上按方案逐个整机验证
+├── docs/design-vscode.md  docs/design-dsh.md   设计决策记录
+└── .env.example                         CI 本地配置模板（gitignored）
 ```
 
-详见 `docs/design.md` 与 `ci/vm-setup.md`。
+设计要点：每个方案的种子配置都是 `templates/` 下的真实静态文件，安装器只做拷贝 + 占位符替换，脚本内不嵌配置文本（改配置就是改模板，一行 diff）。dsh 的 `$DSH_HOME` 在工作区内（`~/ai-workspace/.dsh`），整个环境一个文件夹、拷走即用。
 
-## 测试
+## 开发与测试
 
-CI 在一台 Apple Silicon Mac 上的 VMware Fusion Pro 里跑：一台 Linux ARM、一台 Windows 11 ARM，每次恢复干净快照后跑安装脚本，自动化验证环境是否配好。见 `ci/run-test.sh`。主机地址等本地信息放在 `.env`（不入仓库，模板见 `.env.example`）。
+CI 在一台 Apple Silicon Mac 上的 VMware Fusion Pro 里跑：Linux（+Windows）模板机，每次恢复干净快照后跑安装脚本并自动化验证。`ci/run-test.sh` 会为每个方案独立还原快照再安装（两方案共用 `~/ai-workspace`，不能同机并发测，必须快照间隔开）。主机地址等本地信息放 `.env`（不入仓库，模板见 `.env.example`）。dsh Windows 脚本已备，Windows VM 恢复后纳入 CI。
 
-## 范围（暂定）
+详见 `docs/design-dsh.md`、`docs/design-vscode.md` 与 `ci/vm-setup.md`。
 
-- 只推 VS Code + Claude Code。暂不推 DSH（DeepSeek Harness），成熟度与体验还不够。
-- 默认模型固定 DeepSeek V4 Flash 0731（又便宜又强）。
+## 范围
+
+- 默认模型固定 DeepSeek V4 Flash 0731。
+- dsh 为 dev preview：钉版本、脚本幂等、`--dump-config` 冒烟；schema 变更以 `dsh/templates/` 与 `dsh/lib/providers.sh` 为准更新。
+- 暂不纳入其它 harness / CLI 模式（headless、SDK、TUI 留作进阶）。

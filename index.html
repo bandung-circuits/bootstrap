@@ -2,28 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Bootstrap — One command to your AI agent workspace</title>
+<title>Bootstrap — One command to your AI workspace</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Set up Visual Studio Code + Claude Code backed by DeepSeek V4 Flash 0731 with a single command. Built for learners with little IT background.">
+<meta name="description" content="One command installs DeepSeek Harness (dsh) — a free, open-source AI coding agent in your browser, backed by DeepSeek V4 Flash 0731. A VS Code + Claude Code option is available for IDE users. Built for learners with little IT background.">
 <style>
   :root{
     --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3;
     --muted:#8b949e; --accent:#2f81f7; --accent-2:#a371f7; --code:#1f2630;
-    --ok:#3fb950;
+    --ok:#3fb950; --gold:#d29922;
   }
   @media (prefers-color-scheme: light){
     :root{ --bg:#ffffff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328;
-           --muted:#57606a; --accent:#0969da; --accent-2:#8250df; --code:#eff1f3; --ok:#1a7f37;}
+           --muted:#57606a; --accent:#0969da; --accent-2:#8250df; --code:#eff1f3; --ok:#1a7f37; --gold:#9a6700;}
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemSystem,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        background:var(--bg);color:var(--text);line-height:1.6}
-  .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 5rem}
+  .wrap{max-width:860px;margin:0 auto;padding:2rem 1.25rem 5rem}
   h1{font-size:2.1rem;margin:.2em 0 .1em;line-height:1.2}
-  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.5rem}
+  .sub{color:var(--muted);font-size:1.02rem;margin:0 0 1.5rem}
   .badge{display:inline-block;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;
          color:var(--accent-2);border:1px solid var(--accent-2);border-radius:99px;padding:.18rem .6rem;margin-bottom:1rem}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1.4rem;margin:1rem 0}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1.4rem;margin:1.1rem 0}
   .card h2{margin:0 0 .3rem;font-size:1.1rem}
   .card p{margin:0 0 .9rem;color:var(--muted)}
   .os-tag{font-weight:600;color:var(--accent)}
@@ -40,7 +40,14 @@
        border-radius:8px;padding:.5rem .9rem;font-size:.9rem}
   .tab.active{color:var(--text);border-color:var(--accent);background:var(--code)}
   .hidden{display:none!important}
-  .steps{margin:1.2rem 0 0;padding:0;list-style:none}
+  /* primary vs fallback visual hierarchy */
+  .rec{position:absolute;top:-.75rem;right:1rem;font-size:.72rem;letter-spacing:.05em;
+       text-transform:uppercase;color:var(--gold);border:1px solid var(--gold);
+       border-radius:99px;padding:.12rem .6rem;background:var(--panel)}
+  .primary{position:relative;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .alt{opacity:.94}
+  .alt h2{font-size:1rem}
+  .steps{margin:1.1rem 0 0;padding:0;list-style:none}
   .steps li{padding:.4rem 0 .4rem 1.6rem;position:relative}
   .steps li::before{content:counter(step);counter-increment:step;position:absolute;left:0;top:.4rem;
         width:1.1rem;height:1.1rem;border-radius:50%;background:var(--accent);color:#fff;font-size:.65rem;
@@ -57,80 +64,113 @@
 <div class="wrap">
   <span class="badge">Bandung Circuits</span>
   <h1>Bootstrap your AI workspace</h1>
-  <p class="sub">One command installs Visual Studio Code + Claude Code, backed by <strong>DeepSeek V4 Flash 0731</strong> — cheap and capable. Built for learners with little IT background. Once it's set up, you can just ask the AI.</p>
+  <p class="sub">One command installs <strong>DeepSeek Harness (dsh)</strong> — a free, open-source AI coding agent that runs in your
+  browser, backed by <strong>DeepSeek V4 Flash 0731</strong> (cheap and capable). No need to install an IDE first. If you already
+  use VS Code, a Claude Code option is available below as an alternative.</p>
 
-  <div class="tabs">
-    <div class="tab active" id="tab-unix" onclick="show('unix')">Linux / macOS</div>
-    <div class="tab" id="tab-win" onclick="show('win')">Windows</div>
-    <div class="tab" id="tab-wsl" onclick="show('wsl')">Windows (WSL)</div>
-  </div>
+  <!-- ===== primary: DeepSeek Harness (dsh) ===== -->
+  <div class="card primary">
+    <span class="rec">Recommended</span>
+    <h2>DeepSeek Harness (dsh) — agent in your browser</h2>
+    <p>Free and open source. After install, double-click <code class="inline">start-dsh.sh</code> in <code class="inline">~/ai-workspace</code>
+       and your browser opens the assistant at <code class="inline">http://127.0.0.1:3080</code>. Built for learners with little IT background:
+       no VS Code, no IDE setup, no PATH.</p>
 
-  <div id="unix" class="card">
-    <h2>Run this in your terminal <span class="os-tag" id="unix-os"></span></h2>
-    <p>Works on most Linux distributions and macOS (Apple Silicon and Intel).</p>
-    <div class="cmd">
-      <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/install.sh | bash</code>
-      <button class="copy" onclick="cp(this)">Copy</button>
+    <div class="tabs">
+      <div class="tab active" id="tab-dsh-unix" onclick="show('dsh','unix')">Linux / macOS</div>
+      <div class="tab" id="tab-dsh-win"  onclick="show('dsh','win')">Windows</div>
+      <div class="tab" id="tab-dsh-wsl"  onclick="show('dsh','wsl')">Windows (WSL)</div>
     </div>
-    <p style="margin:.6rem 0 0;color:var(--muted);font-size:.85rem">No <code class="inline">curl</code>? (e.g. minimal Ubuntu Server) Use <code class="inline">wget</code> instead:</p>
-    <div class="cmd">
-      <code>wget -qO- https://bandung-circuits.github.io/bootstrap/install.sh | bash</code>
-      <button class="copy" onclick="cp(this)">Copy</button>
-    </div>
-  </div>
 
-  <div id="win" class="card hidden">
-    <h2>Run this in <strong>PowerShell</strong></h2>
-    <p>Right-click Start → Terminal (or Windows PowerShell), paste, press Enter.</p>
-    <div class="cmd">
-      <code>irm https://bandung-circuits.github.io/bootstrap/install.ps1 | iex</code>
-      <button class="copy" onclick="cp(this)">Copy</button>
+    <div id="dsh-unix" class="hidden">
+      <div class="cmd">
+        <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh/install.sh | bash</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+      <p style="margin:.6rem 0 0;color:var(--muted);font-size:.85rem">No <code class="inline">curl</code>? (e.g. minimal Ubuntu Server) Use <code class="inline">wget -qO- https://bandung-circuits.github.io/bootstrap/dsh/install.sh | bash</code>.</p>
     </div>
-  </div>
-
-  <div id="wsl" class="card hidden">
-    <h2>Windows via WSL (advanced)</h2>
-    <p>If you prefer a Linux environment inside Windows: install WSL (<code class="inline">wsl --install</code> in PowerShell as admin, reboot), then inside WSL run the Linux command:</p>
-    <div class="cmd">
-      <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/install.sh | bash</code>
-      <button class="copy" onclick="cp(this)">Copy</button>
+    <div id="dsh-win" class="hidden">
+      <div class="cmd">
+        <code>irm https://bandung-circuits.github.io/bootstrap/dsh/install.ps1 | iex</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
     </div>
-    <p style="margin:.6rem 0 0;color:var(--muted);font-size:.85rem">No <code class="inline">curl</code>? Use <code class="inline">wget -qO- https://bandung-circuits.github.io/bootstrap/install.sh | bash</code>.</p>
-  </div>
+    <div id="dsh-wsl" class="hidden">
+      <p style="color:var(--muted)">On WSL (Windows Subsystem for Linux), install WSL first (<code class="inline">wsl --install</code> in PowerShell as admin, reboot), then run the Linux command inside WSL:</p>
+      <div class="cmd">
+        <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh/install.sh | bash</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
 
-  <div class="card">
-    <h2>What it does</h2>
+    <h2 style="margin-top:1.4rem;font-size:.95rem">What it does</h2>
     <ol class="steps">
       <li>Detects your OS and region, picks a model provider (China → Alibaba Bailian; elsewhere → Alibaba Cloud Model Studio international).</li>
-      <li>Installs Visual Studio Code and the Claude Code extension (the extension bundles its own CLI — no separate Node.js or CLI install).</li>
-      <li>Configures the backend to DeepSeek V4 Flash 0731 and leaves a <code class="inline">NEXT-STEPS.md</code> telling you where to paste your API key — the installer never blocks on a prompt.</li>
-      <li>Registers the crawl4ai MCP (web fetch &amp; search, free, no key needed) — it runs from the published package via uvx, so there's nothing to clone or build.</li>
-      <li>Creates a clean, self-contained <code class="inline">~/ai-workspace</code> (config lives inside it) and opens VS Code there, so you can start immediately.</li>
+      <li>Installs Node.js (pinned LTS) and the <code class="inline">dsh</code> CLI (pinned version) — no admin rights needed.</li>
+      <li>Wires the backend to DeepSeek V4 Flash 0731 and enables the crawl4ai MCP (web fetch &amp; search, free, no key) through the official dsh MCP client.</li>
+      <li>Creates a clean, self-contained <code class="inline">~/ai-workspace</code> (all config lives inside it) and leaves a <code class="inline">NEXT-STEPS.md</code> telling you where to paste your API key.</li>
+      <li>Starts the assistant — your browser opens <code class="inline">http://127.0.0.1:3080</code>.</li>
     </ol>
-    <p style="margin-top:1rem">Need an API key? See the <a href="providers-guide.html">provider subscription guide</a>.</p>
+  </div>
+
+  <!-- ===== fallback: VS Code + Claude Code ===== -->
+  <div class="card alt">
+    <h2>Already using VS Code? — Claude Code extension <span class="os-tag" style="font-size:.8rem">alternative</span></h2>
+    <p>If you already have VS Code and want to stay in your IDE, this installs the Claude Code extension (it bundles its own CLI — no separate Node.js install) instead.</p>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-vsc-unix" onclick="show('vsc','unix')">Linux / macOS</div>
+      <div class="tab" id="tab-vsc-win"  onclick="show('vsc','win')">Windows</div>
+      <div class="tab" id="tab-vsc-wsl"  onclick="show('vsc','wsl')">Windows (WSL)</div>
+    </div>
+
+    <div id="vsc-unix" class="hidden">
+      <div class="cmd">
+        <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/vscode/install.sh | bash</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
+    <div id="vsc-win" class="hidden">
+      <div class="cmd">
+        <code>irm https://bandung-circuits.github.io/bootstrap/vscode/install.ps1 | iex</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
+    <div id="vsc-wsl" class="hidden">
+      <div class="cmd">
+        <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/vscode/install-wsl.sh | bash</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
   </div>
 
   <div class="card">
+    <p style="margin:0">Both paths use the <strong>same workspace</strong> <code class="inline">~/ai-workspace</code>, so you can switch or try the other any time.
+       Need an API key? See the <a href="providers-guide.html">provider subscription guide</a>.</p>
+  </div>
+
+  <div class="card alt">
     <h2>Prefer to set it up yourself?</h2>
-    <p>This script is just a shortcut — it automates the same steps you'd do by hand. If you'd rather walk through it manually (and understand each piece along the way), the <a href="https://thetricontinental.org/">Tricontinental Institute</a> published two clear, illustrated guides:</p>
+    <p>The scripts just automate the steps you'd do by hand. Two clear, illustrated guides (in English) cover the basics:</p>
     <ul style="margin:.5rem 0 1rem;padding-left:1.2rem;line-height:1.7">
-      <li><a href="https://thetricontinental.org/how-to-install-and-set-up-claude-code-in-visual-studio-code/">Install &amp; set up Claude Code in Visual Studio Code</a> — the basics, step by step with screenshots.</li>
-      <li><a href="https://thetricontinental.org/how-to-connect-claude-code-to-alternative-apis/">Connect Claude Code to alternative APIs</a> — how the model-provider wiring works (the exact mechanism this script automates).</li>
+      <li><a href="https://thetricontinental.org/how-to-install-and-set-up-claude-code-in-visual-studio-code/">Install &amp; set up Claude Code in Visual Studio Code</a></li>
+      <li><a href="https://thetricontinental.org/how-to-connect-claude-code-to-alternative-apis/">Connect Claude Code to alternative APIs</a> — how the model-provider wiring works</li>
     </ul>
-    <p style="color:var(--muted);margin:0">Worth reading even if you use the script — you'll see how the pieces fit together, and how to switch providers or tweak the setup later.</p>
+    <p style="color:var(--muted);margin:0">Worth reading even if you use the script — you'll see how the pieces fit and how to switch providers later.</p>
   </div>
 
   <div class="foot">
     Source &amp; docs: <a href="https://github.com/bandung-circuits/bootstrap">github.com/bandung-circuits/bootstrap</a> · A Bandung Circuits project.
-    <br><span class="deploy-version">deployed: <code>f9a694f5</code> · 2026-08-27 16:50:42 +0800 (Beijing)</span>
+    <br><span class="deploy-version">deployed: <code>pending</code></span>
   </div>
 </div>
 
 <script>
-  function show(which){
+  // schemeX: show one OS tab per scheme card ('dsh' or 'vsc').
+  function show(scheme, which){
     ['unix','win','wsl'].forEach(id=>{
-      document.getElementById(id).classList.toggle('hidden', id!==which);
-      document.getElementById('tab-'+id).classList.toggle('active', id===which);
+      document.getElementById(scheme+'-'+id).classList.toggle('hidden', id!==which);
+      document.getElementById('tab-'+scheme+'-'+id).classList.toggle('active', id===which);
     });
   }
   function cp(btn){
@@ -140,12 +180,13 @@
       setTimeout(function(){btn.textContent='Copy';btn.classList.remove('ok')},1500);
     });
   }
-  // Auto-select the tab matching the visitor's OS.
+  // Auto-select the OS tab matching the visitor's OS (both cards).
   (function(){
-    var ua=navigator.userAgent, osel=document.getElementById('unix-os');
-    if(/Win/.test(ua)&&!/Mac/.test(ua)){ show('win'); }
-    else if(/Mac/.test(ua)){ show('unix'); if(osel) osel.textContent='· macOS detected'; }
-    else if(/Linux/.test(ua)){ show('unix'); if(osel) osel.textContent='· Linux detected'; }
+    var ua=navigator.userAgent, s;
+    if(/Win/.test(ua)&&!/Mac/.test(ua)){ s='win'; }
+    else if(/Mac/.test(ua)){ s='unix'; }
+    else if(/Linux/.test(ua)){ s='unix'; }
+    if(s){ show('dsh', s); show('vsc', s); }
   })();
 </script>
 </body>
