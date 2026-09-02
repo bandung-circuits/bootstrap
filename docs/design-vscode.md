@@ -1,4 +1,8 @@
-# 设计决策记录
+# 设计决策记录（vscode 方案）
+
+> 本记录对应 **VS Code + Claude Code** 方案。该方案在仓库 `vscode/` 子树内（安装入口 `vscode/install.sh` / `install.ps1` / `install-wsl.sh`，lib 在 `vscode/lib/`，静态种子模板在 `vscode/templates/workspace/`，provider 指南与 golden state 在 `vscode/providers/`、`vscode/wip/`，CI 断言在 `vscode/ci/verify/`）。根目录的三个 install 脚本是兼容 shim（旧 URL 不 404）。共享区域检测在根 `lib/detect.sh`（另一方案 dsh-desktop 复用）。
+>
+> 仓库另一条路径：DSH Desktop 方案，见 `dsh-desktop/README.md` 与站点 `dsh-desktop.html`。
 
 ## 目标
 

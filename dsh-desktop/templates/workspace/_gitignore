@@ -1,0 +1,8 @@
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.log
+.DS_Store
+# harness data is NOT stored here (it lives in the DSH Desktop app-data dir);
+# nothing secret should land in this folder, but keep the obvious ignores.

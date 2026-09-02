@@ -1,0 +1,14 @@
+# crawl4ai MCP insert for the official @deepseek-ai/dsh-mcp-client.
+# Rendered by dsh-desktop/prep.* with absolute uvx + workspace paths (the DSH
+# Desktop app process does not put ~/.local/bin on PATH).
+# One instance = one server. Server commands run OUTSIDE the agent sandbox, so
+# only pinned, trusted executables are enabled.
+- insert:
+    - id: mcp-crawl4ai
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: crawl4ai
+        transport: stdio
+        command: {{UVX_BIN}}
+        args: ['--from', 'crawl4ai-search-mcp==0.1.1', 'crawl4ai-search']
+        cwd: {{WORKSPACE}}
