@@ -110,7 +110,9 @@ if code --list-extensions 2>/dev/null | grep -qi 'github.copilot'; then
   no 'github.copilot still installed'
 else ok 'github.copilot not installed (marketplace)'; fi
 
-# model connectivity — actually call the backend
+# model connectivity — actually call the backend. Prefer curl; fall back to
+# python3 (a minimal VM may lack curl). No -4 (forcing IPv4 can break the VM
+# route); retry once.
 if [ -n "${TEST_API_KEY:-}" ]; then
   case "${TEST_PROVIDER:-deepseek}" in
     bailian)  url="https://dashscope.aliyuncs.com/apps/anthropic/v1/messages"; model="deepseek-v4-flash-0731" ;;
@@ -118,10 +120,33 @@ if [ -n "${TEST_API_KEY:-}" ]; then
     openrouter) url="https://openrouter.ai/api/v1/messages";                   model="deepseek/deepseek-v4-flash" ;;
     *) url="https://api.deepseek.com/anthropic/v1/messages"; model="deepseek-v4-flash" ;;
   esac
-  resp=$(curl -s -m 60 -X POST "$url" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $TEST_API_KEY" \
-    -d "{\"model\":\"$model\",\"max_tokens\":32,\"messages\":[{\"role\":\"user\",\"content\":\"say hi\"}]}" 2>/dev/null || true)
+  body="{\"model\":\"$model\",\"max_tokens\":32,\"messages\":[{\"role\":\"user\",\"content\":\"say hi\"}]}"
+  probe() {
+    if command -v curl >/dev/null 2>&1; then
+      curl -s -m 120 -X POST "$url" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $TEST_API_KEY" \
+        -d "$body" 2>/dev/null || true
+    elif command -v python3 >/dev/null 2>&1; then
+      URL="$url" KEY="$TEST_API_KEY" BODY="$body" python3 -c '
+import os,sys,urllib.request
+req=urllib.request.Request(os.environ["URL"],data=os.environ["BODY"].encode())
+req.add_header("Content-Type","application/json")
+req.add_header("Authorization","Bearer "+os.environ["KEY"])
+try:
+    sys.stdout.write(urllib.request.urlopen(req,timeout=120).read().decode())
+except Exception as e:
+    sys.stdout.write("ERR %s"%e)'
+    else
+      printf ''
+    fi
+  }
+  resp=""
+  for attempt in 1 2; do
+    resp=$(probe)
+    printf '%s' "$resp" | grep -q '"type":"message"' && break
+    sleep 5
+  done
   if printf '%s' "$resp" | grep -q '"type":"message"'; then
     ok 'model connectivity (got message response)'
   else

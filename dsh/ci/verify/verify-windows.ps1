@@ -62,7 +62,9 @@ if (Get-Command dsh -ErrorAction SilentlyContinue) {
     Start-Process -FilePath (Get-Command dsh).Source -ArgumentList 'web','--no-open' -WorkingDirectory $WS
     $boot = $false
     for ($i=0; $i -lt 120; $i++) {
-        try { $r = Invoke-WebRequest 'http://127.0.0.1:3080/' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { $boot = $true; break } } catch {}
+        # any HTTP response means the server is up (don't demand 2xx)
+        $code = & curl.exe -s -m 2 -o NUL -w "%{http_code}" http://127.0.0.1:3080/ 2>$null
+        if ($code -and $code -ne '000') { $boot = $true; break }
         Start-Sleep -Seconds 2
     }
     if ($boot) { OK 'dsh web serves http://127.0.0.1:3080' } else { NO 'dsh web serves http://127.0.0.1:3080' }
@@ -78,12 +80,17 @@ if ($env:TEST_API_KEY) {
         default        { $url='https://dashscope.aliyuncs.com/apps/anthropic/v1/messages'; $model='deepseek-v4-flash-0731' }
     }
     $body = '{"model":"' + $model + '","max_tokens":32,"messages":[{"role":"user","content":"say hi"}]}'
+    # Pass the JSON via a temp file: PowerShell mangles embedded quotes when
+    # curl.exe receives -d as a native argument (the API rejected the body).
+    $bfile = Join-Path $env:TEMP 'dsh-conn.json'
+    Set-Content -Path $bfile -Value $body -Encoding ASCII -NoNewline
     $resp = ''
     for ($attempt=0; $attempt -lt 2; $attempt++) {
-        $resp = curl.exe -4 -s -m 120 -X POST $url -H 'Content-Type: application/json' -H "Authorization: Bearer $env:TEST_API_KEY" -d $body
+        $resp = curl.exe -s -m 120 -X POST $url -H 'Content-Type: application/json' -H "Authorization: Bearer $env:TEST_API_KEY" -d "@$bfile"
         if ($resp -match '"type":"message"') { break }
         Start-Sleep -Seconds 5
     }
+    Remove-Item $bfile -Force -ErrorAction SilentlyContinue
     if ($resp -match '"type":"message"') { OK "model connectivity ($env:TEST_PROVIDER)" } else { NO "model connectivity ($env:TEST_PROVIDER): $($resp.Substring(0,[Math]::Min(220,$resp.Length)))" }
 } else { Write-Host '  SKIP  model connectivity (no TEST_API_KEY)' }
 

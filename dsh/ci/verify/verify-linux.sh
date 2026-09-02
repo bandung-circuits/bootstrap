@@ -86,15 +86,19 @@ if command -v dsh >/dev/null 2>&1; then
   (cd "$WS" && DSH_HOME="$DSH" dsh web --no-open >"$bootlog" 2>&1 &)
   boot=0
   for i in $(seq 1 120); do
-    if curl -sf -m 2 http://127.0.0.1:3080/ >/dev/null 2>&1; then boot=1; break; fi
+    # any HTTP response means the server is up (don't demand 2xx — during
+    # startup / may serve 503 until client bundles settle).
+    code=$(curl -s -m 2 -o /dev/null -w '%{http_code}' http://127.0.0.1:3080/ 2>/dev/null || true)
+    if [ -n "$code" ] && [ "$code" != "000" ]; then boot=1; break; fi
     sleep 2
   done
   if [ "$boot" = 1 ]; then
     ok 'dsh web serves http://127.0.0.1:3080'
   else
-    # EADDRINUSE -> another server held the port (the boot log proves it); a
-    # slow Loader settle may also just need more time — give it one more try.
-    if curl -sf -m 3 http://127.0.0.1:3080/ >/dev/null 2>&1; then
+    # No response inside the window. Give one last check in case the Loader
+    # was still settling, then report.
+    code=$(curl -s -m 4 -o /dev/null -w '%{http_code}' http://127.0.0.1:3080/ 2>/dev/null || true)
+    if [ -n "$code" ] && [ "$code" != "000" ]; then
       ok 'dsh web serves http://127.0.0.1:3080 (late)'
     else
       no "dsh web boot failed (see $(basename "$bootlog"))"
@@ -105,7 +109,8 @@ if command -v dsh >/dev/null 2>&1; then
   pkill -f 'dsh web' 2>/dev/null || true; pkill -f '@deepseek-ai/dsh' 2>/dev/null || true
 fi
 
-# model connectivity — actually call the backend
+# model connectivity — actually call the backend. Prefer curl; fall back to
+# python3 (a minimal VM may lack curl). No -4: forcing IPv4 broke the VM route.
 if [ -n "${TEST_API_KEY:-}" ]; then
   case "${TEST_PROVIDER:-bailian}" in
     bailian)  url="https://dashscope.aliyuncs.com/apps/anthropic/v1/messages"; model="deepseek-v4-flash-0731" ;;
@@ -114,12 +119,32 @@ if [ -n "${TEST_API_KEY:-}" ]; then
     openrouter) url="https://openrouter.ai/api/v1/messages";                   model="deepseek/deepseek-v4-flash" ;;
     *) url="https://api.deepseek.com/anthropic/v1/messages"; model="deepseek-v4-flash" ;;
   esac
+  body="{\"model\":\"$model\",\"max_tokens\":32,\"messages\":[{\"role\":\"user\",\"content\":\"say hi\"}]}"
+  probe() {
+    local out=""
+    if command -v curl >/dev/null 2>&1; then
+      out=$(curl -s -m 120 -X POST "$url" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $TEST_API_KEY" \
+        -d "$body" 2>/dev/null || true)
+    elif command -v python3 >/dev/null 2>&1; then
+      out=$(URL="$url" MODEL="$model" KEY="$TEST_API_KEY" BODY="$body" python3 - <<'PY'
+import json, os, urllib.request
+req = urllib.request.Request(os.environ["URL"], data=os.environ["BODY"].encode())
+req.add_header("Content-Type", "application/json")
+req.add_header("Authorization", "Bearer " + os.environ["KEY"])
+try:
+    print(urllib.request.urlopen(req, timeout=120).read().decode())
+except Exception as e:
+    print("ERR", e)
+PY
+)
+    fi
+    printf '%s' "$out"
+  }
   resp=""
   for attempt in 1 2; do
-    resp=$(curl -4 -s -m 120 -X POST "$url" \
-      -H "Content-Type: application/json" \
-      -H "Authorization: Bearer $TEST_API_KEY" \
-      -d "{\"model\":\"$model\",\"max_tokens\":32,\"messages\":[{\"role\":\"user\",\"content\":\"say hi\"}]}" 2>/dev/null || true)
+    resp=$(probe)
     printf '%s' "$resp" | grep -q '"type":"message"' && break
     sleep 5
   done
