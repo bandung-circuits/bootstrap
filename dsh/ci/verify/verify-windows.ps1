@@ -70,8 +70,21 @@ if (Get-Command dsh -ErrorAction SilentlyContinue) {
 }
 
 if ($env:TEST_API_KEY) {
-    $resp = curl.exe -s -m 60 -X POST "https://api.deepseek.com/anthropic/v1/messages" -H "Content-Type: application/json" -H "Authorization: Bearer $env:TEST_API_KEY" -d '{"model":"deepseek-v4-flash","max_tokens":32,"messages":[{"role":"user","content":"say hi"}]}'
-    if ($resp -match '"type":"message"') { OK 'model connectivity (deepseek official)' } else { NO "model connectivity: $($resp.Substring(0,[Math]::Min(200,$resp.Length)))" }
+    switch ($env:TEST_PROVIDER) {
+        'bailian'      { $url='https://dashscope.aliyuncs.com/apps/anthropic/v1/messages'; $model='deepseek-v4-flash-0731' }
+        'bailian-intl' { $url='https://dashscope-intl.aliyuncs.com/apps/anthropic/v1/messages'; $model='deepseek-v4-flash' }
+        'deepseek'     { $url='https://api.deepseek.com/anthropic/v1/messages'; $model='deepseek-v4-flash' }
+        'openrouter'   { $url='https://openrouter.ai/api/v1/messages'; $model='deepseek/deepseek-v4-flash' }
+        default        { $url='https://dashscope.aliyuncs.com/apps/anthropic/v1/messages'; $model='deepseek-v4-flash-0731' }
+    }
+    $body = '{"model":"' + $model + '","max_tokens":32,"messages":[{"role":"user","content":"say hi"}]}'
+    $resp = ''
+    for ($attempt=0; $attempt -lt 2; $attempt++) {
+        $resp = curl.exe -4 -s -m 120 -X POST $url -H 'Content-Type: application/json' -H "Authorization: Bearer $env:TEST_API_KEY" -d $body
+        if ($resp -match '"type":"message"') { break }
+        Start-Sleep -Seconds 5
+    }
+    if ($resp -match '"type":"message"') { OK "model connectivity ($env:TEST_PROVIDER)" } else { NO "model connectivity ($env:TEST_PROVIDER): $($resp.Substring(0,[Math]::Min(220,$resp.Length)))" }
 } else { Write-Host '  SKIP  model connectivity (no TEST_API_KEY)' }
 
 Write-Host ''

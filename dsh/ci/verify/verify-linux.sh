@@ -114,10 +114,15 @@ if [ -n "${TEST_API_KEY:-}" ]; then
     openrouter) url="https://openrouter.ai/api/v1/messages";                   model="deepseek/deepseek-v4-flash" ;;
     *) url="https://api.deepseek.com/anthropic/v1/messages"; model="deepseek-v4-flash" ;;
   esac
-  resp=$(curl -s -m 60 -X POST "$url" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $TEST_API_KEY" \
-    -d "{\"model\":\"$model\",\"max_tokens\":32,\"messages\":[{\"role\":\"user\",\"content\":\"say hi\"}]}" 2>/dev/null || true)
+  resp=""
+  for attempt in 1 2; do
+    resp=$(curl -4 -s -m 120 -X POST "$url" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $TEST_API_KEY" \
+      -d "{\"model\":\"$model\",\"max_tokens\":32,\"messages\":[{\"role\":\"user\",\"content\":\"say hi\"}]}" 2>/dev/null || true)
+    printf '%s' "$resp" | grep -q '"type":"message"' && break
+    sleep 5
+  done
   if printf '%s' "$resp" | grep -q '"type":"message"'; then
     ok 'model connectivity (got message response)'
   else
