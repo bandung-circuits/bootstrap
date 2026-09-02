@@ -101,7 +101,7 @@ else no 'VS Code UI-state seeded'; fi
 # from the seeded UI state above instead. Docs/comments legitimately mention
 # the URI, so match only the removed invocation patterns.
 if grep -rnE 'Start-Process .*vscode://anthropic|opener.*claude-code/open' \
-     "$HOME/bootstrap"/install.sh "$HOME/bootstrap"/install-wsl.sh "$HOME/bootstrap"/install.ps1 "$HOME/bootstrap/lib" 2>/dev/null; then
+     "$HOME/bootstrap"/vscode/install.sh "$HOME/bootstrap"/vscode/install-wsl.sh "$HOME/bootstrap"/vscode/install.ps1 "$HOME/bootstrap"/vscode/lib 2>/dev/null; then
   no 'stale vscode://anthropic.claude-code/open auto-open in installer'
 else ok 'no auto-open URI (Claude placed via seeded UI state)'; fi
 
