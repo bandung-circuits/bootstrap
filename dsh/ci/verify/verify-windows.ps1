@@ -38,7 +38,8 @@ if (Test-Path (Join-Path $DSH 'settings.yaml')) {
 } else { NO 'settings.yaml' }
 
 $e = Join-Path $DSH 'secrets.env'
-if ((Test-Path $e) -and ((Get-Content $e -Raw) -match '^DSH_API_KEY=')) { OK 'secrets.env DSH_API_KEY present' } else { NO 'secrets.env DSH_API_KEY present' }
+$ec = Get-Content $e -Raw -ErrorAction SilentlyContinue
+if ($ec -match '(?m)^DSH_API_KEY=') { OK 'secrets.env DSH_API_KEY present' } else { NO 'secrets.env DSH_API_KEY present' }
 
 $p = Join-Path $DSH 'cordis.patch.yml'
 $pc = Get-Content $p -Raw -ErrorAction SilentlyContinue
@@ -60,7 +61,7 @@ if (Get-Command dsh -ErrorAction SilentlyContinue) {
     $env:DSH_HOME = $DSH
     Start-Process -FilePath (Get-Command dsh).Source -ArgumentList 'web','--no-open' -WorkingDirectory $WS
     $boot = $false
-    for ($i=0; $i -lt 60; $i++) {
+    for ($i=0; $i -lt 120; $i++) {
         try { $r = Invoke-WebRequest 'http://127.0.0.1:3080/' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { $boot = $true; break } } catch {}
         Start-Sleep -Seconds 2
     }

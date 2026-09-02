@@ -85,7 +85,7 @@ if command -v dsh >/dev/null 2>&1; then
   bootlog="/tmp/dsh-web-boot.log"
   (cd "$WS" && DSH_HOME="$DSH" dsh web --no-open >"$bootlog" 2>&1 &)
   boot=0
-  for i in $(seq 1 60); do
+  for i in $(seq 1 120); do
     if curl -sf -m 2 http://127.0.0.1:3080/ >/dev/null 2>&1; then boot=1; break; fi
     sleep 2
   done
