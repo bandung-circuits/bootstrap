@@ -1,6 +1,9 @@
 # crawl4ai MCP insert for the official @deepseek-ai/dsh-mcp-client.
-# Rendered by dsh-desktop/prep.* with absolute uvx + workspace paths (the DSH
-# Desktop app process does not put ~/.local/bin on PATH).
+# Rendered by dsh-desktop/prep.* with the ABSOLUTE path of the crawl4ai
+# executable inside the workspace venv (no PATH / uvx dependency at runtime,
+# since the DSH Desktop app process does not carry ~/.local/bin on PATH).
+# The env block keeps crawl4ai's own data and the Playwright browser inside the
+# workspace too (~/.crawl4ai and the platform browser cache are never touched).
 # One instance = one server. Server commands run OUTSIDE the agent sandbox, so
 # only pinned, trusted executables are enabled.
 - insert:
@@ -9,6 +12,8 @@
       config:
         serverName: crawl4ai
         transport: stdio
-        command: {{UVX_BIN}}
-        args: ['--from', 'crawl4ai-search-mcp==0.1.1', 'crawl4ai-search']
+        command: {{CRAWL4AI_BIN}}
         cwd: {{WORKSPACE}}
+        env:
+          CRAWL4_AI_BASE_DIRECTORY: {{WORKSPACE}}
+          PLAYWRIGHT_BROWSERS_PATH: {{WORKSPACE}}/.browsers

@@ -15,9 +15,28 @@ When you need to read a web page or search the web, prefer the **crawl4ai** MCP:
 - `mcp__crawl4ai__read_url` to fetch a page (or PDF) in full.
 - `mcp__crawl4ai__search` to search the web.
 
-It is free and needs no API key. The first time crawl4ai is called, it downloads a small helper environment (this takes a minute and needs internet) — if a crawl4ai call fails with a timeout or "not found" error on the first attempt, retry it; the download may still be in progress. If crawl4ai remains unavailable after retrying, fall back to the harness's built-in `web_search` and `web_fetch` tools.
+It is free and needs no API key. The browser it needs is already pre-downloaded into
+`~/ai-workspace/.browsers`, so the first call should work immediately. If a crawl4ai
+call fails with a timeout or "not found" error on the first attempt, retry once before
+falling back to the harness's built-in `web_search` and `web_fetch` tools.
 
-## 3. Grounded search principles
+## 3. Python and dependencies live in this workspace
+
+Everything was installed self-contained inside this folder — do not look for
+Python, tools, or packages outside it:
+
+- **Python** (with the crawl4ai package pre-installed):
+  - macOS: `~/ai-workspace/.venv/bin/python`
+  - Windows: `C:\Users\<you>\ai-workspace\.venv\Scripts\python.exe`
+- **uv** (package/runtime manager, if you need to install more):
+  - `~/ai-workspace/.local/bin/uv` (macOS) / `.local\bin\uv.exe` (Windows)
+
+To run a Python script, use the workspace venv's interpreter, e.g.
+`~/ai-workspace/.venv/bin/python analyze.py` — not a system `python`. If you
+need to install another package, use the workspace uv:
+`uv pip install -p ~/ai-workspace/.venv <package>`.
+
+## 4. Grounded search principles
 
 These rules apply whenever an agent searches the web or consults external sources.
 
@@ -29,7 +48,7 @@ Reference: [BHV-05 Grounded Web Research](https://github.com/eXtremeProgramming-
 2. **Verify against the original.** All key information — conclusions, numbers, names, and attributions — must be checked against the full text of the original page or the original source file.
 3. **Cite to origin.** Every claim written into an output must trace back to an original source text. Any statement that cannot be supported by an original source must not be included in the output.
 
-## 4. The harness data lives outside this folder
+## 5. The harness data lives outside this folder
 
 This workspace is used with the **DSH Desktop** application. The harness's own data (profiles, plugins, credentials, patches) lives in the application's data directory, not in this folder:
 
@@ -38,6 +57,6 @@ This workspace is used with the **DSH Desktop** application. The harness's own d
 
 Treat that directory as machinery — never edit it unless a task explicitly asks for a config change. Keep your own work in this workspace root or a project subfolder.
 
-## 5. Scope note
+## 6. Scope note
 
 Additional conventions (safety defaults, packaging) will be added to this file in later iterations.

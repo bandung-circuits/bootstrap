@@ -32,13 +32,14 @@ short summary to news.md", or "draft a one-page briefing note about <event> in
 plain language".
 
 The **crawl4ai** MCP (web fetch/search) is already enabled through the official
-DSH MCP client — no key needed. The first search downloads a small helper
-environment; this is automatic and needs internet.
+DSH MCP client, with its Python package and Chromium browser already installed
+inside this workspace — no key needed, nothing to download on first use.
 
 ---
 
 *What the setup command did: created this folder with the workspace rules
-(AGENTS.md), installed uv/uvx (the runner crawl4ai uses), and enabled the
-crawl4ai MCP server in the DSH Desktop harness data. Nothing was moved or
-deleted. To remove crawl4ai later, delete the `mcp-crawl4ai` block from
-`<DSH Desktop data>/harness/cordis.patch.yml`.*
+(AGENTS.md), installed everything self-contained inside it (Python venv with
+crawl4ai, the Chromium browser, and uv), and enabled the crawl4ai MCP server in
+the DSH Desktop harness data. Nothing outside this folder except the one MCP
+patch row was touched. To remove crawl4ai later, delete the `mcp-crawl4ai` block
+from `<DSH Desktop data>/harness/cordis.patch.yml`.*

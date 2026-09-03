@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # dsh-desktop/ci/verify/verify-macos.sh — runs ON a macOS machine (the CI host).
 # Two tiers:
-#   1. prep.sh in isolation (temp workspace/harness) — seeds + patch shape.
+#   1. prep.sh end-to-end into a THROWAWAY workspace + harness: seeds, a real
+#      venv with crawl4ai inside the workspace, and a patch that points the
+#      official mcp-client at the workspace venv (no PATH dependence).
 #   2. If a DSH Desktop.app is installed, its OWN bundled harness must compose
 #      the crawl4ai mcp-client patch (dump-config). Skips (not fails) when no
-#      app is present. Uses a throwaway DSH_HOME — never touches real app data.
+#      app is present. Never touches real app data or ~/.crawl4ai.
 set -uo pipefail
 
 pass=0; fail=0; skip=0
@@ -12,20 +14,14 @@ ok(){ printf '  PASS  %s\n' "$*"; pass=$((pass+1)); }
 no(){ printf '  FAIL  %s\n' "$*"; fail=$((fail+1)); }
 sk(){ printf '  SKIP  %s\n' "$*"; skip=$((skip+1)); }
 
-ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"   # repo root
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
 
-# ---------- tier 1: prep.sh in isolation ----------
-# UV_DIR gets a stub uvx so the script's uv step short-circuits and the patch
-# carries an absolute path; the stub is never executed (composition only).
-STUB="${T}/bin/uvx"
-mkdir -p "$(dirname "$STUB")" && printf '#!/bin/sh\nexit 0\n' > "$STUB" && chmod +x "$STUB"
-
-out="$(WORKSPACE_DIR="$T/ws" DSH_HOME="$T/harness" UV_DIR="${T}/bin" \
+# ---------- tier 1: prep.sh end-to-end (hidden browser dl for speed) ----------
+out="$(WORKSPACE_DIR="$T/ws" DSH_HOME="$T/harness" PREP_NO_BROWSER=1 \
   bash "$ROOT/dsh-desktop/prep.sh" 2>&1 || true)"
 
-# seeds present
 seed_missing=""
 for f in AGENTS.md README.md .gitignore NEXT-STEPS.md; do
   [ -f "$T/ws/$f" ] || seed_missing="$seed_missing $f"
@@ -33,20 +29,29 @@ done
 [ -z "$seed_missing" ] && ok 'prep seeds ~/ai-workspace (AGENTS/README/.gitignore/NEXT-STEPS)' \
   || no "missing seeds:$seed_missing"
 
-# no leftover placeholders
 if grep -rq '{{' "$T/ws" "$T/harness/cordis.patch.yml" 2>/dev/null; then
   no 'no leftover {{ placeholders'
 else
   ok 'no leftover placeholders'
 fi
 
-# patch shape: official mcp-client + pinned crawl4ai + absolute uvx
+# python + crawl4ai live INSIDE the workspace venv (the point of self-containment)
+venv_py="$T/ws/.venv/bin/python"
+cr4_bin="$T/ws/.venv/bin/crawl4ai-search"
+if [ -x "$venv_py" ] && "$venv_py" -c 'import crawl4ai_mcp_server' >/dev/null 2>&1; then
+  ok 'venv python imports crawl4ai_mcp_server (in-workspace)'
+else
+  no 'workspace venv missing or crawl4ai_mcp_server not importable'
+fi
+if [ -x "$cr4_bin" ]; then ok "crawl4ai executable present ($cr4_bin)"; else no 'crawl4ai executable missing'; fi
+
 patch="$T/harness/cordis.patch.yml"
 if grep -q 'mcp-crawl4ai' "$patch" \
    && grep -q "@deepseek-ai/dsh-mcp-client" "$patch" \
-   && grep -q "crawl4ai-search-mcp==0.1.1" "$patch" \
-   && grep -q "command: ${STUB}" "$patch"; then
-  ok 'patch enables crawl4ai (official mcp-client, pinned, abs uvx)'
+   && grep -q "command: ${cr4_bin}" "$patch" \
+   && grep -q "CRAWL4_AI_BASE_DIRECTORY: $T/ws" "$patch" \
+   && grep -q "PLAYWRIGHT_BROWSERS_PATH: $T/ws/.browsers" "$patch"; then
+  ok 'patch: official mcp-client -> workspace venv + in-workspace browsers/data'
 else
   no 'patch shape wrong — see below'; sed -n '1,20p' "$patch" | sed 's/^/    /'
 fi
