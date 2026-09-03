@@ -25,7 +25,9 @@ In the assistant, click **Choose workspace** and pick:
 
 ## 4. Start using it
 
-You can now ask the AI anything, e.g. "create a hello.py and run it".
+You can now ask the AI anything, e.g. "find recent news about <topic> and save a
+short summary to news.md", or "draft a one-page briefing note about <event> in
+plain language".
 
 The **crawl4ai** MCP (web fetch/search) is already enabled through the official
 DSH MCP client — no key needed. The first search downloads a small helper
