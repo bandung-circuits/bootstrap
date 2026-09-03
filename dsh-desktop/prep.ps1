@@ -107,7 +107,8 @@ function Ensure-Venv {
     # python (the MCP server AND direct agent runs) directs crawl4ai's data and
     # the Playwright browser into the workspace (else ~\.crawl4ai is used and
     # blocked by the sandbox).
-    $sp = & $VENV_PY -c 'import site; print(site.getsitepackages()[0])' 2>$null
+    $pyFind = "import site; ps=[p for p in site.getsitepackages() if p.replace('\\','/').endswith('site-packages')]; print(ps[0] if ps else '')"
+    $sp = & $VENV_PY -c $pyFind 2>$null
     if (-not $sp -or -not (Test-Path $sp)) { $sp = Join-Path $WS '.venv\Lib\site-packages' }
     New-Item -ItemType Directory -Force -Path $sp | Out-Null
     $sc = Join-Path $sp 'sitecustomize.py'

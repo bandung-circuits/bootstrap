@@ -120,7 +120,14 @@ ensure_venv() {
   # would default to the user's home (~/.crawl4ai) and get blocked by the
   # sandbox / litter the home dir.
   local sp sitecustomize
-  sp="$("$VENV_PY" -c 'import site; print(site.getsitepackages()[0])' 2>/dev/null)"
+  # getsitepackages() may return the venv root first on Windows — pick the
+  # entry that actually ends in site-packages.
+  sp="$("$VENV_PY" - <<'PY' 2>/dev/null
+import site
+ps = [p for p in site.getsitepackages() if p.rstrip('/\\').endswith('site-packages')]
+print(ps[0] if ps else '', end='')
+PY
+)"
   [ -n "$sp" ] && [ -d "$sp" ] || sp="$VENV_DIR/lib/python"*"/site-packages"
   mkdir -p "$sp"
   sitecustomize="$sp/sitecustomize.py"
