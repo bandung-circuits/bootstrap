@@ -36,9 +36,17 @@ function Warn($m){ Write-Host "!! $m" -ForegroundColor Yellow }
 function Err($m){ Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
 
 # ---------- paths (env-overridable for tests; PSCommandPath is $null under iex) ----------
-$WS     = if ($env:WORKSPACE_DIR) { $env:WORKSPACE_DIR } else { Join-Path $env:USERPROFILE 'ai-workspace' }
-$AppData = Join-Path $env:APPDATA 'DSH Desktop'
-$HARNESS = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $AppData 'harness' }
+$WS = if ($env:WORKSPACE_DIR) { $env:WORKSPACE_DIR } else { Join-Path $env:USERPROFILE 'ai-workspace' }
+# DSH Desktop's Electron userData folder varies by build/version: observed as
+# both %APPDATA%\dsh-desktop and %APPDATA%\DSH Desktop. Prefer whichever already
+# holds harness state; default to the lowercase package-name variant.
+function Get-HarnessHome {
+    foreach ($cand in @((Join-Path $env:APPDATA 'dsh-desktop\harness'), (Join-Path $env:APPDATA 'DSH Desktop\harness'))) {
+        if (Test-Path $cand) { return $cand }
+    }
+    return (Join-Path $env:APPDATA 'dsh-desktop\harness')
+}
+$HARNESS = if ($env:DSH_HOME) { $env:DSH_HOME } else { Get-HarnessHome }
 $UV      = Join-Path $WS '.local\bin\uv.exe'
 $VENV_PY = Join-Path $WS '.venv\Scripts\python.exe'
 $BROWSER = Join-Path $WS '.browsers'
@@ -226,8 +234,8 @@ Ensure-McpCrawl4ai
 Note 'Setting the default permission preset'
 Ensure-PermissionDefault
 
-if (-not (Test-Path $AppData)) {
-    Warn "DSH Desktop app data not found at $AppData -- install DSH Desktop"
+if (-not (Test-Path (Split-Path $HARNESS -Parent))) {
+    Warn "DSH Desktop app data not found at $((Split-Path $HARNESS -Parent)) -- install DSH Desktop"
     Warn "from https://dshdesktop.com/en/ and launch it once, then re-run this if needed."
 }
 

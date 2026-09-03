@@ -9,7 +9,14 @@ function OK($m){ Write-Host "  PASS  $m"; $script:pass++ }
 function NO($m){ Write-Host "  FAIL  $m"; $script:fail++ }
 
 $WS      = Join-Path $env:USERPROFILE 'ai-workspace'
-$HARNESS = Join-Path $env:APPDATA 'DSH Desktop\harness'
+# DSH Desktop userData varies by build (dsh-desktop vs DSH Desktop).
+function Get-HarnessHome {
+    foreach ($cand in @((Join-Path $env:APPDATA 'dsh-desktop\harness'), (Join-Path $env:APPDATA 'DSH Desktop\harness'))) {
+        if (Test-Path $cand) { return $cand }
+    }
+    return (Join-Path $env:APPDATA 'dsh-desktop\harness')
+}
+$HARNESS = if ($env:DSH_HOME) { $env:DSH_HOME } else { Get-HarnessHome }
 $patch   = Join-Path $HARNESS 'cordis.patch.yml'
 $venvPy  = Join-Path $WS '.venv\Scripts\python.exe'
 $cr4exe  = Join-Path $WS '.venv\Scripts\crawl4ai-search.exe'

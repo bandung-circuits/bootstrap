@@ -64,8 +64,20 @@ load_templates() {
 
 # ---------- paths (env-overridable for tests) ----------
 WORKSPACE_DIR="${WORKSPACE_DIR:-${HOME}/ai-workspace}"
-APP_SUPPORT="${HOME}/Library/Application Support/DSH Desktop"
-HARNESS_HOME="${DSH_HOME:-${APP_SUPPORT}/harness}"
+# DSH Desktop's Electron userData folder varies by build/version: observed as
+# both "$HOME/Library/Application Support/dsh-desktop" and ".../DSH Desktop".
+# Discover it: prefer whichever already holds harness state; default to the
+# lowercase package-name variant.
+harness_discover() {
+  local cand
+  for cand in \
+    "${HOME}/Library/Application Support/dsh-desktop/harness" \
+    "${HOME}/Library/Application Support/DSH Desktop/harness"; do
+    [ -d "$cand" ] && { printf '%s\n' "$cand"; return 0; }
+  done
+  printf '%s\n' "${HOME}/Library/Application Support/dsh-desktop/harness"
+}
+HARNESS_HOME="${DSH_HOME:-$(harness_discover)}"
 UV_BIN="${WORKSPACE_DIR}/.local/bin/uv"
 VENV_DIR="${WORKSPACE_DIR}/.venv"
 VENV_PY="${VENV_DIR}/bin/python"
@@ -258,8 +270,8 @@ main() {
   note "Setting the default permission preset"
   ensure_permission_default
 
-  if [ ! -d "$APP_SUPPORT" ]; then
-    warn "DSH Desktop app data not found at $APP_SUPPORT — install DSH Desktop"
+  if [ ! -d "$(dirname "$HARNESS_HOME")" ]; then
+    warn "DSH Desktop app data not found at $(dirname "$HARNESS_HOME") — install DSH Desktop"
     warn "from https://dshdesktop.com/en/ and launch it once, then re-run this if needed."
   fi
 

@@ -71,10 +71,10 @@ Reference: [BHV-05 Grounded Web Research](https://github.com/eXtremeProgramming-
 
 ## 5. The harness data lives outside this folder
 
-This workspace is used with the **DSH Desktop** application. The harness's own data (profiles, plugins, sessions) lives in the application's data directory, not in this folder:
+This workspace is used with the **DSH Desktop** application. The harness's own data (profiles, plugins, sessions) lives in the application's data directory, not in this folder — the app-data folder is most often the package name `dsh-desktop` (sometimes `DSH Desktop`, depending on the build):
 
-- macOS: `~/Library/Application Support/DSH Desktop/harness`
-- Windows: `%APPDATA%\DSH Desktop\harness`
+- macOS: `~/Library/Application Support/dsh-desktop/harness` (or `.../DSH Desktop/harness`)
+- Windows: `%APPDATA%\dsh-desktop\harness` (or `%APPDATA%\DSH Desktop\harness`)
 
 Treat that directory as machinery — editing it is a config change and requires an explicit user request. Two files there are worth READING for diagnosis:
 
