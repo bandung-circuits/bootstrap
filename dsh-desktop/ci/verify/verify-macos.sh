@@ -29,7 +29,11 @@ done
 [ -z "$seed_missing" ] && ok 'prep seeds ~/ai-workspace (AGENTS/README/.gitignore/NEXT-STEPS)' \
   || no "missing seeds:$seed_missing"
 
-if grep -rq '{{' "$T/ws" "$T/harness/cordis.patch.yml" 2>/dev/null; then
+# no leftover placeholders in OUR files (seeds + patch only — scanning the
+# whole workspace would false-positive on installed Python packages).
+if grep -q '{{' \
+    "$T/ws/AGENTS.md" "$T/ws/README.md" "$T/ws/.gitignore" "$T/ws/NEXT-STEPS.md" \
+    "$T/harness/cordis.patch.yml" 2>/dev/null; then
   no 'no leftover {{ placeholders'
 else
   ok 'no leftover placeholders'
