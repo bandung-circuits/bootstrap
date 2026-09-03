@@ -114,6 +114,30 @@ ensure_venv() {
   fi
   [ -x "$CRAWL4AI_BIN" ] || err "crawl4ai-search not found in venv ($CRAWL4AI_BIN)"
   note "crawl4ai-search at $CRAWL4AI_BIN"
+  # sitecustomize.py: python imports it automatically at startup, so ANY venv
+  # python (the MCP server AND direct `venv/bin/python` runs by the agent) has
+  # crawl4ai's data + browser directed into the workspace. Otherwise crawl4ai
+  # would default to the user's home (~/.crawl4ai) and get blocked by the
+  # sandbox / litter the home dir.
+  local sp sitecustomize
+  sp="$("$VENV_PY" -c 'import site; print(site.getsitepackages()[0])' 2>/dev/null)"
+  [ -n "$sp" ] && [ -d "$sp" ] || sp="$VENV_DIR/lib/python"*"/site-packages"
+  mkdir -p "$sp"
+  sitecustomize="$sp/sitecustomize.py"
+  if [ ! -f "$sitecustomize" ]; then
+    cat > "$sitecustomize" <<'PY'
+import os, sys
+# sitecustomize: runs before anything else at every venv python startup.
+# sys.prefix is the venv dir (~/ai-workspace/.venv); the workspace is its parent
+# (works on macOS lib/python3.X/site-packages and Windows Lib/site-packages).
+_WS = os.path.dirname(sys.prefix)
+os.environ.setdefault('CRAWL4_AI_BASE_DIRECTORY', _WS)
+os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH', os.path.join(_WS, '.browsers'))
+PY
+    note "wrote $sitecustomize (crawl4ai data/browser stay in the workspace)"
+  else
+    note "sitecustomize already present ($sitecustomize)"
+  fi
 }
 
 # ---------- 4. pre-download the Playwright Chromium into the workspace ----------
@@ -156,6 +180,30 @@ ensure_mcp_crawl4ai() {
   note "enabled crawl4ai MCP in $patch"
 }
 
+# ---------- 6. default permission preset: Full Access (danger-full-access) ----------
+ensure_permission_default() {
+  local settings="${HARNESS_HOME}/settings.yaml"
+  mkdir -p "$HARNESS_HOME"
+  # workspace-write + ask is the stock default for new sessions: writes outside
+  # the workspace are blocked and every escalation prompts -- painful for novice
+  # learners. Pin danger-full-access (open sandbox, approval never) so the agent
+  # can install/run what prep put in the workspace without prompt walls.
+  if [ -f "$settings" ] && grep -q '^[[:space:]]*defaultPreset:' "$settings"; then
+    note "permission default already set in $settings"
+    return 0
+  fi
+  note "setting default permission preset to danger-full-access in $settings"
+  if [ ! -f "$settings" ]; then
+    printf 'permission:\n  defaultPreset: danger-full-access\n' > "$settings"
+  elif grep -q '^permission:' "$settings"; then
+    awk '/^permission:/ { print; print "  defaultPreset: danger-full-access"; next } { print }' \
+      "$settings" > "$settings.tmp" && mv "$settings.tmp" "$settings"
+  else
+    printf '\npermission:\n  defaultPreset: danger-full-access\n' >> "$settings"
+  fi
+  note "done"
+}
+
 # ---------- main ----------
 main() {
   load_templates
@@ -169,6 +217,8 @@ main() {
   ensure_browser
   note "Enabling crawl4ai MCP (official DSH mcp-client)"
   ensure_mcp_crawl4ai
+  note "Setting the default permission preset"
+  ensure_permission_default
 
   if [ ! -d "$APP_SUPPORT" ]; then
     warn "DSH Desktop app data not found at $APP_SUPPORT — install DSH Desktop"

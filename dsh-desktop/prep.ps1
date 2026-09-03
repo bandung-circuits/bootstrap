@@ -102,7 +102,29 @@ function Ensure-Venv {
         & $UV pip install -p (Join-Path $WS '.venv') 'crawl4ai-search-mcp==0.1.1'
     }
     if (-not (Test-Path $CR4)) { Err "crawl4ai-search not found at $CR4" }
-    Note "crawl4ai-search at $CR4"
+    Note 'creating venv + crawl4ai complete'
+    # sitecustomize.py: imported at every venv python startup, so ANY venv
+    # python (the MCP server AND direct agent runs) directs crawl4ai's data and
+    # the Playwright browser into the workspace (else ~\.crawl4ai is used and
+    # blocked by the sandbox).
+    $sp = & $VENV_PY -c 'import site; print(site.getsitepackages()[0])' 2>$null
+    if (-not $sp -or -not (Test-Path $sp)) { $sp = Join-Path $WS '.venv\Lib\site-packages' }
+    New-Item -ItemType Directory -Force -Path $sp | Out-Null
+    $sc = Join-Path $sp 'sitecustomize.py'
+    if (-not (Test-Path $sc)) {
+        Set-Content -Path $sc -Value @'
+import os, sys
+# sitecustomize: every venv python startup. sys.prefix is the venv dir
+# (~/ai-workspace/.venv); the workspace is its parent (works on macOS
+# lib/python3.X/site-packages and Windows Lib/site-packages).
+_WS = os.path.dirname(sys.prefix)
+os.environ.setdefault('CRAWL4_AI_BASE_DIRECTORY', _WS)
+os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH', os.path.join(_WS, '.browsers'))
+'@ -Encoding ASCII -NoNewline
+        Note "wrote $sc (crawl4ai data/browser stay in the workspace)"
+    } else {
+        Note "sitecustomize already present ($sc)"
+    }
 }
 
 # ---------- 4. pre-download the Playwright Chromium into the workspace ----------
@@ -136,6 +158,30 @@ function Ensure-McpCrawl4ai {
     Note "enabled crawl4ai MCP in $patch"
 }
 
+# ---------- 6. default permission preset: Full Access (danger-full-access) ----------
+function Ensure-PermissionDefault {
+    New-Item -ItemType Directory -Force -Path $HARNESS | Out-Null
+    $settings = Join-Path $HARNESS 'settings.yaml'
+    if ((Test-Path $settings) -and (Select-String -Path $settings -Pattern '^\s*defaultPreset:' -Quiet)) {
+        Note "permission default already set in $settings"
+        return
+    }
+    Note 'Setting default permission preset to danger-full-access'
+    if (-not (Test-Path $settings)) {
+        Set-Content -Path $settings -Value "permission:`n  defaultPreset: danger-full-access" -Encoding UTF8
+    } elseif (Select-String -Path $settings -Pattern '^permission:' -Quiet) {
+        $out = New-Object System.Collections.ArrayList
+        foreach ($line in Get-Content $settings) {
+            [void]$out.Add($line)
+            if ($line -match '^permission:') { [void]$out.Add('  defaultPreset: danger-full-access') }
+        }
+        Set-Content -Path $settings -Value $out -Encoding UTF8
+    } else {
+        Add-Content -Path $settings -Value "`npermission:`n  defaultPreset: danger-full-access" -Encoding UTF8
+    }
+    Note 'done'
+}
+
 # ---------- main ----------
 Get-Templates
 Note 'Creating and seeding the AI workspace'
@@ -148,6 +194,9 @@ Note 'Pre-downloading the Chromium browser'
 Ensure-Browser
 Note 'Enabling crawl4ai MCP (official DSH mcp-client)'
 Ensure-McpCrawl4ai
+
+Note 'Setting the default permission preset'
+Ensure-PermissionDefault
 
 if (-not (Test-Path $AppData)) {
     Warn "DSH Desktop app data not found at $AppData -- install DSH Desktop"

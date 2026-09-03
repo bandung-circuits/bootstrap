@@ -49,6 +49,29 @@ else
 fi
 if [ -x "$cr4_bin" ]; then ok "crawl4ai executable present ($cr4_bin)"; else no 'crawl4ai executable missing'; fi
 
+# sitecustomize.py must redirect crawl4ai data/browser into the workspace for
+# ANY venv python invocation (not just the MCP server).
+sitecustomize="$("$venv_py" - <<'PY' 2>/dev/null
+import site, os
+print(os.path.join(site.getsitepackages()[0], 'sitecustomize.py'))
+PY
+)"
+if [ -n "$sitecustomize" ] && [ -f "$sitecustomize" ] \
+   && grep -q 'CRAWL4_AI_BASE_DIRECTORY' "$sitecustomize" \
+   && grep -q 'PLAYWRIGHT_BROWSERS_PATH' "$sitecustomize"; then
+  ok 'venv sitecustomize redirects crawl4ai data/browser to workspace'
+else
+  no 'venv sitecustomize missing or lacks workspace env'
+fi
+
+# default permission preset pinned to danger-full-access (Full Access)
+settings="$T/harness/settings.yaml"
+if [ -f "$settings" ] && grep -q 'defaultPreset: danger-full-access' "$settings"; then
+  ok 'harness settings.yaml pins permission default to danger-full-access'
+else
+  no 'harness settings.yaml does not pin danger-full-access'
+fi
+
 patch="$T/harness/cordis.patch.yml"
 if grep -q 'mcp-crawl4ai' "$patch" \
    && grep -q "@deepseek-ai/dsh-mcp-client" "$patch" \
