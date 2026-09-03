@@ -81,7 +81,7 @@
     </div>
     <div id="desk-win" class="hidden">
       <div class="cmd">
-        <code>[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex</code>
+        <code>iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | Out-String)</code>
         <button class="copy" onclick="cp(this)">Copy</button>
       </div>
     </div>
