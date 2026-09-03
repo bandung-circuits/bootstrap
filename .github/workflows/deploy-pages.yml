@@ -38,10 +38,11 @@ jobs:
               s = re.sub(r'(?m)^# deployed:.*$',
                          f'# deployed: {sha}  {t} (Beijing)', s, count=1)
               open(f,"w").write(s)
-          s = open("index.html").read()
-          s = re.sub(r'(?s)<span class="deploy-version">.*?</span>',
-                     f'<span class="deploy-version">deployed: <code>{sha}</code> · {t} (Beijing)</span>', s)
-          open("index.html","w").write(s)
+          for f in ("index.html", "dsh-desktop.html"):
+              s = open(f).read()
+              s = re.sub(r'(?s)<span class="deploy-version">.*?</span>',
+                         f'<span class="deploy-version">deployed: <code>{sha}</code> · {t} (Beijing)</span>', s)
+              open(f,"w").write(s)
           PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
