@@ -69,8 +69,12 @@ if [ -n "${WIN_VMX:-}" ]; then
     "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/install-windows.ps1" \
     2>&1 | tail -3
   note "[win] running prep via REAL user path: irm | iex (fetches from Pages)"
+  # Write a tiny wrapper on the VM and run via -File: inline "irm URL | iex" breaks
+  # because cmd.exe (between ssh and powershell) interprets the pipe character.
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -Command \"irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex\"" \
+    "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Content -Path C:/Users/$WIN_USER/run-prep.ps1 -Value 'irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex' -Encoding ASCII\""
+  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
+    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/run-prep.ps1" \
     2>&1 | tail -10
   note "[win] verifying"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
