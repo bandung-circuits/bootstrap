@@ -10,11 +10,12 @@ Download from:  https://dshdesktop.com/en/
 Supported: macOS (Apple Silicon and Intel) and Windows. Requires a user account
 with normal permissions — no administrator needed for the workspace setup.
 
-## 2. Add your model key
+## 2. Add the model key
 
-Open DSH Desktop, then go to **Settings → Models** and paste your DeepSeek API
-key (get one at https://platform.deepseek.com/ or the provider of your choice).
-The AI needs a model backend before it can answer.
+The app needs a model service. If you haven't set it up yet: sign up with OpenRouter
+(recommended, https://openrouter.ai/) or Alibaba Cloud Model Studio (international,
+https://www.alibabacloud.com/), get an API key, then paste it into the app at
+**Settings → Models**. The AI cannot answer until this is done.
 
 ## 3. Open this folder as the workspace
 
