@@ -46,11 +46,14 @@ function Refresh-UVPath {
 
 # ---------- templates ----------
 function Get-Templates {
-    $here = Split-Path -Parent $PSCommandPath
-    $local = Join-Path $here 'templates'
-    if (Test-Path (Join-Path $local 'workspace')) {
-        $script:TW = Join-Path $local 'workspace'
-        $script:TP = Join-Path $local 'dsh-desktop'
+    # $PSCommandPath is $null when run via iex (irm | iex) -- no file path.
+    # In that case, skip the local-clone check and fetch from Pages (which is
+    # exactly what the piped user needs: no local clone exists).
+    $here = ''
+    if ($PSCommandPath) { $here = Split-Path -Parent $PSCommandPath }
+    if ($here -and (Test-Path (Join-Path $here 'templates\workspace'))) {
+        $script:TW = Join-Path $here 'templates\workspace'
+        $script:TP = Join-Path $here 'templates\dsh-desktop'
         return
     }
     $_TmpTemplates = Join-Path $env:TEMP ("dshdesktop-tpl-" + [guid]::NewGuid().ToString('N'))
