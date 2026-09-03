@@ -63,16 +63,13 @@ if [ -n "${WIN_VMX:-}" ]; then
   ssh_wait "$ip" "$WIN_USER" || fail "windows SSH timeout"
   note "[win] scp CI-internal scripts into VM"
   scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
-    dsh-desktop/ci/install-windows.ps1 dsh-desktop/ci/verify/verify-windows.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
+    dsh-desktop/ci/install-windows.ps1 dsh-desktop/ci/verify/verify-windows.ps1 \
+    dsh-desktop/ci/run-prep.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
   note "[win] installing DSH Desktop (if needed)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
     "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/install-windows.ps1" \
     2>&1 | tail -3
   note "[win] running prep via REAL user path: irm | iex (fetches from Pages)"
-  # Write a tiny wrapper on the VM and run via -File: inline "irm URL | iex" breaks
-  # because cmd.exe (between ssh and powershell) interprets the pipe character.
-  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Content -Path C:/Users/$WIN_USER/run-prep.ps1 -Value 'irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex' -Encoding ASCII\""
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
     "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/run-prep.ps1" \
     2>&1 | tail -10

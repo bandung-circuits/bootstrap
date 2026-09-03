@@ -24,7 +24,7 @@ curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.sh | ba
 
 Windows:
 ```powershell
-irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex
 ```
 
 Prerequisite: DSH Desktop installed. Platforms: macOS + Windows only (the app
