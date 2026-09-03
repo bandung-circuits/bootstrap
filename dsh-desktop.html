@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <title>DSH Desktop workspace — Bootstrap</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="One command prepares a ready AI workspace for DSH Desktop learners: ~/ai-workspace with workspace rules and the crawl4ai MCP enabled through the official DSH MCP client. macOS and Windows.">
+<meta name="description" content="Install DSH Desktop, then one command prepares a ready AI workspace: ~/ai-workspace with workspace rules and the crawl4ai MCP enabled through the official DSH MCP client. macOS and Windows.">
 <style>
   :root{
     --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3;
     --muted:#8b949e; --accent:#2f81f7; --accent-2:#a371f7; --code:#1f2630;
+    --gold:#d29922;
   }
   @media (prefers-color-scheme: light){
     :root{ --bg:#ffffff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328;
-           --muted:#57606a; --accent:#0969da; --accent-2:#8250df; --code:#eff1f3;}
+           --muted:#57606a; --accent:#0969da; --accent-2:#8250df; --code:#eff1f3; --gold:#9a6700;}
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -22,7 +23,7 @@
   h1{font-size:1.9rem;margin:.3em 0 .15em}
   .sub{color:var(--muted);font-size:1.02rem;margin:0 0 1.4rem}
   .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.4rem;margin:1rem 0}
-  .card h2{margin:0 0 .4rem;font-size:1.05rem}
+  .card h2{margin:0 0 .5rem;font-size:1.05rem}
   .card p{margin:0 0 .9rem;color:var(--muted)}
   .cmd{position:relative;background:var(--code);border:1px solid var(--border);border-radius:8px;
        padding:.9rem 3.2rem .9rem 1rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -32,9 +33,14 @@
         border:1px solid var(--border);border-radius:6px;padding:.25rem .5rem;font-size:.72rem}
   .copy:hover{color:var(--text);border-color:var(--muted)}
   .copy.ok{color:#3fb950;border-color:#3fb950;background:var(--panel)}
+  .tabs{display:flex;gap:.5rem;margin:1rem 0 .6rem;flex-wrap:wrap}
+  .tab{cursor:pointer;background:var(--panel);border:1px solid var(--border);color:var(--muted);
+       border-radius:8px;padding:.5rem .9rem;font-size:.9rem}
+  .tab.active{color:var(--text);border-color:var(--accent);background:var(--code)}
+  .hidden{display:none!important}
+  .notice{border-color:var(--gold)}
   .steps{margin:1rem 0;padding:0 0 0 1.3rem}.steps li{margin:.45rem 0}
   code.inline{background:var(--code);padding:.1rem .35rem;border-radius:4px;font-size:.85em}
-  .os-tag{font-weight:600;color:var(--accent)}
   .foot{margin-top:3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);padding-top:1rem}
 </style>
 </head>
@@ -42,33 +48,55 @@
 <div class="wrap">
   <a class="back" href="index.html">← Back to the main page</a>
   <h1>DSH Desktop workspace</h1>
-  <p class="sub">You already installed <strong>DSH Desktop</strong> (https://dshdesktop.com/en/, macOS or Windows).
-  One command prepares a ready AI workspace for you — no Node, no terminal apps to manage.</p>
+  <p class="sub">A ready AI workspace for <strong>DSH Desktop</strong> in one command — free, open source, runs
+  on your own computer. First install the app, then run the command.</p>
 
   <div class="card">
-    <h2>Run this in your terminal <span class="os-tag">macOS</span></h2>
-    <p>Terminal is in Applications → Utilities. Paste, press Enter.</p>
-    <div class="cmd">
-      <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.sh | bash</code>
-      <button class="copy" onclick="cp(this)">Copy</button>
+    <h2>Step 1 — Install DSH Desktop</h2>
+    <p>Download the app for your computer from <a href="https://dshdesktop.com/en/">dshdesktop.com/en/</a> and
+    install it normally (drag to Applications on macOS, run the installer on Windows).
+    Supported: <strong>macOS</strong> (Apple Silicon and Intel) and <strong>Windows</strong>.
+    Linux is not supported yet.</p>
+  </div>
+
+  <div class="card">
+    <h2>Step 2 — Run one command <span class="os-tag" style="font-weight:600;color:var(--accent)" id="os-hint"></span></h2>
+    <p>Open a terminal (macOS: Applications → Utilities → Terminal) or PowerShell (Windows), paste the command for your
+    system, press Enter.</p>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-desk-mac" onclick="show('mac')">macOS</div>
+      <div class="tab" id="tab-desk-win" onclick="show('win')">Windows</div>
+      <div class="tab" id="tab-desk-other" onclick="show('other')">Other system</div>
+    </div>
+
+    <div id="desk-mac">
+      <div class="cmd">
+        <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.sh | bash</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
+    <div id="desk-win" class="hidden">
+      <div class="cmd">
+        <code>irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
+    <div id="desk-other" class="hidden">
+      <div class="card notice">
+        <p style="margin:0"><strong>DSH Desktop doesn&rsquo;t support your operating system yet.</strong><br>
+        It currently works on macOS and Windows only. If you&rsquo;re on Linux (or anything else), the
+        <a href="index.html">VS Code + Claude Code</a> option works on your system — or check back later.</p>
+      </div>
     </div>
   </div>
 
   <div class="card">
-    <h2>Windows — run this in PowerShell</h2>
-    <p>Right-click Start → Terminal (or Windows PowerShell). Paste, press Enter.</p>
-    <div class="cmd">
-      <code>irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex</code>
-      <button class="copy" onclick="cp(this)">Copy</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>What it does</h2>
+    <h2>What the command does</h2>
     <ol class="steps">
       <li>Creates <code class="inline">~/ai-workspace</code> (Windows: <code class="inline">C:\Users\&lt;you&gt;\ai-workspace</code>) and seeds it with workspace rules (AGENTS.md), a README, .gitignore and a NEXT-STEPS.md.</li>
       <li>Installs uv/uvx (the small runner the crawl4ai MCP uses; it lives in your home folder, no administrator needed).</li>
-      <li>Enables the <strong>crawl4ai</strong> MCP server (web fetch &amp; search, free, no key) through the <strong>official DSH MCP client</strong> — the same mechanism every DSH app uses.</li>
+      <li>Enables the <strong>crawl4ai</strong> MCP server (web fetch &amp; search, free, no key) through the <strong>official DSH MCP client</strong>.</li>
       <li>Leaves the model backend key to you, one paste in the app: <strong>Settings → Models</strong>.</li>
     </ol>
   </div>
@@ -89,6 +117,12 @@
   </div>
 </div>
 <script>
+  function show(which){
+    ['mac','win','other'].forEach(id=>{
+      document.getElementById('desk-'+id).classList.toggle('hidden', id!==which);
+      document.getElementById('tab-desk-'+id).classList.toggle('active', id===which);
+    });
+  }
   function cp(btn){
     var code=btn.parentElement.querySelector('code').innerText;
     navigator.clipboard.writeText(code).then(function(){
@@ -96,6 +130,15 @@
       setTimeout(function(){btn.textContent='Copy';btn.classList.remove('ok')},1500);
     });
   }
+  // Auto-select the tab matching this visitor's OS; on anything else show the
+  // "not supported" notice (DSH Desktop is macOS + Windows only).
+  (function(){
+    var ua=navigator.userAgent, hint=document.getElementById('os-hint'), sel;
+    if(/Mac/.test(ua)){ sel='mac'; hint.textContent='· macOS detected'; }
+    else if(/Win/.test(ua)){ sel='win'; hint.textContent='· Windows detected'; }
+    else { sel='other'; hint.textContent='· system not supported yet'; }
+    show(sel);
+  })();
 </script>
 </body>
 </html>
