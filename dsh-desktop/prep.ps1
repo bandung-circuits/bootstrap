@@ -181,7 +181,7 @@ function Ensure-McpCrawl4ai {
     New-Item -ItemType Directory -Force -Path $HARNESS | Out-Null
     if (-not (Test-Path $CR4)) { Err "crawl4ai-search not found at $CR4 -- cannot write a valid MCP row" }
     $patch = Join-Path $HARNESS 'cordis.patch.yml'
-    if ((Test-Path $patch) -and (Select-String -Path $patch -SimpleMatch "command: $CR4" -Quiet)) {
+    if ((Test-Path $patch) -and (Select-String -Path $patch -SimpleMatch "command: $CR4" -Quiet) -and (Select-String -Path $patch -SimpleMatch 'PYTHONUTF8' -Quiet)) {
         Note "crawl4ai MCP already enabled with the workspace venv in $patch"
         return
     }

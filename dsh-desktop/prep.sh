@@ -184,8 +184,8 @@ ensure_mcp_crawl4ai() {
   mkdir -p "$HARNESS_HOME"
   # Never write a row that cannot run: the pinned executable must exist NOW.
   [ -x "$CRAWL4AI_BIN" ] || err "crawl4ai-search not found at $CRAWL4AI_BIN — cannot write a valid MCP row"
-  # Already enabled with the CURRENT executable? Done.
-  if [ -f "$patch" ] && grep -q "command: ${CRAWL4AI_BIN}" "$patch"; then
+  # Already enabled with the CURRENT executable AND the PYTHONUTF8 fix? Done.
+  if [ -f "$patch" ] && grep -q "command: ${CRAWL4AI_BIN}" "$patch" && grep -q 'PYTHONUTF8' "$patch"; then
     note "crawl4ai MCP already enabled with the workspace venv in $patch"
     return 0
   fi
