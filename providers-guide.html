@@ -78,5 +78,9 @@
 
   <div class="foot">A Bandung Circuits project · <a href="https://github.com/bandung-circuits/bootstrap">source</a></div>
 </div>
+<script>
+  // External links open in a new tab; internal links stay in the same tab.
+  document.querySelectorAll('a[href^="http"]').forEach(function(a){ a.target='_blank'; a.rel='noopener noreferrer'; });
+</script>
 </body>
 </html>
