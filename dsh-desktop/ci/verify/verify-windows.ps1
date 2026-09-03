@@ -54,8 +54,8 @@ if ((Test-Path $settings) -and ((Get-Content $settings -Raw) -match 'defaultPres
 
 # --- patch ---
 $pc = Get-Content $patch -Raw -ErrorAction SilentlyContinue
-if ($pc -match 'mcp-crawl4ai' -and $pc -match '@deepseek-ai/dsh-mcp-client' -and $pc -match [regex]::Escape("command: $cr4exe") -and $pc -match 'CRAWL4_AI_BASE_DIRECTORY' -and $pc -match 'PLAYWRIGHT_BROWSERS_PATH') {
-    OK 'patch: official mcp-client -> workspace venv + in-workspace browsers/data'
+if ($pc -match 'mcp-crawl4ai' -and $pc -match '@deepseek-ai/dsh-mcp-client' -and $pc -match [regex]::Escape("command: $cr4exe") -and $pc -match 'CRAWL4_AI_BASE_DIRECTORY' -and $pc -match 'PLAYWRIGHT_BROWSERS_PATH' -and $pc -match 'PYTHONUTF8') {
+    OK 'patch: official mcp-client -> workspace venv + in-workspace browsers/data + PYTHONUTF8'
 } else {
     NO 'patch shape wrong -- see below'
     Write-Host ($pc.Substring(0,[Math]::Min(400,[string]$pc.Length)))

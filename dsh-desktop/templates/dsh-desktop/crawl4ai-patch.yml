@@ -17,3 +17,4 @@
         env:
           CRAWL4_AI_BASE_DIRECTORY: {{WORKSPACE}}
           PLAYWRIGHT_BROWSERS_PATH: {{WORKSPACE}}/.browsers
+          PYTHONUTF8: '1'

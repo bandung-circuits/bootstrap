@@ -77,8 +77,9 @@ if grep -q 'mcp-crawl4ai' "$patch" \
    && grep -q "@deepseek-ai/dsh-mcp-client" "$patch" \
    && grep -q "command: ${cr4_bin}" "$patch" \
    && grep -q "CRAWL4_AI_BASE_DIRECTORY: $T/ws" "$patch" \
-   && grep -q "PLAYWRIGHT_BROWSERS_PATH: $T/ws/.browsers" "$patch"; then
-  ok 'patch: official mcp-client -> workspace venv + in-workspace browsers/data'
+   && grep -q "PLAYWRIGHT_BROWSERS_PATH: $T/ws/.browsers" "$patch" \
+   && grep -q "PYTHONUTF8" "$patch"; then
+  ok 'patch: official mcp-client -> workspace venv + in-workspace browsers/data + PYTHONUTF8'
 else
   no 'patch shape wrong — see below'; sed -n '1,20p' "$patch" | sed 's/^/    /'
 fi
