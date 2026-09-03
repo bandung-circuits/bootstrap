@@ -8,7 +8,16 @@ This file defines the working conventions for AI agents (and humans) operating i
 - All agent outputs, documentation, and deliverables default to English, unless a task explicitly requests another language.
 - This workspace is being prepared as a training template for **non-technical AI beginners**. Write for that audience: short sentences, common vocabulary, concrete examples, and no jargon without a one-line explanation.
 
-## 2. Grounded search principles
+## 2. Web tools: prefer crawl4ai
+
+When you need to read a web page or search the web, prefer the **crawl4ai** MCP:
+
+- `mcp__crawl4ai__read_url` to fetch a page (or PDF) in full.
+- `mcp__crawl4ai__search` to search the web.
+
+It is free and needs no API key. If crawl4ai is unavailable for some reason, fall back to the harness's built-in `web_search` and `web_fetch` tools.
+
+## 3. Grounded search principles
 
 These rules apply whenever an agent searches the web or consults external sources.
 
@@ -20,7 +29,7 @@ Reference: [BHV-05 Grounded Web Research](https://github.com/eXtremeProgramming-
 2. **Verify against the original.** All key information — conclusions, numbers, names, and attributions — must be checked against the full text of the original page or the original source file.
 3. **Cite to origin.** Every claim written into an output must trace back to an original source text. Any statement that cannot be supported by an original source must not be included in the output.
 
-## 3. The harness data lives outside this folder
+## 4. The harness data lives outside this folder
 
 This workspace is used with the **DSH Desktop** application. The harness's own data (profiles, plugins, credentials, patches) lives in the application's data directory, not in this folder:
 
@@ -29,6 +38,6 @@ This workspace is used with the **DSH Desktop** application. The harness's own d
 
 Treat that directory as machinery — never edit it unless a task explicitly asks for a config change. Keep your own work in this workspace root or a project subfolder.
 
-## 4. Scope note
+## 5. Scope note
 
-Additional conventions (web tooling, safety defaults, packaging) will be added to this file in later iterations.
+Additional conventions (safety defaults, packaging) will be added to this file in later iterations.
