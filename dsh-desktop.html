@@ -106,11 +106,16 @@
     </ol>
   </div>
 
-  <div class="card">
-    <h2>What the command sets up</h2>
-    <p style="color:var(--muted)">So you can just ask the AI things, the command creates a workspace folder
-    (<code class="inline">~/ai-workspace</code>), installs everything the web tools need inside it, and switches the
-    assistant on to the web for you. No technical details to manage.</p>
+  <div class="card alt" style="padding:.9rem 1.1rem">
+    <details>
+      <summary style="cursor:pointer;color:var(--muted);font-size:.92rem">What the command actually did (tap to expand)</summary>
+      <ol class="steps" style="margin-top:.8rem">
+        <li>Created <code class="inline">~/ai-workspace</code> (Windows: <code class="inline">C:\Users\&lt;you&gt;\ai-workspace</code>) with workspace rules (AGENTS.md), a README, .gitignore and a NEXT-STEPS.md.</li>
+        <li>Installed <strong>inside that folder</strong> everything the web tools need: a Python environment with crawl4ai, the browser it uses, and a helper.</li>
+        <li>Enabled the <strong>crawl4ai</strong> web fetch &amp; search tools (free, no key) through the official DSH MCP client, so the assistant can read web pages.</li>
+        <li>Left one step to you: paste the model API key in the app (<strong>Settings → Models</strong>).</li>
+      </ol>
+    </details>
   </div>
 
   <div class="card">
