@@ -24,6 +24,7 @@
 #requires -Version 5.1
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $REPO_RAW = 'https://bandung-circuits.github.io/bootstrap/dsh-desktop'
 $_TmpTemplates = ''

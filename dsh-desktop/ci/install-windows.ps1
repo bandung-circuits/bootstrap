@@ -2,6 +2,7 @@
 # Windows VM (used by ci/run-test-dsh-desktop.sh). Idempotent.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $app = Join-Path $env:LOCALAPPDATA 'Programs\DSH Desktop'
 if (Test-Path (Join-Path $app 'DSH Desktop.exe')) {

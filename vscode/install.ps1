@@ -13,6 +13,7 @@
 #requires -Version 5.1
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # speed up Invoke-WebRequest
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Note($m){ Write-Host "==> $m" -ForegroundColor Green }
 function Warn($m){ Write-Host "!! $m" -ForegroundColor Yellow }
