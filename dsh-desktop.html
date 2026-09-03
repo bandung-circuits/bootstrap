@@ -64,8 +64,11 @@
 
   <div class="card">
     <h2>Step 2 — Run one command <span class="os-tag" style="font-weight:600;color:var(--accent)" id="os-hint"></span></h2>
-    <p>Open a terminal (macOS: Applications → Utilities → Terminal) or PowerShell (Windows), paste the command for your
-    system, press Enter.</p>
+    <p style="margin-bottom:.2rem"><strong>Before you run the command:</strong> <strong>quit DSH Desktop completely</strong>
+    (close its window; on Windows, make sure it isn&rsquo;t still running in the tray). The app can hold onto its config
+    files and block the command from updating them.</p>
+    <p>Then open a terminal (macOS: Applications → Utilities → Terminal) or PowerShell (Windows), paste the command for
+    your system, press Enter.</p>
 
     <div class="tabs">
       <div class="tab active" id="tab-desk-mac" onclick="show('mac')">macOS</div>
@@ -95,22 +98,19 @@
   </div>
 
   <div class="card">
-    <h2>What the command does</h2>
+    <h2>Then what?</h2>
     <ol class="steps">
-      <li>Creates <code class="inline">~/ai-workspace</code> (Windows: <code class="inline">C:\Users\&lt;you&gt;\ai-workspace</code>) and seeds it with workspace rules (AGENTS.md), a README, .gitignore and a NEXT-STEPS.md.</li>
-      <li>Installs uv/uvx (the small runner the crawl4ai MCP uses; it lives in your home folder, no administrator needed).</li>
-      <li>Enables the <strong>crawl4ai</strong> MCP server (web fetch &amp; search, free, no key) through the <strong>official DSH MCP client</strong>.</li>
-      <li>Leaves the model backend key to you, one paste in the app: <strong>Settings → Models</strong>.</li>
+      <li>Open <strong>DSH Desktop</strong> → Settings → Models → paste your API key.</li>
+      <li>Click <strong>Choose workspace</strong> and pick <code class="inline">~/ai-workspace</code>.</li>
+      <li>Ask the AI anything, e.g. "find recent news about <strong>&lt;your topic&gt;</strong> and save a short summary to news.md", or "draft a one-page briefing note about <strong>&lt;an event&gt;</strong> in plain language". The first web search pulls a small helper environment automatically.</li>
     </ol>
   </div>
 
   <div class="card">
-    <h2>Then what?</h2>
-    <ol class="steps">
-      <li>Open <strong>DSH Desktop</strong> → Settings → Models → paste your DeepSeek API key.</li>
-      <li>Click <strong>Choose workspace</strong> and pick <code class="inline">~/ai-workspace</code>.</li>
-      <li>Ask the AI anything, e.g. "find recent news about <strong>&lt;your topic&gt;</strong> and save a short summary to news.md", or "draft a one-page briefing note about <strong>&lt;an event&gt;</strong> in plain language". The first web search pulls a small helper environment automatically.</li>
-    </ol>
+    <h2>What the command sets up</h2>
+    <p style="color:var(--muted)">So you can just ask the AI things, the command creates a workspace folder
+    (<code class="inline">~/ai-workspace</code>), installs everything the web tools need inside it, and switches the
+    assistant on to the web for you. No technical details to manage.</p>
   </div>
 
   <div class="card">
