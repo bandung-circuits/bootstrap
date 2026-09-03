@@ -15,7 +15,7 @@ When you need to read a web page or search the web, prefer the **crawl4ai** MCP:
 - `mcp__crawl4ai__read_url` to fetch a page (or PDF) in full.
 - `mcp__crawl4ai__search` to search the web.
 
-It is free and needs no API key. If crawl4ai is unavailable for some reason, fall back to the harness's built-in `web_search` and `web_fetch` tools.
+It is free and needs no API key. The first time crawl4ai is called, it downloads a small helper environment (this takes a minute and needs internet) — if a crawl4ai call fails with a timeout or "not found" error on the first attempt, retry it; the download may still be in progress. If crawl4ai remains unavailable after retrying, fall back to the harness's built-in `web_search` and `web_fetch` tools.
 
 ## 3. Grounded search principles
 
