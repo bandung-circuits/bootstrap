@@ -144,18 +144,45 @@ function Ensure-Browser {
     Remove-Item Env:PLAYWRIGHT_BROWSERS_PATH -ErrorAction SilentlyContinue
 }
 
-# ---------- 5. crawl4ai MCP (official mcp-client), self-contained ----------
+# ---------- 5. crawl4ai MCP (official mcp-client), self-contained + self-healing ----------
+function Remove-StaleCrawl4aiBlock {
+    param([string]$patch)
+    $lines = Get-Content $patch
+    $out = New-Object System.Collections.ArrayList
+    $buf = New-Object System.Collections.ArrayList
+    $drop = $false
+    foreach ($ln in $lines) {
+        if ($ln -match '^\s*- ') {
+            # new top-level item: flush previous
+            if ($buf.Count -gt 0 -and -not $drop) { foreach ($b in $buf) { [void]$out.Add($b) } }
+            $buf = New-Object System.Collections.ArrayList
+            $drop = ($ln -match 'mcp-crawl4ai')
+            [void]$buf.Add($ln)
+        } elseif ($buf.Count -gt 0) {
+            [void]$buf.Add($ln)
+        } else {
+            [void]$out.Add($ln)
+        }
+    }
+    if ($buf.Count -gt 0 -and -not $drop) { foreach ($b in $buf) { [void]$out.Add($b) } }
+    Set-Content -Path $patch -Value $out -Encoding UTF8
+}
+
 function Ensure-McpCrawl4ai {
     New-Item -ItemType Directory -Force -Path $HARNESS | Out-Null
+    if (-not (Test-Path $CR4)) { Err "crawl4ai-search not found at $CR4 -- cannot write a valid MCP row" }
     $patch = Join-Path $HARNESS 'cordis.patch.yml'
-    if ((Test-Path $patch) -and (Select-String -Path $patch -SimpleMatch 'mcp-crawl4ai' -Quiet)) {
-        Note "crawl4ai MCP already enabled in $patch"
+    if ((Test-Path $patch) -and (Select-String -Path $patch -SimpleMatch "command: $CR4" -Quiet)) {
+        Note "crawl4ai MCP already enabled with the workspace venv in $patch"
         return
     }
+    # strip any stale crawl4ai insert block (old ~\.local\bin\uvx path etc.),
+    # then write the fresh one -- self-heals after an earlier bad prep.
+    if (Test-Path $patch) { Remove-StaleCrawl4aiBlock -patch $patch }
     $block = (Get-Content -Raw (Join-Path $script:TP 'crawl4ai-patch.yml'))
     $block = $block.Replace('{{CRAWL4AI_BIN}}', $CR4).Replace('{{WORKSPACE}}', $WS)
     Add-Content -Path $patch -Value "`n# DSH Desktop harness home-level patch (applies to every profile)$([char]10)$block" -Encoding UTF8
-    Note "enabled crawl4ai MCP in $patch"
+    Note "enabled crawl4ai MCP in $patch (pins $CR4)"
 }
 
 # ---------- 6. default permission preset: Full Access (danger-full-access) ----------

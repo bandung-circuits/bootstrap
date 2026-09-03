@@ -159,13 +159,44 @@ ensure_browser() {
   fi
 }
 
-# ---------- 5. crawl4ai MCP (official mcp-client), self-contained ----------
+# ---------- 5. crawl4ai MCP (official mcp-client), self-contained + self-healing ----------
 ensure_mcp_crawl4ai() {
   local patch="${HARNESS_HOME}/cordis.patch.yml"
   mkdir -p "$HARNESS_HOME"
-  if [ -f "$patch" ] && grep -q 'mcp-crawl4ai' "$patch"; then
-    note "crawl4ai MCP already enabled in $patch"
+  # Never write a row that cannot run: the pinned executable must exist NOW.
+  [ -x "$CRAWL4AI_BIN" ] || err "crawl4ai-search not found at $CRAWL4AI_BIN — cannot write a valid MCP row"
+  # Already enabled with the CURRENT executable? Done.
+  if [ -f "$patch" ] && grep -q "command: ${CRAWL4AI_BIN}" "$patch"; then
+    note "crawl4ai MCP already enabled with the workspace venv in $patch"
     return 0
+  fi
+  # A stale row from an older prep (e.g. a ~/.local/bin/uvx path that no longer
+  # exists, or the pre-venv uvx launch) would keep the MCP server from starting
+  # and its tools from ever registering. Strip the old top-level insert block
+  # that contains mcp-crawl4ai, then write the fresh one.
+  if [ -f "$patch" ]; then
+    if command -v python3 >/dev/null 2>&1; then local py=python3; else local py="$VENV_PY"; fi
+    "$py" - "$patch" <<'PY'
+import sys
+p = sys.argv[1]
+lines = open(p, encoding="utf-8").read().splitlines()
+out, buf = [], []
+is_top = lambda s: s.startswith('- ')
+def flush():
+    global buf
+    if buf and not any('mcp-crawl4ai' in l for l in buf):
+        out.extend(buf)
+    buf = []
+for ln in lines:
+    if is_top(ln):
+        flush(); buf = [ln]
+    elif buf:
+        buf.append(ln)
+    else:
+        out.append(ln)          # comment / blank at column 0 outside any item
+flush()
+open(p, "w", encoding="utf-8").write("\n".join(out) + "\n")
+PY
   fi
   local block
   block="$(sed -e "s|{{CRAWL4AI_BIN}}|${CRAWL4AI_BIN}|g" \
@@ -177,7 +208,7 @@ ensure_mcp_crawl4ai() {
     printf '\n' >> "$patch"
   fi
   printf '%s\n' "$block" >> "$patch"
-  note "enabled crawl4ai MCP in $patch"
+  note "enabled crawl4ai MCP in $patch (pins $CRAWL4AI_BIN)"
 }
 
 # ---------- 6. default permission preset: Full Access (danger-full-access) ----------
