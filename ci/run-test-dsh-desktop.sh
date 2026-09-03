@@ -61,20 +61,20 @@ if [ -n "${WIN_VMX:-}" ]; then
   ip=$(guest_ip "$WIN_VMX" "${WIN_HOST:-}") || fail "windows: no guest IP"
   note "[win] guest IP: $ip — waiting for SSH"
   ssh_wait "$ip" "$WIN_USER" || fail "windows SSH timeout"
-  note "[win] scp dsh-desktop/ into VM"
-  scp -r -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
-    dsh-desktop "$WIN_USER@$ip": 2>&1 | tail -1
+  note "[win] scp CI-internal scripts into VM"
+  scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
+    dsh-desktop/ci/install-windows.ps1 dsh-desktop/ci/verify/verify-windows.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
   note "[win] installing DSH Desktop (if needed)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/dsh-desktop/ci/install-windows.ps1" \
+    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/install-windows.ps1" \
     2>&1 | tail -3
-  note "[win] running prep.ps1"
+  note "[win] running prep via REAL user path: irm | iex (fetches from Pages)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/dsh-desktop/prep.ps1" \
-    2>&1 | tail -6
+    "powershell -NoProfile -ExecutionPolicy Bypass -Command \"irm https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | iex\"" \
+    2>&1 | tail -10
   note "[win] verifying"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/dsh-desktop/ci/verify/verify-windows.ps1" \
+    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/verify-windows.ps1" \
     2>&1 | tee "ci/logs/dshdesktop-win-$stamp.log"
   win_rc=$?
   note "[win] powering off VM"
