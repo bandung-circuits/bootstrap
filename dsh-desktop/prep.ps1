@@ -1,4 +1,4 @@
-﻿# dsh-desktop/prep.ps1 — one-command workspace prep for DSH Desktop (Windows).
+# dsh-desktop/prep.ps1 -- one-command workspace prep for DSH Desktop (Windows).
 #
 # deployed:  (stamped by ci/deploy-pages.yml)
 #
@@ -15,11 +15,11 @@
 #      .gitignore / NEXT-STEPS.md (existing files are left alone).
 #   2. Installs uv/uvx (the runner the crawl4ai MCP uses).
 #   3. Enables the crawl4ai MCP server through the OFFICIAL
-#      @deepseek-ai/dsh-mcp-client (bundled with DSH Desktop — no plugin install)
+#      @deepseek-ai/dsh-mcp-client (bundled with DSH Desktop -- no plugin install)
 #      by appending one insert to the app's harness patch
 #      %APPDATA%\DSH Desktop\harness\cordis.patch.yml.
 #
-# The model backend key is entered by the learner in the app (Settings → Models).
+# The model backend key is entered by the learner in the app (Settings -> Models).
 
 #requires -Version 5.1
 $ErrorActionPreference = 'Stop'
@@ -99,7 +99,7 @@ function Ensure-McpCrawl4ai {
         Note "crawl4ai MCP already enabled in $patch"
         return
     }
-    if (-not (Test-Path $UVX)) { Err "uvx not found at $UVX — run the uv step first" }
+    if (-not (Test-Path $UVX)) { Err "uvx not found at $UVX -- run the uv step first" }
     $block = (Get-Content -Raw (Join-Path $script:TP 'crawl4ai-patch.yml'))
     $block = $block.Replace('{{UVX_BIN}}', $UVX).Replace('{{WORKSPACE}}', $WS)
     Add-Content -Path $patch -Value "`n# DSH Desktop harness home-level patch (applies to every profile)$([char]10)$block" -Encoding UTF8
@@ -116,7 +116,7 @@ Note 'Enabling crawl4ai MCP (official DSH mcp-client)'
 Ensure-McpCrawl4ai
 
 if (-not (Test-Path $AppData)) {
-    Warn "DSH Desktop app data not found at $AppData — install DSH Desktop"
+    Warn "DSH Desktop app data not found at $AppData -- install DSH Desktop"
     Warn "from https://dshdesktop.com/en/ and launch it once, then re-run this if needed."
 }
 
