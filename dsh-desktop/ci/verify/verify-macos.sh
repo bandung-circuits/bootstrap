@@ -84,6 +84,13 @@ else
   no 'patch shape wrong — see below'; sed -n '1,20p' "$patch" | sed 's/^/    /'
 fi
 
+# git (best-effort; the CI host usually has it)
+if command -v git >/dev/null 2>&1; then
+  ok "git present ($(git --version 2>/dev/null | head -c 40))"
+else
+  sk 'git not on this host (best-effort install skipped)'
+fi
+
 # ---------- tier 2: real bundled harness composes the patch ----------
 BIN=""
 for p in \

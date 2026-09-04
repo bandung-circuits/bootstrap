@@ -57,6 +57,11 @@ automatically directs crawl4ai's data and browser into this workspace. If you
 need to install another package, use the workspace uv:
 `uv pip install -p ~/ai-workspace/.venv <package>`.
 
+**Git** is available on this machine (`git`). If a tool you need is missing:
+install libraries into the workspace venv with uv (above). If a tool needs a
+system-wide install (e.g. a desktop program or a command that must run outside
+the harness), tell the user — it may require their approval.
+
 ## 4. Grounded search principles
 
 These rules apply whenever an agent searches the web or consults external sources.

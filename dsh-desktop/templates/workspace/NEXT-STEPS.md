@@ -35,6 +35,10 @@ The **crawl4ai** MCP (web fetch/search) is already enabled through the official
 DSH MCP client, with its Python package and Chromium browser already installed
 inside this workspace — no key needed, nothing to download on first use.
 
+**Git** is also installed (version control for your saved work). If you ever
+need another program and the AI says it needs your help, that's normal: some
+installs ask for your computer's permission and only you can click "OK".
+
 ---
 
 *What the setup command did: created this folder with the workspace rules

@@ -254,6 +254,19 @@ ensure_permission_default() {
   note "done"
 }
 
+# ---------- 7. git (best-effort; the harness agent cannot click UAC/GUI prompts) ----------
+ensure_git() {
+  if command -v git >/dev/null 2>&1; then
+    note "git present ($(git --version 2>/dev/null || echo ''))"; return 0
+  fi
+  if command -v brew >/dev/null 2>&1; then
+    note "git missing — installing via Homebrew (best effort)"
+    brew install git >/dev/null 2>&1 \
+      && { note "git installed ($(git --version 2>/dev/null || true))"; return 0; }
+  fi
+  warn "git not found — after setup, one of: xcode-select --install  |  brew install git"
+}
+
 # ---------- main ----------
 main() {
   load_templates
@@ -269,6 +282,8 @@ main() {
   ensure_mcp_crawl4ai
   note "Setting the default permission preset"
   ensure_permission_default
+  note "Checking git"
+  ensure_git
 
   if [ ! -d "$(dirname "$HARNESS_HOME")" ]; then
     warn "DSH Desktop app data not found at $(dirname "$HARNESS_HOME") — install DSH Desktop"

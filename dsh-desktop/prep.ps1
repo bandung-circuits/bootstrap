@@ -218,6 +218,23 @@ function Ensure-PermissionDefault {
     Note 'done'
 }
 
+# ---------- 7. git (best-effort; the harness agent cannot click UAC/GUI prompts) ----------
+function Refresh-Path {
+    $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+}
+function Ensure-Git {
+    if (Get-Command git.exe -ErrorAction SilentlyContinue) { Note "git present ($(git.exe --version))"; return }
+    try {
+        Note 'Installing git (winget, silent)'
+        winget install --id Git.Git -e --silent --accept-source-agreements --accept-package-agreements | Out-Null
+    } catch {
+        Warn "git install skipped/failed: $($_.Exception.Message)"
+        return
+    }
+    Refresh-Path
+    if (Get-Command git.exe -ErrorAction SilentlyContinue) { Note "git installed ($(git.exe --version))" } else { Warn 'git not on PATH after install' }
+}
+
 # ---------- main ----------
 Get-Templates
 Note 'Creating and seeding the AI workspace'
@@ -233,6 +250,9 @@ Ensure-McpCrawl4ai
 
 Note 'Setting the default permission preset'
 Ensure-PermissionDefault
+
+Note 'Checking git'
+Ensure-Git
 
 if (-not (Test-Path (Split-Path $HARNESS -Parent))) {
     Warn "DSH Desktop app data not found at $((Split-Path $HARNESS -Parent)) -- install DSH Desktop"

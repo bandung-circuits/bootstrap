@@ -52,6 +52,9 @@ if ((Test-Path $settings) -and ((Get-Content $settings -Raw) -match 'defaultPres
     OK 'harness settings.yaml pins permission default to danger-full-access'
 } else { NO 'harness settings.yaml does not pin danger-full-access' }
 
+# --- git (best-effort; the CI VM may have no winget -> skip) ---
+if (Get-Command git.exe -ErrorAction SilentlyContinue) { OK "git present ($(git.exe --version))" } else { Write-Host '  SKIP  git (not installed on this VM)' }
+
 # --- patch ---
 $pc = Get-Content $patch -Raw -ErrorAction SilentlyContinue
 if ($pc -match 'mcp-crawl4ai' -and $pc -match '@deepseek-ai/dsh-mcp-client' -and $pc -match [regex]::Escape("command: $cr4exe") -and $pc -match 'CRAWL4_AI_BASE_DIRECTORY' -and $pc -match 'PLAYWRIGHT_BROWSERS_PATH' -and $pc -match 'PYTHONUTF8') {
