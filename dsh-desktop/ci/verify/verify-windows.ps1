@@ -52,8 +52,13 @@ if ((Test-Path $settings) -and ((Get-Content $settings -Raw) -match 'defaultPres
     OK 'harness settings.yaml pins permission default to danger-full-access'
 } else { NO 'harness settings.yaml does not pin danger-full-access' }
 
-# --- git (best-effort; the CI VM may have no winget -> skip) ---
-if (Get-Command git.exe -ErrorAction SilentlyContinue) { OK "git present ($(git.exe --version))" } else { Write-Host '  SKIP  git (not installed on this VM)' }
+# --- git (system, or the workspace portable MinGit) ---
+$gitOk = $false
+$sysGit = Get-Command git.exe -ErrorAction SilentlyContinue
+if ($sysGit) { OK "git present (system: $(git.exe --version))"; $gitOk = $true }
+$localGit = Join-Path $WS '.mingit\cmd\git.exe'
+if ((-not $gitOk) -and (Test-Path $localGit)) { OK "git present (workspace portable: $(& $localGit --version))"; $gitOk = $true }
+if (-not $gitOk) { NO 'git missing (no system git and no workspace portable git)' }
 
 # --- patch ---
 $pc = Get-Content $patch -Raw -ErrorAction SilentlyContinue

@@ -254,17 +254,13 @@ ensure_permission_default() {
   note "done"
 }
 
-# ---------- 7. git (best-effort; the harness agent cannot click UAC/GUI prompts) ----------
+# ---------- 7. git (best-effort; no extra tool assumptions) ----------
 ensure_git() {
   if command -v git >/dev/null 2>&1; then
     note "git present ($(git --version 2>/dev/null || echo ''))"; return 0
   fi
-  if command -v brew >/dev/null 2>&1; then
-    note "git missing — installing via Homebrew (best effort)"
-    brew install git >/dev/null 2>&1 \
-      && { note "git installed ($(git --version 2>/dev/null || true))"; return 0; }
-  fi
-  warn "git not found — after setup, one of: xcode-select --install  |  brew install git"
+  if [ "${PREP_NO_GIT:-0}" = "1" ]; then note "skipping git (PREP_NO_GIT=1)"; return 0; fi
+  warn "git not found — after setup, run: xcode-select --install"
 }
 
 # ---------- main ----------

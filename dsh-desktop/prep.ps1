@@ -218,21 +218,26 @@ function Ensure-PermissionDefault {
     Note 'done'
 }
 
-# ---------- 7. git (best-effort; the harness agent cannot click UAC/GUI prompts) ----------
-function Refresh-Path {
-    $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
-}
+# ---------- 7. git (portable, inside the workspace -- no winget/system install) ----------
+# The user-facing command already relies on curl.exe; winget would be a NEW
+# assumption (and isn't present on some Windows builds). Instead download the
+# MinGit portable zip with curl and extract it into the workspace with the
+# tar.exe that ships in Windows 10/11 -- fully self-contained, no UAC, no PATH.
 function Ensure-Git {
-    if (Get-Command git.exe -ErrorAction SilentlyContinue) { Note "git present ($(git.exe --version))"; return }
-    try {
-        Note 'Installing git (winget, silent)'
-        winget install --id Git.Git -e --silent --accept-source-agreements --accept-package-agreements | Out-Null
-    } catch {
-        Warn "git install skipped/failed: $($_.Exception.Message)"
-        return
-    }
-    Refresh-Path
-    if (Get-Command git.exe -ErrorAction SilentlyContinue) { Note "git installed ($(git.exe --version))" } else { Warn 'git not on PATH after install' }
+    $localGit = Join-Path $WS '.mingit\cmd\git.exe'
+    if (Get-Command git.exe -ErrorAction SilentlyContinue) { Note "git present (system: $(git.exe --version))"; return }
+    if (Test-Path $localGit) { Note "git present (workspace portable: $((& $localGit --version)))"; return }
+    if ($env:PREP_NO_GIT -eq '1') { Note 'skipping git (PREP_NO_GIT=1)'; return }
+    Note "Downloading portable git (MinGit) into $($WS)\.mingit (curl, no system install)"
+    $zipUrl = 'https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.5/MinGit-2.55.0.5-64-bit.zip'
+    $dst = Join-Path $WS '.mingit'
+    New-Item -ItemType Directory -Force -Path $dst | Out-Null
+    $tmp = Join-Path $env:TEMP 'mingit.zip'
+    curl.exe -fsSL $zipUrl -o $tmp
+    tar -xf $tmp -C $dst
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    if (Test-Path $localGit) { Note "git installed (workspace portable: $((& $localGit --version)))" }
+    else { Warn 'git extraction failed; you can still use the AI without git' }
 }
 
 # ---------- main ----------
