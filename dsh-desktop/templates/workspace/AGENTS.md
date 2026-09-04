@@ -57,9 +57,13 @@ automatically directs crawl4ai's data and browser into this workspace. If you
 need to install another package, use the workspace uv:
 `uv pip install -p ~/ai-workspace/.venv <package>`.
 
-**Git** is available: on Windows it's the portable copy inside this workspace
-(`~/ai-workspace/.mingit/cmd/git.exe`); on macOS it's the system `git`. If a
-tool you need is missing: install libraries into the workspace venv with uv
+**Git** (version control) is available:
+- macOS: `git` (system-installed).
+- Windows: `C:\Users\<you>\ai-workspace\.mingit\cmd\git.exe` (portable, inside the workspace).
+
+Use it to save versions of your work, e.g. `git init` then `git add .` and `git commit`.
+
+If a tool you need is missing: install libraries into the workspace venv with uv
 (above). If a tool needs a system-wide install (e.g. a desktop program or a
 command that must run outside the harness), tell the user — it may require
 their approval.
