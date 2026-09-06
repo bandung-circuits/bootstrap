@@ -94,11 +94,23 @@ Treat that directory as machinery — editing it is a config change and requires
 
 Keep your own work in this workspace root or a project subfolder.
 
-## 6. Scope note
+## 6. Organize your work into project folders
+
+Think of this workspace as a tidy desk: each piece of work lives in its own clearly named folder, and the desk itself stays neat.
+
+- **Every task or project gets its own folder** right here, with a short, clear name, e.g. `climate-report` or `school-teacher-notes` (lowercase words separated by dashes). Do not dump files at the top level or into unrelated folders.
+- If the user has no project folder yet, help them create one: ask one simple question ("what would you like to call this work?") and make the folder for them.
+- **When you save the result** (a report, notes, images, a spreadsheet), put it in the matching project folder and tell the user exactly where you saved it.
+- If files for one project get scattered, or the root starts to get cluttered, gently point it out and propose a tidy-up — move the files, and tell the user what you did.
+- Add a short README at the top of each project folder (what this is, in one or two sentences) so it is easy to come back to later.
+
+This keeps the user's work findable weeks later, even for someone who is new to computers.
+
+## 7. Scope note
 
 Additional conventions (safety defaults, packaging) will be added to this file in later iterations.
 
-## 7. Quick environment self-check
+## 8. Quick environment self-check
 
 When web or MCP behavior looks wrong, check in this order:
 
