@@ -11,6 +11,4 @@ This folder is your workspace for the **DSH Desktop** agent. Keep your projects 
    - "draft a one-page briefing note about <event>, in plain language"
    - "explain what's in this folder"
 
-The **crawl4ai** MCP (web fetch/search, free, no key) is already enabled through the
-official DSH MCP client. The first search downloads a small helper environment
-automatically (needs internet, takes a minute).
+The **crawl4ai** MCP (web fetch/search, free, no key) is already enabled through the official DSH MCP client. The first search downloads a small helper environment automatically (needs internet, takes a minute).

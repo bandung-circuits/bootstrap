@@ -6,14 +6,9 @@
 
 ## 2026-09 试验结论：保留 Claude Code，不换 DeepSeek Harness 扩展
 
-2026-09-15 曾在分支 `migrate-vscode-to-dsh-harness`（6f05c84，已删）试验把方案 A 的
-Claude Code 扩展换成社区维护的 deepseek-harness-for-vscode（`skymecode`），理由是该扩展
-为 DeepSeek Harness 原生打造。实际试用后结论：**插件体验不佳，不采用**。方案 A 保留
-VS Code + Claude Code，本记录其余部分继续有效。
+2026-09-15 曾在分支 `migrate-vscode-to-dsh-harness`（6f05c84，已删）试验把方案 A 的 Claude Code 扩展换成社区维护的 deepseek-harness-for-vscode（`skymecode`），理由是该扩展为 DeepSeek Harness 原生打造。实际试用后结论：**插件体验不佳，不采用**。方案 A 保留 VS Code + Claude Code，本记录其余部分继续有效。
 
-站点结构（2026-09-20 起）：`index.html` 为"二选一"门户，两个并列方案块指向
-`dsh-desktop.html`（DSH Desktop 工作区，首选）与 `vscode.html`（VS Code + Claude Code，
-次选）。根目录三个 install shim（旧 URL）继续转发到 `vscode/` 子树。
+站点结构（2026-09-20 起）：`index.html` 为"二选一"门户，两个并列方案块指向 `dsh-desktop.html`（DSH Desktop 工作区，首选）与 `vscode.html`（VS Code + Claude Code，次选）。根目录三个 install shim（旧 URL）继续转发到 `vscode/` 子树。
 
 ## 目标
 

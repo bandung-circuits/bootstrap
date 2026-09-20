@@ -13,8 +13,7 @@
 
 ### 方案一（首选）：DSH Desktop 工作区
 
-页面：`https://bandung-circuits.github.io/bootstrap/dsh-desktop.html`。学员先自己装
-DSH Desktop（https://dshdesktop.com/en/，仅 macOS/Windows），再运行一条命令：
+页面：`https://bandung-circuits.github.io/bootstrap/dsh-desktop.html`。学员先自己装 DSH Desktop（https://dshdesktop.com/en/，仅 macOS/Windows），再运行一条命令：
 
 ```bash
 curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.sh | bash
@@ -26,8 +25,7 @@ Windows（PowerShell）：
 iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | Out-String)
 ```
 
-得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。
-详见 `dsh-desktop/README.md`。
+得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
 
 ### 方案二（次选）：VS Code + Claude Code
 
@@ -79,10 +77,7 @@ ci/         CI：VMware Fusion Pro 上的 Linux ARM + Windows 11 ARM 模板机�
 docs/       设计决策（design-vscode.md 为方案 A 记录）
 ```
 
-- DSH Desktop 方案：学员先自己装 DSH Desktop（https://dshdesktop.com/en/，仅 macOS/Windows），
-  再运行一条命令（`curl .../dsh-desktop/prep.sh | bash` 或 `irm .../prep.ps1 | iex`），得到
-  `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。
-  详见 `dsh-desktop/README.md`。
+- DSH Desktop 方案：学员先自己装 DSH Desktop（https://dshdesktop.com/en/，仅 macOS/Windows），再运行一条命令（`curl .../dsh-desktop/prep.sh | bash` 或 `irm .../prep.ps1 | iex`），得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
 - 设计原则：每个方案的种子配置都是 `templates/` 里的真实静态文件，脚本只拷贝 + 占位符替换。
 
 详见 `docs/design-vscode.md` 与 `ci/vm-setup.md`。

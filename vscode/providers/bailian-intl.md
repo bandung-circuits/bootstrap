@@ -1,9 +1,6 @@
 # Provider: Alibaba Cloud Model Studio (international, default for users outside China)
 
-For users outside China: DeepSeek V4 Flash 0731 via Alibaba Cloud's international
-Model Studio (Singapore entity, English UI, Visa/Mastercard). Verified against the
-official alibabacloud.com docs (Anthropic-compatible endpoint + deepseek-v4-flash
-listed as a supported third-party model).
+For users outside China: DeepSeek V4 Flash 0731 via Alibaba Cloud's international Model Studio (Singapore entity, English UI, Visa/Mastercard). Verified against the official alibabacloud.com docs (Anthropic-compatible endpoint + deepseek-v4-flash listed as a supported third-party model).
 
 ## 适用
 

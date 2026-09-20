@@ -10,40 +10,22 @@ This file defines the working conventions for AI agents (and humans) operating i
 
 ## 2. Web tools: prefer crawl4ai when its tools are present
 
-Prefer the **crawl4ai** MCP (free, no API key) when its tools are listed in this
-session's toolset:
+Prefer the **crawl4ai** MCP (free, no API key) when its tools are listed in this session's toolset:
 
 - `mcp__crawl4ai__read_url` to fetch a page (or PDF) in full.
 - `mcp__crawl4ai__search` to search the web.
 
-**Check the toolset once at the start.** If the `mcp__crawl4ai__*` tools are not
-listed, they will not appear mid-session — do not keep retrying them. Fall back
-in this order:
+**Check the toolset once at the start.** If the `mcp__crawl4ai__*` tools are not listed, they will not appear mid-session — do not keep retrying them. Fall back in this order:
 
-1. **Diagnose** briefly: MCP tools register only when the server process starts,
-   and the server is launched exactly by `command` in
-   `<DSH Desktop data>/harness/cordis.patch.yml`. If reading that file is quick,
-   check that the pinned `command` path exists on disk. A wrong path means the
-   setup command needs to be re-run (it self-heals the row) and the session
-   reopened.
-2. **Run crawl4ai directly** from the workspace venv — same engine, no MCP
-   needed. Use the venv python (see section 3) to run scripts, or
-   `~/ai-workspace/.venv/bin/crawl4ai-search` (macOS) /
-   `.venv\Scripts\crawl4ai-search.exe` (Windows) for the CLI. Its first real
-   use creates `.crawl4ai` folders inside the workspace.
-3. **Built-in harness tools**: `web_fetch` needs no key. `web_search` needs the
-   model key configured (Settings → Models in the app) — if it fails with a
-   missing-key error, note that to the user rather than retrying forever.
+1. **Diagnose** briefly: MCP tools register only when the server process starts, and the server is launched exactly by `command` in `<DSH Desktop data>/harness/cordis.patch.yml`. If reading that file is quick, check that the pinned `command` path exists on disk. A wrong path means the setup command needs to be re-run (it self-heals the row) and the session reopened.
+2. **Run crawl4ai directly** from the workspace venv — same engine, no MCP needed. Use the venv python (see section 3) to run scripts, or `~/ai-workspace/.venv/bin/crawl4ai-search` (macOS) / `.venv\Scripts\crawl4ai-search.exe` (Windows) for the CLI. Its first real use creates `.crawl4ai` folders inside the workspace.
+3. **Built-in harness tools**: `web_fetch` needs no key. `web_search` needs the model key configured (Settings → Models in the app) — if it fails with a missing-key error, note that to the user rather than retrying forever.
 
-If a crawl4ai call times out or returns "not found" on the first attempt, retry
-once (the browser may still be finishing its pre-installed set-up); then move
-down the ladder. The browser it uses was pre-downloaded into
-`~/ai-workspace/.browsers`.
+If a crawl4ai call times out or returns "not found" on the first attempt, retry once (the browser may still be finishing its pre-installed set-up); then move down the ladder. The browser it uses was pre-downloaded into `~/ai-workspace/.browsers`.
 
 ## 3. Python and dependencies live in this workspace
 
-Everything was installed self-contained inside this folder — do not look for
-Python, tools, or packages outside it:
+Everything was installed self-contained inside this folder — do not look for Python, tools, or packages outside it:
 
 - **Python** (with the crawl4ai package pre-installed):
   - macOS: `~/ai-workspace/.venv/bin/python`
@@ -51,11 +33,7 @@ Python, tools, or packages outside it:
 - **uv** (package/runtime manager, if you need to install more):
   - `~/ai-workspace/.local/bin/uv` (macOS) / `.local\bin\uv.exe` (Windows)
 
-To run a Python script, use the workspace venv's interpreter, e.g.
-`~/ai-workspace/.venv/bin/python analyze.py` — not a system `python`. The venv
-automatically directs crawl4ai's data and browser into this workspace. If you
-need to install another package, use the workspace uv:
-`uv pip install -p ~/ai-workspace/.venv <package>`.
+To run a Python script, use the workspace venv's interpreter, e.g. `~/ai-workspace/.venv/bin/python analyze.py` — not a system `python`. The venv automatically directs crawl4ai's data and browser into this workspace. If you need to install another package, use the workspace uv: `uv pip install -p ~/ai-workspace/.venv <package>`.
 
 **Git** (version control) is available:
 - macOS: `git` (system-installed).
@@ -63,10 +41,7 @@ need to install another package, use the workspace uv:
 
 Use it to save versions of your work, e.g. `git init` then `git add .` and `git commit`.
 
-If a tool you need is missing: install libraries into the workspace venv with uv
-(above). If a tool needs a system-wide install (e.g. a desktop program or a
-command that must run outside the harness), tell the user — it may require
-their approval.
+If a tool you need is missing: install libraries into the workspace venv with uv (above). If a tool needs a system-wide install (e.g. a desktop program or a command that must run outside the harness), tell the user — it may require their approval.
 
 ## 4. Grounded search principles
 
