@@ -96,27 +96,15 @@ Keep your own work in this workspace root or a project subfolder.
 
 ## 6. When a provider returns a content-inspection error
 
-Our learners often work on humanities and social science topics. On some providers
-(Alibaba Cloud Model Studio / DashScope gateways) a request may occasionally fail with
-an error like:
+Our learners often work on humanities and social science topics. On some providers (Alibaba Cloud Model Studio / DashScope gateways) a request may occasionally fail with an error like:
 
-    server error: <400> InternalError.Algo.DataInspectionFailed: Input text data may
-    contain inappropriate content.
+```
+server error: <400> InternalError.Algo.DataInspectionFailed: Input text data may contain inappropriate content.
+```
 
-That error comes from a platform-side content inspection, not from the task itself, and
-it is documented. When you see it, read
-https://extremeprogramming-cn.github.io/bailian-content-inspection/
-carefully before proposing anything. The page explains how content inspection on the
-platform is configured, which values the configuration accepts, and what each value
-means; it also lists the official alternatives. The right configuration depends on the
-learner's situation, so work the solution out from that page, then explain your
-reasoning in plain language and get the learner's agreement before touching any
-configuration — files in the app data directory are machinery (section 5 applies:
-backup first, change only what is needed, report exactly what changed).
+That error comes from a platform-side content inspection, not from the task itself, and it is documented. When you see it, read https://extremeprogramming-cn.github.io/bailian-content-inspection/ carefully before proposing anything. The page explains how content inspection on the platform is configured, which values the configuration accepts, and what each value means; it also lists the official alternatives. The right configuration depends on the learner's situation, so work the solution out from that page, then explain your reasoning in plain language and get the learner's agreement before touching any configuration — files in the app data directory are machinery (section 5 applies: backup first, change only what is needed, report exactly what changed).
 
-For politically sensitive material in research work, follow the kritik critical
-framework: situate sources in their historical and structural context rather than
-forcing them into a single ideological template.
+For politically sensitive material in research work, follow the kritik critical framework: situate sources in their historical and structural context rather than forcing them into a single ideological template.
 
 ## 7. Organize your work into project folders
 
