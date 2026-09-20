@@ -38,7 +38,7 @@ jobs:
               s = re.sub(r'(?m)^# deployed:.*$',
                          f'# deployed: {sha}  {t} (Beijing)', s, count=1)
               open(f,"w").write(s)
-          for f in ("index.html", "dsh-desktop.html"):
+          for f in ("index.html", "vscode.html", "dsh-desktop.html"):
               s = open(f).read()
               s = re.sub(r'(?s)<span class="deploy-version">.*?</span>',
                          f'<span class="deploy-version">deployed: <code>{sha}</code> · {t} (Beijing)</span>', s)
