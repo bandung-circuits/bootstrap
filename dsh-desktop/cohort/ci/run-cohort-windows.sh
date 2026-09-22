@@ -102,6 +102,13 @@ vrc=$?
 # injected provider survive the app's first launch? what does workspace.json
 # look like? (investigates whether the app overwrites settings.yaml on launch
 # and how the active/default workspace is represented) ---
+note "[cohort/win] pre-registering ai-workspace in workspace.json (EXPERIMENT)"
+scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
+  dsh-desktop/cohort/ci/register-workspace.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
+ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
+  "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\register-workspace.ps1" \
+  2>&1 | tee -a "ci/logs/cohort-win-$stamp.log"
+
 note "[cohort/win] launching DSH Desktop once, then re-checking survival + workspace state"
 ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
   "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\$exe=Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop\DSH Desktop.exe'; if (Test-Path \$exe) { Start-Process \$exe; Start-Sleep -Seconds 45; Get-Process | Where-Object { \$_.ProcessName -match 'DSH\s*Desktop' } | Stop-Process -Force; Start-Sleep 3; Write-Host '--- settings.yaml training block ---'; Select-String -Path (Join-Path \$env:APPDATA 'dsh-desktop\harness\settings.yaml') -Pattern 'training','agent-default-model','X-DashScope-DataInspection' -SimpleMatch | ForEach-Object { \$_.Line }; Write-Host '--- workspace.json ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\storages\workspace.json') -Raw } else { Write-Host 'DSH Desktop.exe not found' }\"" \
