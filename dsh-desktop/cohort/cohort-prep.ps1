@@ -1,4 +1,4 @@
-# dsh-desktop/cohort/cohort-prep.ps1 — training-cohort one-command setup (Windows).
+# dsh-desktop/cohort/cohort-prep.ps1 -- training-cohort one-command setup (Windows).
 #
 # Learner runs (the key is baked into the command on the cohort HTML page):
 #   $env:TRAINING_API_KEY='sk-...'; iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/cohort/cohort-prep.ps1 | Out-String)
@@ -30,7 +30,17 @@ function Err($m) { Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
 
 # 0. key must be present.
 if (-not $env:TRAINING_API_KEY -or $env:TRAINING_API_KEY -eq '') {
-  Err 'TRAINING_API_KEY is missing — copy the command from your cohort page, not a generic one.'
+  Err 'TRAINING_API_KEY is missing -- copy the command from your cohort page, not a generic one.'
+}
+
+# 0.5. DSH Desktop must not be running while we write its config. If the app is
+# open, it holds settings.yaml in memory and will overwrite our injection on
+# quit. Kill it (the learner was told to quit, but enforce it).
+$procs = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'DSH\s*Desktop' })
+if ($procs.Count -gt 0) {
+  Note 'DSH Desktop is running -- closing it so the config writes are not overwritten'
+  $procs | Stop-Process -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 2
 }
 
 # 1. locate the DSH Desktop harness data dir (mirrors prep.ps1's Get-HarnessHome).
@@ -96,10 +106,10 @@ if (Test-Path $InjectUrl) {
 Note 'Done.'
 
 Write-Host ''
-Write-Host "  Your AI workspace is ready at  ~\ai-workspace  — everything is set up:"
+Write-Host "  Your AI workspace is ready at  ~\ai-workspace  -- everything is set up:"
 Write-Host ''
 Write-Host "    Model:            $Model  (via $ProviderId provider, Bailian)"
-Write-Host "    API key:          already configured — you do NOT paste anything in the app"
+Write-Host "    API key:          already configured -- you do NOT paste anything in the app"
 Write-Host "    Content safety:   platform-side inspection header set to avoid false blocks"
 Write-Host "    Permission:       Full Access (the agent can work without prompting you)"
 Write-Host "    crawl4ai MCP:     enabled (web fetch + search, free, no key)"
