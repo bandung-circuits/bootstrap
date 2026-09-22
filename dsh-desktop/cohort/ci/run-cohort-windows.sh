@@ -109,10 +109,19 @@ ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
   "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\register-workspace.ps1" \
   2>&1 | tee -a "ci/logs/cohort-win-$stamp.log"
 
-note "[cohort/win] launching DSH Desktop once, then re-checking survival + workspace state"
+note "[cohort/win] launching DSH Desktop, observing first-launch behavior"
+# 1. launch + wait (app stays running). 2. dump state. 3. screenshot. 4. kill.
 ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\$exe=Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop\DSH Desktop.exe'; if (Test-Path \$exe) { Start-Process \$exe; Start-Sleep -Seconds 45; Get-Process | Where-Object { \$_.ProcessName -match 'DSH\s*Desktop' } | Stop-Process -Force; Start-Sleep 3; Write-Host '--- settings.yaml training block ---'; Select-String -Path (Join-Path \$env:APPDATA 'dsh-desktop\harness\settings.yaml') -Pattern 'training','agent-default-model','X-DashScope-DataInspection' -SimpleMatch | ForEach-Object { \$_.Line }; Write-Host '--- workspace.json ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\storages\workspace.json') -Raw } else { Write-Host 'DSH Desktop.exe not found' }\"" \
+  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\$exe=Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop\DSH Desktop.exe'; if (Test-Path \$exe) { Start-Process \$exe; Start-Sleep -Seconds 50; Write-Host '--- settings.yaml (head 60) ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\settings.yaml') -TotalCount 60 -ErrorAction SilentlyContinue; Write-Host '--- desktop-storage sessions.current ---'; (Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\profiles\web\desktop-storage.json') -Raw -ErrorAction SilentlyContinue); Write-Host '--- workspace.json ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\storages\workspace.json') -Raw -ErrorAction SilentlyContinue } else { Write-Host 'DSH Desktop.exe not found' }\"" \
   2>&1 | tee -a "ci/logs/cohort-win-$stamp.log"
+
+note "[cohort/win] capturing VM screenshot (app still running)"
+SHOT="$HOME/cohort-win-shot.png"
+vmrun -T fusion captureScreenshot "$WIN_VMX" "$SHOT" 2>/dev/null || vmrun captureScreenshot "$WIN_VMX" "$SHOT" 2>/dev/null || true
+ls -la "$SHOT" 2>/dev/null || echo "(no screenshot)"
+
+ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
+  "taskkill /F /IM \"DSH Desktop.exe\" 2>nul; exit 0" 2>&1 | tail -1
 
 note "[cohort/win] powering off VM (hard, discard -- leaves clean-base for next run)"
 vmrun stop "$WIN_VMX" hard 2>/dev/null || true
