@@ -28,6 +28,9 @@ import os
 import re
 import shutil
 import sys
+import json
+import time
+import uuid
 
 API_KEY_ENV = "TRAINING_API_KEY"
 HEADER_VALUE = '{"input":"disable","output":"disable"}'
@@ -163,6 +166,70 @@ def patch_credentials(lines, key):
     return head + ["refs:", val]
 
 
+# ---------- workspace pre-registration ----------
+# DSH Desktop remembers the active workspace via `dsh.sessions.current` in
+# desktop-storage.json, which is only set after the user starts a session in the
+# UI. We cannot safely fabricate a session (versioned, complex schema). But the
+# app's no-session empty state runs a "workspace preselection flow": if exactly
+# one workspace is registered, it is preselected on reopen, so the learner lands
+# in ai-workspace and clicks "new chat" once (after which the app remembers it).
+# So we pre-register ~/ai-workspace in storages/workspace.json. Survives launch
+# (verified on the Windows VM). Idempotent; backed up once.
+
+def register_workspace(harness, ws_path):
+    stor = os.path.join(harness, "storages")
+    ws_file = os.path.join(stor, "workspace.json")
+    if not os.path.isdir(ws_path):
+        note(f"workspace dir not found ({ws_path}) -- skipping workspace pre-registration")
+        return
+    canonical = os.path.realpath(ws_path)
+    backup(ws_file)
+    if os.path.exists(ws_file):
+        try:
+            d = json.load(open(ws_file, encoding="utf-8"))
+        except Exception:
+            d = {}
+    else:
+        d = {}
+    d.setdefault("unit", {"name": "workspace", "version": 2})
+    d.setdefault("global", {"initialized": True, "workspaceIds": [], "archivedSessionIds": []})
+    d.setdefault("tables", {})
+    d["tables"].setdefault("workspaces", {})
+    g = d["global"]
+    g.setdefault("workspaceIds", [])
+    g.setdefault("archivedSessionIds", [])
+    ws = d["tables"]["workspaces"]
+
+    # find an existing entry by canonical path (realpath is the app's canon too)
+    wid = None
+    for k, v in list(ws.items()):
+        if isinstance(v, dict) and v.get("path") == canonical:
+            wid = k
+            break
+    created = False
+    if wid is None:
+        wid = str(uuid.uuid4())
+        created = True
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    entry = ws.get(wid, {})
+    entry["path"] = canonical
+    entry.setdefault("title", os.path.basename(canonical) or "ai-workspace")
+    entry["sessionIds"] = entry.get("sessionIds", [])
+    entry.setdefault("createdAt", stamp)
+    # nudge updatedAt so the app sees this as the most-recent workspace (it
+    # orders by updatedAt desc in the preselection/picker).
+    entry["updatedAt"] = stamp
+    ws[wid] = entry
+
+    ids = [i for i in g["workspaceIds"] if i != wid]
+    ids = [wid] + ids
+    g["workspaceIds"] = ids
+
+    os.makedirs(stor, exist_ok=True)
+    open(ws_file, "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False))
+    note(f"{'registered' if created else 'refreshed'} workspace {wid} -> {canonical} in {ws_file}")
+
+
 # ---------- main ----------
 
 def main():
@@ -173,6 +240,8 @@ def main():
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--label", default=DEFAULT_LABEL)
     ap.add_argument("--provider-id", default=DEFAULT_PROVIDER_ID)
+    ap.add_argument("--workspace", default=None,
+                    help="workspace dir to pre-register (~/ai-workspace) so DSH reopens with it")
     args = ap.parse_args()
 
     if not args.key:
@@ -217,6 +286,10 @@ def main():
     open(creds, "w", encoding="utf-8").write(cout)
     os.chmod(creds, 0o600)
     note(f"wrote {API_KEY_ENV} into {creds}")
+
+    # --- workspace pre-registration (so DSH reopens with ai-workspace) ---
+    if args.workspace:
+        register_workspace(harness, args.workspace)
 
     print(
         f"\nDone. Provider `{args.provider_id}` -> model `{args.model}` "

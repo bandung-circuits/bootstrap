@@ -100,7 +100,8 @@ run_inject \
   --base-url "$BASE_URL" \
   --model "$MODEL" \
   --label "$LABEL" \
-  --provider-id "$PROVIDER_ID"
+  --provider-id "$PROVIDER_ID" \
+  --workspace "${WORKSPACE_DIR:-$HOME/ai-workspace}"
 
 note "Done."
 

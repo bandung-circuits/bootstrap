@@ -102,14 +102,7 @@ vrc=$?
 # injected provider survive the app's first launch? what does workspace.json
 # look like? (investigates whether the app overwrites settings.yaml on launch
 # and how the active/default workspace is represented) ---
-note "[cohort/win] pre-registering ai-workspace in workspace.json (EXPERIMENT)"
-scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
-  dsh-desktop/cohort/ci/register-workspace.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
-ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-  "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\register-workspace.ps1" \
-  2>&1 | tee -a "ci/logs/cohort-win-$stamp.log"
-
-note "[cohort/win] launching DSH Desktop, observing first-launch behavior"
+note "[cohort/win] launching DSH Desktop, observing first-launch behavior + workspace preselection"
 # 1. launch + wait (app stays running). 2. dump state. 3. screenshot. 4. kill.
 ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
   "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\$exe=Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop\DSH Desktop.exe'; if (Test-Path \$exe) { Start-Process \$exe; Start-Sleep -Seconds 50; Write-Host '--- settings.yaml (head 60) ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\settings.yaml') -TotalCount 60 -ErrorAction SilentlyContinue; Write-Host '--- desktop-storage sessions.current ---'; (Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\profiles\web\desktop-storage.json') -Raw -ErrorAction SilentlyContinue); Write-Host '--- workspace.json ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\storages\workspace.json') -Raw -ErrorAction SilentlyContinue } else { Write-Host 'DSH Desktop.exe not found' }\"" \
@@ -117,7 +110,7 @@ ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
 
 note "[cohort/win] capturing VM screenshot (app still running)"
 SHOT="$HOME/cohort-win-shot.png"
-vmrun -T fusion captureScreenshot "$WIN_VMX" "$SHOT" 2>/dev/null || vmrun captureScreenshot "$WIN_VMX" "$SHOT" 2>/dev/null || true
+vmrun -T fusion captureScreen "$WIN_VMX" "$SHOT" 2>/dev/null || vmrun captureScreen "$WIN_VMX" "$SHOT" 2>/dev/null || true
 ls -la "$SHOT" 2>/dev/null || echo "(no screenshot)"
 
 ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \

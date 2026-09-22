@@ -89,7 +89,8 @@ $injectArgs = @(
   '--base-url', $BaseUrl,
   '--model', $Model,
   '--label', $Label,
-  '--provider-id', $ProviderId
+  '--provider-id', $ProviderId,
+  '--workspace', (Join-Path $HOME 'ai-workspace')
 )
 if (Test-Path $InjectUrl) {
   & $PyExe $InjectUrl @injectArgs

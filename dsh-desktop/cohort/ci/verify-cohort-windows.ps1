@@ -43,6 +43,19 @@ if ($env:VERIFY_KEY -and $craw -match [regex]::Escape($env:VERIFY_KEY)) { OK 'cr
 # --- pristine backup exists ---
 if (Test-Path "$settings.dsh-bak") { OK 'pristine settings backup present (.dsh-bak)' } else { NO 'pristine settings backup missing' }
 
+# --- cohort injection: workspace pre-registration ---
+$wsFile = Join-Path $HARNESS 'storages\workspace.json'
+if (Test-Path $wsFile) {
+  try { $ws = Get-Content $wsFile -Raw | ConvertFrom-Json } catch { $ws = $null }
+  if ($ws) {
+    $found = $false
+    foreach ($k in $ws.tables.workspaces.PSObject.Properties.Name) {
+      if ($ws.tables.workspaces.$k.path -match 'ai-workspace') { $found = $true; break }
+    }
+    if ($found) { OK 'workspace: ai-workspace pre-registered in workspace.json' } else { NO 'workspace: ai-workspace not registered' }
+  } else { NO 'workspace.json unreadable' }
+} else { NO 'workspace.json not found (not pre-registered)' }
+
 Write-Host ''
 Write-Host "RESULT: $pass passed, $fail failed"
 exit $fail
