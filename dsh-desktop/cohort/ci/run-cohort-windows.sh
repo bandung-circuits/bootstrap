@@ -76,25 +76,29 @@ scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
   "$WIN_USER@$ip": 2>&1 | tail -1
 
 note "[cohort/win] installing DSH Desktop (if not already)"
-ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
+ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$WIN_USER@$ip" \
   "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/install-windows.ps1" \
   2>&1 | tail -3
-
-# DSH Desktop must be quit before cohort-prep writes its config. The silent
-# install above does not launch the app, but kill any stray process just in case.
-ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-  "taskkill /F /IM 'DSH Desktop.exe' 2>nul; exit 0" 2>&1 | tail -1
+# the silent installer may auto-launch DSH Desktop; the app's first-run init can
+# peg the VM and make SSH time out. Kill it, then re-wait for SSH before prep.
+ssh_retry() {
+  local n=6
+  while [ $n -gt 0 ]; do
+    if ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ServerAliveInterval=30 "$WIN_USER@$ip" "$1"; then return 0; fi
+    n=$((n-1)); echo "(ssh retry, $n left)"; sleep 15
+  done
+  return 1
+}
+ssh_retry "taskkill /F /IM \"DSH Desktop.exe\" 2>nul; exit 0" 2>&1 | tail -1 || { note "[cohort/win] VM unreachable after install"; }
 
 note "[cohort/win] running cohort-prep.ps1 (PREP_URL=Pages default -> tests the fixed iex|Out-String branch)"
-ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-  "set TRAINING_API_KEY=$TEST_API_KEY&& set INJECT_URL=C:\\Users\\$WIN_USER\\inject_provider.py&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\cohort-prep.ps1" \
+ssh_retry "set TRAINING_API_KEY=$TEST_API_KEY&& set INJECT_URL=C:\\Users\\$WIN_USER\\inject_provider.py&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\cohort-prep.ps1" \
   2>&1 | tee "ci/logs/cohort-win-$stamp.log"
 rc=$?
 note "[cohort/win] cohort-prep exit: $rc"
 
 note "[cohort/win] verifying the cohort injection"
-VERIFY_KEY="$TEST_API_KEY" ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-  "set VERIFY_KEY=$TEST_API_KEY&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\verify-cohort-windows.ps1" \
+VERIFY_KEY="$TEST_API_KEY" ssh_retry "set VERIFY_KEY=$TEST_API_KEY&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\verify-cohort-windows.ps1" \
   2>&1 | tee -a "ci/logs/cohort-win-$stamp.log"
 vrc=$?
 
