@@ -114,7 +114,9 @@ ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
 
 note "[cohort/win] capturing VM screenshot (app still running)"
 SHOT="$HOME/cohort-win-shot.png"
-vmrun -T fusion captureScreen "$WIN_VMX" "$SHOT" 2>/dev/null || vmrun captureScreen "$WIN_VMX" "$SHOT" 2>/dev/null || true
+# captureScreen needs guest credentials (VixVM_LoginInGuest).
+vmrun -T fusion -gu "$WIN_USER" -gp "${WIN_PASS:-}" captureScreen "$WIN_VMX" "$SHOT" 2>/dev/null \
+  || vmrun -gu "$WIN_USER" -gp "${WIN_PASS:-}" captureScreen "$WIN_VMX" "$SHOT" 2>/dev/null || true
 ls -la "$SHOT" 2>/dev/null || echo "(no screenshot)"
 
 ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
