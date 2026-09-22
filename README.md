@@ -68,6 +68,7 @@ vscode/                方案 A：VS Code + Claude Code
   lib/  providers/  templates/  ci/verify/  wip/
 dsh-desktop/           方案 B：给 DSH Desktop 学员准备工作区（一条命令）
   prep.sh / prep.ps1   templates/  README.md
+  cohort/              培训期单页安装指南生成器（每期 key 烧进单页 HTML，与公开 prep 复用不耦合）
 index.html              站点首页：二选一门户（两个并列方案块，DSH Desktop 首选）
 vscode.html             方案 A 页面：VS Code + Claude Code（安装命令与说明）
 dsh-desktop.html        方案 B 页面：DSH Desktop 工作区

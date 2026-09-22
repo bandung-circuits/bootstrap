@@ -5,3 +5,6 @@ ci/*.log
 
 # local/private config (host addresses, VM paths, API keys) — copy .env.example to .env
 .env
+
+# cohort feature: generated pages contain shared training API keys — never commit
+dsh-desktop/cohort/cohorts/*.html

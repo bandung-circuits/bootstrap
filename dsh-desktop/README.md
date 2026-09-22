@@ -40,3 +40,13 @@ templates/workspace/         seeds for ~/ai-workspace
 templates/dsh-desktop/       the crawl4ai patch insert (single source of truth)
 README.md                    this file
 ```
+
+## Training cohorts
+
+`cohort/` is a separate subtree for training-cohort setups where the organizer
+pre-issues a shared Bailian API key per cohort. A generator bakes the key into a
+per-cohort single-page HTML the organizer sends to learners; the learner's
+one-command setup runs the public prep above verbatim, then injects the
+provider/key/content-inspection header/default model. See
+[`cohort/README.md`](cohort/README.md). The public prep files here are not
+modified by the cohort feature.

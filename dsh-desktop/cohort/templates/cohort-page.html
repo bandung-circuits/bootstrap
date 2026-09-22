@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{LABEL}} — AI workspace setup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="One command prepares a ready AI workspace for this training cohort: the model key and content-safety header are already configured, the default model is selected, and permission is set to Full Access.">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3;
+    --muted:#8b949e; --accent:#2f81f7; --accent-2:#a371f7; --code:#1f2630;
+    --gold:#d29922;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#ffffff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328;
+           --muted:#57606a; --accent:#0969da; --accent-2:#8250df; --code:#eff1f3; --gold:#9a6700;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 5rem}
+  .badge{display:inline-block;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;
+         color:var(--accent-2);border:1px solid var(--accent-2);border-radius:99px;padding:.18rem .6rem;margin-bottom:.8rem}
+  h1{font-size:1.9rem;margin:.2em 0 .15em;line-height:1.25}
+  .sub{color:var(--muted);font-size:1.02rem;margin:0 0 1.4rem}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.4rem;margin:1rem 0}
+  .card h2{margin:0 0 .5rem;font-size:1.05rem}
+  .card p{margin:0 0 .9rem;color:var(--muted)}
+  .cmd{position:relative;background:var(--code);border:1px solid var(--border);border-radius:8px;
+       padding:.9rem 3.4rem .9rem 1rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       font-size:.8rem;overflow-x:auto}
+  .cmd code{white-space:pre-wrap;word-break:break-all}
+  .copy{position:absolute;top:8px;right:8px;cursor:pointer;background:transparent;color:var(--muted);
+        border:1px solid var(--border);border-radius:6px;padding:.25rem .5rem;font-size:.72rem}
+  .copy:hover{color:var(--text);border-color:var(--muted)}
+  .copy.ok{color:#3fb950;border-color:#3fb950;background:var(--panel)}
+  .tabs{display:flex;gap:.5rem;margin:1rem 0 .6rem;flex-wrap:wrap}
+  .tab{cursor:pointer;background:var(--panel);border:1px solid var(--border);color:var(--muted);
+       border-radius:8px;padding:.5rem .9rem;font-size:.9rem}
+  .tab.active{color:var(--text);border-color:var(--accent);background:var(--code)}
+  .hidden{display:none!important}
+  .notice{border-color:var(--gold)}
+  .notice > p:first-child strong{color:var(--gold)}
+  .steps{margin:1rem 0;padding:0 0 0 1.3rem}.steps li{margin:.45rem 0}
+  code.inline{background:var(--code);padding:.1rem .35rem;border-radius:4px;font-size:.85em}
+  .kv{font-size:.92rem;color:var(--muted)}
+  .kv b{color:var(--text)}
+  .foot{margin-top:3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);padding-top:1rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="badge">training cohort</span>
+  <h1>{{LABEL}}</h1>
+  <p class="sub">Welcome. Run <strong>one command</strong> below and your AI workspace is ready — the model key is
+  already built into the command, the content-safety header is set, the default model
+  (<code class="inline">{{MODEL}}</code>) is selected, and permission is Full Access. You do not paste any key by hand.</p>
+
+  <div class="card">
+    <h2>Step 1 — Install DSH Desktop (if you haven&rsquo;t already)</h2>
+    <p>Download it from <a href="https://dshdesktop.com/en/">dshdesktop.com/en/</a> and install it normally
+    (drag to Applications on macOS, run the installer on Windows). Supported: <strong>macOS</strong> and
+    <strong>Windows</strong>. If you already have it installed, skip to Step 2.</p>
+  </div>
+
+  <div class="card notice">
+    <p><strong>Before you run the command: quit DSH Desktop completely.</strong>
+    Close its window; on Windows, make sure it isn&rsquo;t still running in the system tray. While the app is
+    running it can hold onto its config files and block the command from updating them.</p>
+  </div>
+
+  <div class="card">
+    <h2>Step 2 — Run one command <span id="os-hint" style="font-weight:600;color:var(--accent)"></span></h2>
+    <p>Open a terminal (macOS: Applications &rarr; Utilities &rarr; Terminal) or PowerShell (Windows),
+    paste the command for your system, press Enter. It takes a few minutes the first time (it downloads a
+    small browser for web search).</p>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-mac" onclick="show('mac')">macOS</div>
+      <div class="tab" id="tab-win" onclick="show('win')">Windows</div>
+      <div class="tab" id="tab-other" onclick="show('other')">Other system</div>
+    </div>
+
+    <div id="mac">
+      <div class="cmd">
+        <code>{{MAC_COMMAND}}</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
+    <div id="win" class="hidden">
+      <div class="cmd">
+        <code>{{WIN_COMMAND}}</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+    </div>
+    <div id="other" class="hidden">
+      <div class="card notice">
+        <p style="margin:0"><strong>DSH Desktop doesn&rsquo;t support your operating system yet.</strong><br>
+        It works on macOS and Windows only. If you&rsquo;re on Linux (or anything else), contact your training
+        organizer for an alternative setup.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Step 3 — Open the app and start</h2>
+    <ol class="steps">
+      <li>Open <strong>DSH Desktop</strong>.</li>
+      <li>Click <strong>Choose workspace</strong> and pick
+          <code class="inline">~/ai-workspace</code> (Windows: <code class="inline">~\ai-workspace</code>).</li>
+      <li>The model <strong>{{MODEL}}</strong> is already selected and the key is already configured &mdash; just
+          start asking. e.g. &ldquo;find recent news about <strong>&lt;your topic&gt;</strong> and save a short
+          summary to news.md&rdquo;, or &ldquo;draft a one-page briefing about <strong>&lt;an event&gt;</strong> in
+          plain language&rdquo;.</li>
+    </ol>
+    <p class="kv" style="margin-top:.4rem">
+      <b>Model:</b> {{MODEL}} &nbsp;&middot;&nbsp;
+      <b>Key:</b> shared, pre-configured &nbsp;&middot;&nbsp;
+      <b>Permission:</b> Full Access &nbsp;&middot;&nbsp;
+      <b>Web tools:</b> crawl4ai (free)
+    </p>
+  </div>
+
+  <div class="card" style="padding:.9rem 1.1rem">
+    <details>
+      <summary style="cursor:pointer;color:var(--muted);font-size:.92rem">What the command actually did (tap to expand)</summary>
+      <ol class="steps" style="margin-top:.8rem">
+        <li>Created <code class="inline">~/ai-workspace</code> with workspace rules (AGENTS.md), a README, .gitignore and a NEXT-STEPS.md.</li>
+        <li>Installed <strong>inside that folder</strong> everything the web tools need: a Python environment with crawl4ai, and the browser it uses.</li>
+        <li>Enabled the <strong>crawl4ai</strong> web fetch &amp; search tools (free, no key) through the official DSH MCP client.</li>
+        <li>Configured the <strong>{{LABEL}}</strong> model provider: the Bailian API key (built into the command), the endpoint, and the content-safety header that prevents legitimate research material from being blocked at the platform layer (see the
+          <a href="https://extremeprogramming-cn.github.io/bailian-content-inspection/">content-inspection guide</a>).</li>
+        <li>Selected <strong>{{MODEL}}</strong> as the default model and set the permission to <strong>Full Access</strong>, so the agent can work without prompting you.</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="foot">
+    Cohort: <code>{{COHORT_ID}}</code> &middot; The API key in the command above is <strong>shared by everyone in this
+    cohort and expires after the training</strong>. Keep it on this page; do not post it publicly or share it outside
+    the cohort. &middot; A Bandung Circuits project.
+  </div>
+</div>
+<script>
+  function show(which){
+    ['mac','win','other'].forEach(function(id){
+      document.getElementById(id).classList.toggle('hidden', id!==which);
+      document.getElementById('tab-'+id).classList.toggle('active', id===which);
+    });
+  }
+  function cp(btn){
+    var code=btn.parentElement.querySelector('code').innerText;
+    navigator.clipboard.writeText(code).then(function(){
+      btn.textContent='Copied'; btn.classList.add('ok');
+      setTimeout(function(){btn.textContent='Copy';btn.classList.remove('ok')},1500);
+    });
+  }
+  (function(){
+    var ua=navigator.userAgent, hint=document.getElementById('os-hint'), sel;
+    if(/Mac/.test(ua)){ sel='mac'; hint.textContent='· macOS detected'; }
+    else if(/Win/.test(ua)){ sel='win'; hint.textContent='· Windows detected'; }
+    else { sel='other'; hint.textContent='· system not supported yet'; }
+    show(sel);
+  })();
+  document.querySelectorAll('a[href^="http"]').forEach(function(a){ a.target='_blank'; a.rel='noopener noreferrer'; });
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Trimmed, de-sanitized sample of a real DSH Desktop settings.yaml, for
+# inject_provider.py unit tests. No API keys. Contains:
+#   - two providers under llm-pi-ai.providers (maku-bailian WITH the content-
+#     inspection header, training WITHOUT the header) so both the "replace an
+#     existing training block" and "header is added" paths are exercised;
+#   - an existing agent-default-model + permission block so the replace path for
+#     agent-default-model is exercised too.
+# Models lists trimmed to a representative few; the real file has hundreds.
+ui-onboarding:
+  welcomeNoticeVersion: 2026-08-13.1
+llm-pi-ai:
+  providers:
+    maku-bailian:
+      api: openai-responses
+      apiKeyEnv: MAKU_BAILIAN_API_KEY
+      baseURL: https://ws-xaxbjg7qcdfumg79.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+      displayName: 马酷百炼
+      headers:
+        X-DashScope-DataInspection: '{"input":"disable","output":"disable"}'
+      models:
+      - id: qwen3.8-max-0902
+      - id: deepseek-v4-flash-0731
+      - id: qwen3.8-flash
+    training:
+      api: openai-responses
+      apiKeyEnv: TRAINING_API_KEY
+      baseURL: https://ws-6hcta8rbqr4jxl1o.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+      displayName: Old Training
+      models:
+      - id: deepseek-v4-flash-0731
+      - id: qwen3.8-max
+permission:
+  defaultPreset: danger-full-access
+agent-default-model:
+  provider: training
+  model: deepseek-v4-flash-0731
+locale:
+  preference: en
