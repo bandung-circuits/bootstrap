@@ -277,7 +277,12 @@ function Ensure-Plugins {
     $ErrorActionPreference = 'Continue'
     foreach ($pkg in $DefaultPlugins) {
         Note "installing DSH plugin $pkg"
-        $log = Join-Path $env:TEMP "dsh-prep-plugin-$pkg.log"
+        # sanitize the package name for the log filename -- scoped packages like
+        # '@hytime/dsh-thinking-effort' contain a slash, which would turn the
+        # Join-Path into a missing subdirectory and silently break the redirect
+        # (and leave $LASTEXITCODE stale from the previous command).
+        $safe = $pkg -replace '[/\\:]', '-'
+        $log = Join-Path $env:TEMP "dsh-prep-plugin-$safe.log"
         & $node.FullName $dsh.FullName plugin --profile web add $pkg *>$log
         if ($LASTEXITCODE -eq 0) {
             Note "plugin $pkg installed"
