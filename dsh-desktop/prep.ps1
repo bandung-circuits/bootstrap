@@ -240,14 +240,17 @@ function Ensure-Git {
     else { Warn 'git extraction failed; you can still use the AI without git' }
 }
 
-# ---------- 8. default DSH plugins (dshmarket + thinking-effort) ----------
-# Installs two community plugins into the DSH `web` profile so every learner
-# gets them by default, using the app's OWN bundled node + dsh bin.js (no system
+# ---------- 8. default DSH plugins (Plugin Market) ----------
+# Installs the Plugin Market into the DSH `web` profile so every learner gets it
+# by default, using the app's OWN bundled node + dsh bin.js (no system
 # node/pnpm). `dsh plugin --profile web add <pkg>` initializes the profile on
 # first use, adds the package to deps AND dsh.profile.bundles, and pnpm-installs
-# it. Idempotent.   dshmarket -> Settings -> Plugin Market;
-# @hytime/dsh-thinking-effort -> a reasoning-effort slider for reasoning models.
-$DefaultPlugins = @('dshmarket', '@hytime/dsh-thinking-effort')
+# it. Idempotent.   dshmarket -> Settings -> Plugin Market.
+# Reasoning-effort control is intentionally NOT installed by default -- several
+# community plugins exist (@hytime/dsh-thinking-effort, dsh-reasoning-effort,
+# dsh-better-reasoning-effort) with different per-model knowledge and
+# DSH-kernel version requirements; pick one manually via the Plugin Market.
+$DefaultPlugins = @('dshmarket')
 
 function Ensure-Plugins {
     if ($env:PREP_NO_PLUGINS -eq '1') { Note 'skipping plugins (PREP_NO_PLUGINS=1)'; return }
@@ -331,7 +334,7 @@ Write-Host @"
     Python / venv:    $WS\.venv
     crawl4ai MCP:     enabled via the official DSH MCP client
     Browser:          pre-downloaded to $WS\.browsers
-    DSH plugins:      Plugin Market (dshmarket) + reasoning-effort slider
+    DSH plugins:      Plugin Market (dshmarket) -- add a reasoning-effort
 
   Remaining steps (2 clicks in the app):
     1. Open DSH Desktop -> Settings -> Models -> paste your model API key.

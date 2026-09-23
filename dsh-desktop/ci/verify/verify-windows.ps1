@@ -88,7 +88,6 @@ if (Test-Path $pkgJson) {
     $deps = $pj.dependencies.PSObject.Properties.Name
     $bundles = $pj.dsh.profile.bundles
     if ($deps -contains 'dshmarket' -and $bundles -contains 'dshmarket') { OK 'plugin dshmarket in deps+bundles' } else { NO 'plugin dshmarket missing' }
-    if ($deps -contains '@hytime/dsh-thinking-effort' -and $bundles -contains '@hytime/dsh-thinking-effort') { OK 'plugin @hytime/dsh-thinking-effort in deps+bundles' } else { NO 'plugin @hytime/dsh-thinking-effort missing' }
   } else { NO 'profiles/web/package.json unreadable' }
 } else { NO 'profiles/web/package.json not found (plugins not installed)' }
 
