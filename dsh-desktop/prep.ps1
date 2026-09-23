@@ -240,6 +240,34 @@ function Ensure-Git {
     else { Warn 'git extraction failed; you can still use the AI without git' }
 }
 
+# ---------- 8. default DSH plugins (dshmarket + thinking-effort) ----------
+# Installs two community plugins into the DSH `web` profile so every learner
+# gets them by default, using the app's OWN bundled node + dsh bin.js (no system
+# node/pnpm). `dsh plugin --profile web add <pkg>` initializes the profile on
+# first use, adds the package to deps AND dsh.profile.bundles, and pnpm-installs
+# it. Idempotent.   dshmarket -> Settings -> Plugin Market;
+# @hytime/dsh-thinking-effort -> a reasoning-effort slider for reasoning models.
+$DefaultPlugins = @('dshmarket', '@hytime/dsh-thinking-effort')
+
+function Ensure-Plugins {
+    if ($env:PREP_NO_PLUGINS -eq '1') { Note 'skipping plugins (PREP_NO_PLUGINS=1)'; return }
+    $appDir = Join-Path $env:LOCALAPPDATA 'Programs\DSH Desktop'
+    if (-not (Test-Path $appDir)) { Warn "DSH Desktop app not found at $appDir -- skipping plugin install"; return }
+    $node = Get-ChildItem $appDir -Recurse -Filter 'node.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    $dsh  = Get-ChildItem $appDir -Recurse -Filter 'bin.js' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '@deepseek-ai' -and $_.FullName -match '\\dsh\\' } | Select-Object -First 1
+    if (-not $node -or -not $dsh) { Warn "bundled node/dsh not found under $appDir -- skipping plugin install"; return }
+    # DSH Desktop should not be running while pnpm mutates the profile dir.
+    $run = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'DSH\s*Desktop' }
+    if ($run) { Warn 'DSH Desktop is running -- quit it before plugin install; skipping plugins for now'; return }
+    $env:DSH_HOME = $HARNESS
+    foreach ($pkg in $DefaultPlugins) {
+        Note "installing DSH plugin $pkg"
+        & $node.FullName $dsh.FullName plugin --profile web add $pkg 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { Note "plugin $pkg installed" }
+        else { Warn "plugin $pkg install failed (exit $LASTEXITCODE) -- non-fatal; the workspace still works" }
+    }
+}
+
 # ---------- main ----------
 Get-Templates
 Note 'Creating and seeding the AI workspace'
@@ -259,6 +287,9 @@ Ensure-PermissionDefault
 Note 'Checking git'
 Ensure-Git
 
+Note 'Installing default DSH plugins (Plugin Market + reasoning-effort)'
+Ensure-Plugins
+
 if (-not (Test-Path (Split-Path $HARNESS -Parent))) {
     Warn "DSH Desktop app data not found at $((Split-Path $HARNESS -Parent)) -- install DSH Desktop"
     Warn "from https://dshdesktop.com/en/ and launch it once, then re-run this if needed."
@@ -274,6 +305,7 @@ Write-Host @"
     Python / venv:    $WS\.venv
     crawl4ai MCP:     enabled via the official DSH MCP client
     Browser:          pre-downloaded to $WS\.browsers
+    DSH plugins:      Plugin Market (dshmarket) + reasoning-effort slider
 
   Remaining steps (2 clicks in the app):
     1. Open DSH Desktop -> Settings -> Models -> paste your model API key.

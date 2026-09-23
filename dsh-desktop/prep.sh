@@ -263,6 +263,57 @@ ensure_git() {
   warn "git not found — after setup, run: xcode-select --install"
 }
 
+# ---------- 8. default DSH plugins (dshmarket + thinking-effort) ----------
+# Installs two community plugins into the DSH `web` profile so every learner
+# gets them by default, using the app's OWN bundled node + dsh bin.js (no system
+# node/pnpm assumed). `dsh plugin --profile web add <pkg>` initializes the
+# profile on first use, adds the package to deps AND dsh.profile.bundles, and
+# pnpm-installs it. Idempotent (pnpm add is a no-op when already present).
+#   dshmarket              -> Settings -> Plugin Market (browse/install plugins)
+#   @hytime/dsh-thinking-effort -> a reasoning-effort slider (off/low/medium/high)
+#     for reasoning models; keeps long "thinking" responses affordable.
+DEFAULT_PLUGINS="dshmarket @hytime/dsh-thinking-effort"
+
+app_discover_mac() {
+  local cand m
+  for cand in "/Applications/DSH Desktop.app" "${HOME}/Applications/DSH Desktop.app"; do
+    [ -d "$cand" ] && { printf '%s\n' "$cand"; return 0; }
+  done
+  m="$(mdfind -name 'DSH Desktop.app' 2>/dev/null | grep -E 'DSH Desktop\.app$' | head -1)"
+  [ -n "$m" ] && { printf '%s\n' "$m"; return 0; }
+  return 1
+}
+
+ensure_plugins() {
+  if [ "${PREP_NO_PLUGINS:-0}" = "1" ]; then note "skipping plugins (PREP_NO_PLUGINS=1)"; return 0; fi
+  local app node binjs
+  app="$(app_discover_mac 2>/dev/null || true)"
+  if [ -z "$app" ]; then
+    warn "DSH Desktop app not found — skipping plugin install. Install it from https://dshdesktop.com/en/ and re-run."
+    return 0
+  fi
+  node="${app}/Contents/Resources/app/node_modules/node/bin/node"
+  binjs="${app}/Contents/Resources/app/node_modules/@deepseek-ai/dsh/lib/bin.js"
+  if [ ! -x "$node" ] || [ ! -f "$binjs" ]; then
+    warn "bundled node/dsh not found under $app — skipping plugin install"
+    return 0
+  fi
+  # DSH Desktop should not be running while pnpm mutates the profile dir.
+  if pgrep -f "DSH Desktop" >/dev/null 2>&1; then
+    warn "DSH Desktop is running — quit it before plugin install; skipping plugins for now"
+    return 0
+  fi
+  local pkg
+  for pkg in $DEFAULT_PLUGINS; do
+    note "installing DSH plugin ${pkg}"
+    if DSH_HOME="$HARNESS_HOME" "$node" "$binjs" plugin --profile web add "$pkg" >/tmp/dsh-prep-plugin.log 2>&1; then
+      note "plugin ${pkg} installed"
+    else
+      warn "plugin ${pkg} install failed (see /tmp/dsh-prep-plugin.log) — non-fatal; the workspace still works"
+    fi
+  done
+}
+
 # ---------- main ----------
 main() {
   load_templates
@@ -280,6 +331,8 @@ main() {
   ensure_permission_default
   note "Checking git"
   ensure_git
+  note "Installing default DSH plugins (Plugin Market + reasoning-effort)"
+  ensure_plugins
 
   if [ ! -d "$(dirname "$HARNESS_HOME")" ]; then
     warn "DSH Desktop app data not found at $(dirname "$HARNESS_HOME") — install DSH Desktop"
@@ -294,6 +347,7 @@ main() {
     Python / venv:    ~/ai-workspace/.venv
     crawl4ai MCP:     enabled via the official DSH MCP client
     Browser:          pre-downloaded to ~/ai-workspace/.browsers
+    DSH plugins:      Plugin Market (dshmarket) + reasoning-effort slider
 
   Remaining steps (2 clicks in the app):
     1. Open DSH Desktop → Settings → Models → paste your model API key.
