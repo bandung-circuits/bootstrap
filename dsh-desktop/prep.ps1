@@ -270,9 +270,14 @@ function Ensure-Plugins {
     $ErrorActionPreference = 'Continue'
     foreach ($pkg in $DefaultPlugins) {
         Note "installing DSH plugin $pkg"
-        & $node.FullName $dsh.FullName plugin --profile web add $pkg 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) { Note "plugin $pkg installed" }
-        else { Warn "plugin $pkg install failed (exit $LASTEXITCODE) -- non-fatal; the workspace still works" }
+        $log = Join-Path $env:TEMP "dsh-prep-plugin-$pkg.log"
+        & $node.FullName $dsh.FullName plugin --profile web add $pkg *>$log
+        if ($LASTEXITCODE -eq 0) {
+            Note "plugin $pkg installed"
+        } else {
+            Warn "plugin $pkg install failed (exit $LASTEXITCODE) -- non-fatal; the workspace still works"
+            Get-Content $log -ErrorAction SilentlyContinue | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" }
+        }
     }
     $ErrorActionPreference = $prevEAP
 }
