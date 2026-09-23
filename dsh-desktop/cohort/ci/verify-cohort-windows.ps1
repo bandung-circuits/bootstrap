@@ -56,7 +56,7 @@ if (Test-Path $wsFile) {
   } else { NO 'workspace.json unreadable' }
 } else { NO 'workspace.json not found (not pre-registered)' }
 
-# --- default plugins installed by prep (dshmarket + thinking-effort) ---
+# --- default plugins installed by prep (dshmarket + dsh-better-reasoning-effort) ---
 $pkgJson = Join-Path $HARNESS 'profiles\web\package.json'
 if (Test-Path $pkgJson) {
   try { $pj = Get-Content $pkgJson -Raw | ConvertFrom-Json } catch { $pj = $null }
@@ -64,6 +64,7 @@ if (Test-Path $pkgJson) {
     $deps = @($pj.dependencies.PSObject.Properties.Name)
     $bundles = @($pj.dsh.profile.bundles)
     if ($deps -contains 'dshmarket' -and $bundles -contains 'dshmarket') { OK 'plugin dshmarket in deps+bundles' } else { NO 'plugin dshmarket missing' }
+    if ($deps -contains 'dsh-better-reasoning-effort' -and $bundles -contains 'dsh-better-reasoning-effort') { OK 'plugin dsh-better-reasoning-effort in deps+bundles' } else { NO 'plugin dsh-better-reasoning-effort missing' }
   } else { NO 'profiles/web/package.json unreadable' }
 } else { NO 'profiles/web/package.json not found (plugins not installed)' }
 

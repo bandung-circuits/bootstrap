@@ -269,13 +269,13 @@ ensure_git() {
 # node/pnpm assumed). `dsh plugin --profile web add <pkg>` initializes the
 # profile on first use, adds the package to deps AND dsh.profile.bundles, and
 # pnpm-installs it. Idempotent (pnpm add is a no-op when already present).
-#   dshmarket              -> Settings -> Plugin Market (browse/install plugins)
-# Reasoning-effort control is intentionally NOT installed by default — there
-# are several community plugins (@hytime/dsh-thinking-effort,
-# dsh-reasoning-effort, dsh-better-reasoning-effort) with different per-model
-# knowledge and DSH-kernel version requirements; pick one manually via the
-# Plugin Market after setup.
-DEFAULT_PLUGINS="dshmarket"
+#   dshmarket                      -> Settings -> Plugin Market (browse/install plugins)
+#   dsh-better-reasoning-effort     -> per-model reasoning-effort slider with a
+#     built-in model knowledge base (knows each vendor's correct effort levels,
+#     e.g. GLM-5.3 = low/high/max, DeepSeek = off/low/high/max); auto-fills
+#     reasoningEfforts on app launch. Needs DSH kernel >= 0.1.5-alpha.1
+#     (DSH Desktop 0.9.x bundles it); best-effort on older builds.
+DEFAULT_PLUGINS="dshmarket dsh-better-reasoning-effort"
 
 app_discover_mac() {
   local cand m
@@ -370,7 +370,7 @@ main() {
     Python / venv:    ~/ai-workspace/.venv
     crawl4ai MCP:     enabled via the official DSH MCP client
     Browser:          pre-downloaded to ~/ai-workspace/.browsers
-    DSH plugins:      Plugin Market (dshmarket) -- add a reasoning-effort
+    DSH plugins:      Plugin Market (dshmarket) + reasoning-effort slider
 
   Remaining steps (2 clicks in the app):
     1. Open DSH Desktop → Settings → Models → paste your model API key.

@@ -10,7 +10,7 @@ if (Test-Path (Join-Path $app 'DSH Desktop.exe')) {
     exit 0
 }
 $url = if ($env:DSH_DESKTOP_WIN_URL) { $env:DSH_DESKTOP_WIN_URL } else {
-    'https://github.com/dataelement/dsh-desktop/releases/download/v0.7.1/dsh-desktop-windows-x64-setup.exe'
+    'https://github.com/dataelement/dsh-desktop/releases/download/v0.9.1/dsh-desktop-windows-x64-setup.exe'
 }
 $f = Join-Path $env:TEMP 'dsh-desktop-setup.exe'
 Write-Host "downloading $url"
