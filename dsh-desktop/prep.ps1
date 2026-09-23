@@ -262,12 +262,19 @@ function Ensure-Plugins {
     $run = Get-Process -Name 'DSH Desktop' -ErrorAction SilentlyContinue
     if ($run) { Warn 'DSH Desktop is running -- quit it before plugin install; skipping plugins for now'; return }
     $env:DSH_HOME = $HARNESS
+    # `dsh plugin add` writes progress (e.g. "initialized profile web") to
+    # stderr; under $ErrorActionPreference='Stop' that aborts the call mid-way
+    # (before pnpm is bootstrapped), so temporarily relax to Continue and judge
+    # by the real exit code.
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     foreach ($pkg in $DefaultPlugins) {
         Note "installing DSH plugin $pkg"
         & $node.FullName $dsh.FullName plugin --profile web add $pkg 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) { Note "plugin $pkg installed" }
         else { Warn "plugin $pkg install failed (exit $LASTEXITCODE) -- non-fatal; the workspace still works" }
     }
+    $ErrorActionPreference = $prevEAP
 }
 
 # ---------- main ----------
