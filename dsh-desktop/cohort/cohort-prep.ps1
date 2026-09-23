@@ -74,6 +74,12 @@ if (Test-Path $PrepUrl) {
   Invoke-Expression (curl.exe -sL $PrepUrl | Out-String)
 }
 
+# 3.5. the generic prep seeds a NEXT-STEPS.md that tells the user to paste their
+# own model key -- wrong for a cohort (key + model are pre-configured, and the
+# cohort HTML page already has the steps). Remove it; the workspace just works.
+$nsPath = Join-Path $HOME 'ai-workspace\NEXT-STEPS.md'
+if (Test-Path $nsPath) { Remove-Item $nsPath -Force; Note 'removed generic NEXT-STEPS (cohort needs no setup steps)' }
+
 # 4. Use the workspace venv's python by ABSOLUTE PATH. prep just created it; the
 # dsh-desktop design is fully self-contained in ~\ai-workspace (no PATH lookup,
 # no system python, no Microsoft Store "App execution alias" stub).

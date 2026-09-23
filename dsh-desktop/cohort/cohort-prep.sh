@@ -74,6 +74,12 @@ else
   curl -fsSL "$PREP_URL" | bash
 fi
 
+# 3.5. the generic prep seeds a NEXT-STEPS.md that tells the user to paste their
+# own model key -- wrong for a cohort (key + model are pre-configured, and the
+# cohort HTML page already has the steps). Remove it; the workspace just works.
+WS_DIR="${WORKSPACE_DIR:-$HOME/ai-workspace}"
+rm -f "${WS_DIR}/NEXT-STEPS.md" 2>/dev/null && note "removed generic NEXT-STEPS (cohort needs no setup steps)" || true
+
 # 4. Use the workspace venv's python by ABSOLUTE PATH. prep just created it;
 # the dsh-desktop design is fully self-contained in ~/ai-workspace (no PATH
 # lookup, no system python).

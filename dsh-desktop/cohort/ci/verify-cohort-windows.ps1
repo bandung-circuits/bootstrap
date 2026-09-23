@@ -19,9 +19,12 @@ $settings = Join-Path $HARNESS 'settings.yaml'
 $creds    = Join-Path $HARNESS '.credentials.yaml'
 
 # --- prep sanity (cohort-prep runs prep first; if these fail, prep broke) ---
-foreach ($f in 'AGENTS.md','README.md','.gitignore','NEXT-STEPS.md') {
+# NEXT-STEPS.md is NOT expected here -- cohort-prep removes it (the cohort HTML
+# page is the guide; the generic "paste your key" NEXT-STEPS is wrong for a cohort).
+foreach ($f in 'AGENTS.md','README.md','.gitignore') {
     if (Test-Path (Join-Path $WS $f)) { OK "prep: $f seeded" } else { NO "prep: $f missing" }
 }
+if (-not (Test-Path (Join-Path $WS 'NEXT-STEPS.md'))) { OK 'cohort: generic NEXT-STEPS removed' } else { NO 'cohort: NEXT-STEPS.md still present (should be removed)' }
 $cr4exe = Join-Path $WS '.venv\Scripts\crawl4ai-search.exe'
 if (Test-Path $cr4exe) { OK 'prep: crawl4ai executable present' } else { NO 'prep: crawl4ai executable missing' }
 
