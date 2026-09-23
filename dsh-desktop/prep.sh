@@ -286,7 +286,7 @@ app_discover_mac() {
 
 ensure_plugins() {
   if [ "${PREP_NO_PLUGINS:-0}" = "1" ]; then note "skipping plugins (PREP_NO_PLUGINS=1)"; return 0; fi
-  local app node binjs
+  local node binjs pnpmcjs
   app="$(app_discover_mac 2>/dev/null || true)"
   if [ -z "$app" ]; then
     warn "DSH Desktop app not found — skipping plugin install. Install it from https://dshdesktop.com/en/ and re-run."
@@ -294,6 +294,7 @@ ensure_plugins() {
   fi
   node="${app}/Contents/Resources/app/node_modules/node/bin/node"
   binjs="${app}/Contents/Resources/app/node_modules/@deepseek-ai/dsh/lib/bin.js"
+  pnpmcjs="${app}/Contents/Resources/app/node_modules/pnpm/bin/pnpm.cjs"
   if [ ! -x "$node" ] || [ ! -f "$binjs" ]; then
     warn "bundled node/dsh not found under $app — skipping plugin install"
     return 0
@@ -306,15 +307,31 @@ ensure_plugins() {
     warn "DSH Desktop is running — quit it before plugin install; skipping plugins for now"
     return 0
   fi
-  local pkg
+  # `dsh plugin add` shells out to a bare `pnpm`; learners rarely have pnpm on
+  # PATH. Point a pnpm shim at the app's OWN bundled node + pnpm.cjs and put it
+  # first on PATH for the call.
+  local shim_dir shim
+  shim_dir="$(mktemp -d)"
+  shim="${shim_dir}/pnpm"
+  if [ -f "$pnpmcjs" ]; then
+    cat > "$shim" <<EOF
+#!/bin/sh
+exec "$node" "$pnpmcjs" "\$@"
+EOF
+    chmod +x "$shim"
+  fi
+  local pkg rc
   for pkg in $DEFAULT_PLUGINS; do
     note "installing DSH plugin ${pkg}"
-    if DSH_HOME="$HARNESS_HOME" "$node" "$binjs" plugin --profile web add "$pkg" >/tmp/dsh-prep-plugin.log 2>&1; then
+    if PATH="$shim_dir:$PATH" DSH_HOME="$HARNESS_HOME" "$node" "$binjs" plugin --profile web add "$pkg" >/tmp/dsh-prep-plugin.log 2>&1; then
       note "plugin ${pkg} installed"
     else
-      warn "plugin ${pkg} install failed (see /tmp/dsh-prep-plugin.log) — non-fatal; the workspace still works"
+      rc=$?
+      warn "plugin ${pkg} install failed (exit $rc) — non-fatal; the workspace still works"
+      tail -12 /tmp/dsh-prep-plugin.log >&2 2>/dev/null || true
     fi
   done
+  rm -rf "$shim_dir"
 }
 
 # ---------- main ----------

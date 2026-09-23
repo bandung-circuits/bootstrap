@@ -261,11 +261,18 @@ function Ensure-Plugins {
     # 'DSH Desktop Helper ...' and would false-positive a -match).
     $run = Get-Process -Name 'DSH Desktop' -ErrorAction SilentlyContinue
     if ($run) { Warn 'DSH Desktop is running -- quit it before plugin install; skipping plugins for now'; return }
+    # `dsh plugin add` shells out to a bare `pnpm`; learners rarely have pnpm on
+    # PATH. Point a pnpm.cmd shim at the app's OWN bundled node + pnpm.cjs and
+    # put it first on PATH for the call.
+    $pnpmCjs = Get-ChildItem $appDir -Recurse -Filter 'pnpm.cjs' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\pnpm\\bin\\' } | Select-Object -First 1
+    if ($pnpmCjs) {
+        $shimDir = Join-Path $env:TEMP 'dsh-pnpm-shim'
+        New-Item -ItemType Directory -Force -Path $shimDir | Out-Null
+        $shimPath = Join-Path $shimDir 'pnpm.cmd'
+        Set-Content -Path $shimPath -Value "@`"$($node.FullName)`" `"$($pnpmCjs.FullName)`" %*" -Encoding ASCII
+        $env:PATH = "$shimDir;$env:PATH"
+    }
     $env:DSH_HOME = $HARNESS
-    # `dsh plugin add` writes progress (e.g. "initialized profile web") to
-    # stderr; under $ErrorActionPreference='Stop' that aborts the call mid-way
-    # (before pnpm is bootstrapped), so temporarily relax to Continue and judge
-    # by the real exit code.
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     foreach ($pkg in $DefaultPlugins) {
