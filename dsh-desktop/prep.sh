@@ -298,8 +298,11 @@ ensure_plugins() {
     warn "bundled node/dsh not found under $app — skipping plugin install"
     return 0
   fi
-  # DSH Desktop should not be running while pnpm mutates the profile dir.
-  if pgrep -f "DSH Desktop" >/dev/null 2>&1; then
+  # DSH Desktop's main process should not be running while pnpm mutates the
+  # profile dir. Match the MAIN binary path only (pgrep excludes itself, and
+  # helper sub-processes don't contain this exact path substring, so they
+  # don't false-positive).
+  if pgrep -f "DSH Desktop.app/Contents/MacOS/DSH Desktop" >/dev/null 2>&1; then
     warn "DSH Desktop is running — quit it before plugin install; skipping plugins for now"
     return 0
   fi

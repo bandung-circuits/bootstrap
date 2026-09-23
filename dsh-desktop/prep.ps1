@@ -256,8 +256,10 @@ function Ensure-Plugins {
     $node = Get-ChildItem $appDir -Recurse -Filter 'node.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
     $dsh  = Get-ChildItem $appDir -Recurse -Filter 'bin.js' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '@deepseek-ai' -and $_.FullName -match '\\dsh\\' } | Select-Object -First 1
     if (-not $node -or -not $dsh) { Warn "bundled node/dsh not found under $appDir -- skipping plugin install"; return }
-    # DSH Desktop should not be running while pnpm mutates the profile dir.
-    $run = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'DSH\s*Desktop' }
+    # DSH Desktop's main process should not run while pnpm mutates the profile
+    # dir. Match the MAIN exe only by exact process name (helpers are named
+    # 'DSH Desktop Helper ...' and would false-positive a -match).
+    $run = Get-Process -Name 'DSH Desktop' -ErrorAction SilentlyContinue
     if ($run) { Warn 'DSH Desktop is running -- quit it before plugin install; skipping plugins for now'; return }
     $env:DSH_HOME = $HARNESS
     foreach ($pkg in $DefaultPlugins) {
