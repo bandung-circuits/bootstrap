@@ -80,6 +80,18 @@ if ($node -and $dsh) {
     NO "bundled harness not found (node=$($node.FullName), dsh=$($dsh.FullName))"
 }
 
+# --- default plugins installed by prep (dshmarket + thinking-effort) ---
+$pkgJson = Join-Path $HARNESS 'profiles\web\package.json'
+if (Test-Path $pkgJson) {
+  try { $pj = Get-Content $pkgJson -Raw | ConvertFrom-Json } catch { $pj = $null }
+  if ($pj) {
+    $deps = $pj.dependencies.PSObject.Properties.Name
+    $bundles = $pj.dsh.profile.bundles
+    if ($deps -contains 'dshmarket' -and $bundles -contains 'dshmarket') { OK 'plugin dshmarket in deps+bundles' } else { NO 'plugin dshmarket missing' }
+    if ($deps -contains '@hytime/dsh-thinking-effort' -and $bundles -contains '@hytime/dsh-thinking-effort') { OK 'plugin @hytime/dsh-thinking-effort in deps+bundles' } else { NO 'plugin @hytime/dsh-thinking-effort missing' }
+  } else { NO 'profiles/web/package.json unreadable' }
+} else { NO 'profiles/web/package.json not found (plugins not installed)' }
+
 Write-Host ''
 Write-Host "RESULT: $pass passed, $fail failed"
 exit $fail
