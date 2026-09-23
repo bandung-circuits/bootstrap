@@ -74,12 +74,13 @@ if (Test-Path $PrepUrl) {
   Invoke-Expression (curl.exe -sL $PrepUrl | Out-String)
 }
 
-# 4. pick a python (system preferred; venv python guaranteed by prep).
-$py = Get-Command python -ErrorAction SilentlyContinue
-if (-not $py) {
-  $venvPy = Join-Path $HOME 'ai-workspace\.venv\Scripts\python.exe'
-  if (Test-Path $venvPy) { $PyExe = $venvPy } else { Err 'no python found (need python or the workspace venv)' }
-} else { $PyExe = $py.Source }
+# 4. Use the workspace venv's python by ABSOLUTE PATH. prep just created it; the
+# dsh-desktop design is fully self-contained in ~\ai-workspace (no PATH lookup,
+# no system python, no Microsoft Store "App execution alias" stub).
+$PyExe = Join-Path $HOME 'ai-workspace\.venv\Scripts\python.exe'
+if (-not (Test-Path $PyExe)) {
+  Err "workspace venv python not found at $PyExe -- prep did not complete. Re-run the command from your cohort page."
+}
 
 # 5. run the provider/key/header/default-model injection (single source of truth).
 Note 'Configuring the training provider, key, and default model'

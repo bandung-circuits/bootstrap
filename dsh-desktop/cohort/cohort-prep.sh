@@ -74,10 +74,11 @@ else
   curl -fsSL "$PREP_URL" | bash
 fi
 
-# 4. pick a python (system preferred; venv python guaranteed by prep).
-if command -v python3 >/dev/null 2>&1; then PY=python3
-else PY="${HOME}/ai-workspace/.venv/bin/python"; fi
-command -v "$PY" >/dev/null 2>&1 || err "no python found (need python3 or the workspace venv)"
+# 4. Use the workspace venv's python by ABSOLUTE PATH. prep just created it;
+# the dsh-desktop design is fully self-contained in ~/ai-workspace (no PATH
+# lookup, no system python).
+PY="${WORKSPACE_DIR:-$HOME/ai-workspace}/.venv/bin/python"
+[ -x "$PY" ] || err "workspace venv python not found at $PY -- prep did not complete. Re-run the command from your cohort page."
 
 # 5. run the provider/key/header/default-model injection (single source of truth).
 note "Configuring the training provider, key, and default model"
