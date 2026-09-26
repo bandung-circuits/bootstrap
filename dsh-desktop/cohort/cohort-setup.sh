@@ -54,7 +54,7 @@ else
     dmg="dsh-desktop-mac-x64.dmg"
   fi
   url="${DSH_RELEASE_BASE}/${dmg}"
-  note "Installing DSH Desktop ${DSH_VERSION} (${dmg%.dmg}, ~175 MB, one-time)"
+  note "Installing DSH Desktop ${DSH_VERSION} (${dmg%.dmg}, ~175 MB download + about a minute to install, one-time)"
   _TMP="$(mktemp -d)"
   cleanup() { [ -n "$_TMP" ] && rm -rf "$_TMP"; return 0; }
   trap cleanup EXIT

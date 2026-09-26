@@ -43,8 +43,10 @@ flow in CI), from the official GitHub releases:
 
 - macOS: DMG (`dsh-desktop-mac-arm64` / `-x64`), mounted and copied to
   `/Applications` (falls back to `~/Applications` without admin rights).
-- Windows: NSIS setup with `/S`, per-user, no admin prompt — the same proven
-  method as `dsh-desktop/ci/install-windows.ps1`.
+- Windows: the official NSIS wizard is opened so the learner sees native
+  progress (click through Next/Install; per-user, no admin prompt). Headless
+  contexts set `DSH_SILENT=1` for fully silent `/S` — that is what
+  `dsh-desktop/ci/install-windows.ps1` and the cohort CI driver use.
 
 The pin controls only what WE install; the app's own auto-updater still offers
 newer versions afterwards and harness config survives upgrades (same exposure

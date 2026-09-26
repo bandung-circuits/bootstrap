@@ -5,9 +5,11 @@
 #
 # 1. Ensures DSH Desktop is installed: if the app is missing, downloads the
 #    PINNED release (DshVersion below -- the version the cohort flow is tested
-#    against) from the official GitHub Releases and installs it silently
-#    (NSIS /S, per-user, no admin prompt) -- same proven method as
-#    dsh-desktop/ci/install-windows.ps1.
+#    against) from the official GitHub Releases and opens the installer's own
+#    wizard so the learner sees native progress (they click through Next/
+#    Install; per-user, no admin prompt). Headless contexts set DSH_SILENT=1
+#    for the fully silent /S mode -- that is what dsh-desktop/ci and the
+#    cohort CI driver use.
 # 2. Delegates everything else to cohort-prep.ps1 VERBATIM (public prep +
 #    provider/key injection), so this script adds no setup logic of its own.
 #
@@ -47,17 +49,30 @@ if ($dshExe) {
   Note "DSH Desktop already installed: $dshExe"
 } else {
   $url = "https://github.com/dataelement/dsh-desktop/releases/download/$DshVersion/dsh-desktop-windows-x64-setup.exe"
-  Note "Installing DSH Desktop $DshVersion (~162 MB, one-time)"
+  Note "Installing DSH Desktop $DshVersion (~162 MB download + a few minutes to install, one-time)"
   $f = Join-Path $env:TEMP 'dsh-desktop-setup.exe'
   curl.exe -fL $url -o $f
   if ($LASTEXITCODE -ne 0) { Err "download failed: $url" }
-  Note 'downloaded; installing silently (no wizard, under a minute)'
-  $p = Start-Process -FilePath $f -ArgumentList '/S' -Wait -PassThru
-  if ($p.ExitCode -ne 0) { Err "installer failed (exit $($p.ExitCode))" }
-  if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\DSH Desktop\DSH Desktop.exe'))) {
-    Err 'installer finished but the app was not found where expected'
+  # DSH Desktop's installer is an ASSISTED NSIS wizard (upstream oneClick:
+  # false). Default: show its own UI so the learner sees the native progress
+  # bar -- they just click through Next/Install, no options need changing.
+  # Headless contexts (CI) set DSH_SILENT=1 for the fully silent /S mode.
+  if ($env:DSH_SILENT -eq '1') {
+    Note 'downloaded; installing silently (DSH_SILENT=1, no window)'
+    $p = Start-Process -FilePath $f -ArgumentList '/S' -Wait -PassThru
+  } else {
+    Note 'downloaded; the DSH Desktop installer window is opening. Click through it (Next / Install -- no options need changing); this takes a few minutes.'
+    $p = Start-Process -FilePath $f -Wait -PassThru
   }
-  Note 'DSH Desktop installed'
+  if ($p.ExitCode -ne 0) { Err "installer failed (exit $($p.ExitCode))" }
+  $installedExe = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\DSH Desktop\DSH Desktop.exe'),
+    (Join-Path $env:ProgramFiles  'DSH Desktop\DSH Desktop.exe')
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $installedExe) {
+    Err 'installer finished but the app was not found in the usual locations (was the install directory changed, or the wizard cancelled?)'
+  }
+  Note "DSH Desktop installed: $installedExe"
 }
 
 # 2. everything else is exactly the existing cohort flow (public prep + inject).
