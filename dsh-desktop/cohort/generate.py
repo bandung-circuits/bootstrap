@@ -23,8 +23,14 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_BASE = "https://bandung-circuits.github.io/bootstrap"
-COHORT_PREP_MAC = f"{REPO_BASE}/dsh-desktop/cohort/cohort-prep.sh"
-COHORT_PREP_WIN = f"{REPO_BASE}/dsh-desktop/cohort/cohort-prep.ps1"
+COHORT_SETUP_MAC = f"{REPO_BASE}/dsh-desktop/cohort/cohort-setup.sh"
+COHORT_SETUP_WIN = f"{REPO_BASE}/dsh-desktop/cohort/cohort-setup.ps1"
+
+# Pinned DSH Desktop release the setup command installs when the app is
+# missing. Must match the DSH_VERSION default in cohort-setup.sh/.ps1 (the
+# cohort smoke checks the three agree). Bump deliberately after verifying the
+# new version with the cohort flow.
+DSH_VERSION = "v0.9.2"
 
 DEFAULT_MODEL = "deepseek-v4-flash-0731"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -44,7 +50,7 @@ def build_mac_command(key, model, base_url, label, provider):
     if provider != DEFAULT_PROVIDER:
         env.append(("PROVIDER_ID", provider))
     prefix = " ".join(f"{k}='{v}'" for k, v in env)
-    return f"curl -fsSL {COHORT_PREP_MAC} | {prefix} bash"
+    return f"curl -fsSL {COHORT_SETUP_MAC} | {prefix} bash"
 
 
 def build_win_command(key, model, base_url, label, provider):
@@ -59,7 +65,7 @@ def build_win_command(key, model, base_url, label, provider):
     if provider != DEFAULT_PROVIDER:
         env.append(f"$env:PROVIDER_ID='{provider}'")
     prefix = "; ".join(env)
-    return f"{prefix}; iex (curl.exe -sL {COHORT_PREP_WIN} | Out-String)"
+    return f"{prefix}; iex (curl.exe -sL {COHORT_SETUP_WIN} | Out-String)"
 
 
 def read_key(args):
@@ -100,6 +106,7 @@ def main():
         tpl.replace("{{LABEL}}", html.escape(args.label))
         .replace("{{COHORT_ID}}", html.escape(args.id))
         .replace("{{MODEL}}", html.escape(args.model))
+        .replace("{{DSH_VERSION}}", html.escape(DSH_VERSION))
         .replace("{{MAC_COMMAND}}", html.escape(mac_cmd))
         .replace("{{WIN_COMMAND}}", html.escape(win_cmd))
     )

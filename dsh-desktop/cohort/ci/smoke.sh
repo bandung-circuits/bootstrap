@@ -8,6 +8,9 @@
 #   2. generate.py — the page contains the (dummy) key and both commands.
 #   3. cohort-prep.sh — the glue (key check, pristine backup, python pick,
 #      inject invocation) against a temp harness with prep stubbed out.
+#   3.5. cohort-setup.sh — the app-install glue: version pins agree across
+#      sh/ps1/generate.py, missing key fails fast, app-detect + delegate to
+#      cohort-prep (download branch only on a host without the app).
 #   4. a real minimal chat call to Bailian with the content-inspection header,
 #      proving key + endpoint + header actually work together.
 #   5. (opt) the same call with the cohort main model.
@@ -142,7 +145,8 @@ PAGE="$HERE/../cohorts/ci-smoke.html"
 # the command is HTML-escaped (quotes -> &#x27;), so match the key value fixed.
 grep -qF "TRAINING_API_KEY" "$PAGE" || fail "mac command missing key var in page"
 grep -qF "$DUMMY" "$PAGE" || fail "page missing dummy key value"
-grep -q "cohort-prep.sh" "$PAGE" && grep -q "cohort-prep.ps1" "$PAGE" || fail "page missing command URLs"
+grep -q "cohort-setup.sh" "$PAGE" && grep -q "cohort-setup.ps1" "$PAGE" || fail "page missing command URLs"
+grep -q '{{' "$PAGE" && fail "unrendered template placeholder in page" || true
 "$PYBIN" - "$PAGE" <<'PY' || fail "page not well-formed"
 import sys, html.parser
 class P(html.parser.HTMLParser):
@@ -176,7 +180,12 @@ llm-pi-ai:
 permission:
   defaultPreset: workspace-write
 YML
-# stub prep: do nothing (real prep is CI-tested by the VM flow).
+# stub prep: create the artifact cohort-prep.sh requires (the workspace venv
+# python) and do nothing else (the real prep is CI-tested by the VM flow). The
+# fake python forwards to PYBIN, which Step 0 verified can import yaml.
+mkdir -p "$WS/.venv/bin"
+printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$PYBIN" > "$WS/.venv/bin/python"
+chmod +x "$WS/.venv/bin/python"
 STUB="$TMP/prep-stub.sh"
 printf '#!/usr/bin/env bash\necho "(prep stubbed for cohort smoke)"\n' > "$STUB"
 chmod +x "$STUB"
@@ -211,6 +220,43 @@ assert cr['refs']['TRAINING_API_KEY'] == key
 print('  e2e: provider + key + header + default-model + pristine backup OK')
 PY
 note "Step 3 passed"
+
+# ----------------------------------------------------------------------------
+# Step 3.5 — cohort-setup.sh glue: pin consistency, key guard, app-detect +
+# delegate. Only the app-present branch is exercised (no ~176 MB download in
+# CI); on a host without DSH Desktop.app that branch is skipped (same policy as
+# dsh-desktop/ci/verify/verify-macos.sh tier 2). PowerShell syntax is not
+# checked here (no pwsh on the mac host); cohort-setup.ps1 reuses the exact
+# silent-install method proven by dsh-desktop/ci/install-windows.ps1 in the VM.
+# ----------------------------------------------------------------------------
+note "Step 3.5: cohort-setup.sh glue (pins, key guard, delegate)"
+SETUP="$HERE/../cohort-setup.sh"
+bash -n "$SETUP" || fail "cohort-setup.sh syntax error"
+
+pin_sh="$(sed -n 's/^DSH_VERSION="\${DSH_VERSION:-\(v[0-9.]*\)}".*/\1/p' "$SETUP" | head -1)"
+pin_ps="$(sed -n "s/.*else { '\(v[0-9.]*\)'.*/\1/p" "$HERE/../cohort-setup.ps1" | head -1)"
+pin_gen="$("$PYBIN" -c "import re,sys;print(re.search(r'DSH_VERSION = \"(v[0-9.]+)\"', open(sys.argv[1]).read()).group(1))" "$HERE/../generate.py")"
+[ -n "$pin_sh" ] && [ "$pin_sh" = "$pin_ps" ] && [ "$pin_sh" = "$pin_gen" ] \
+  || fail "DSH Desktop version pin mismatch: sh=$pin_sh ps1=$pin_ps generate.py=$pin_gen"
+echo "  version pin consistent across sh/ps1/generate.py: $pin_sh"
+
+SETUP_PREP_STUB="$TMP/cohort-prep-stub.sh"
+printf '#!/usr/bin/env bash\necho "(cohort-prep stubbed for setup smoke)"\n' > "$SETUP_PREP_STUB"
+# missing key must fail fast (BEFORE any app download would start)
+if env -u TRAINING_API_KEY COHORT_PREP_URL="$SETUP_PREP_STUB" bash "$SETUP" >/dev/null 2>&1; then
+  fail "cohort-setup.sh ran without TRAINING_API_KEY"
+fi
+echo "  key guard OK (fails fast without TRAINING_API_KEY)"
+
+if [ -d "/Applications/DSH Desktop.app" ] || [ -d "$HOME/Applications/DSH Desktop.app" ]; then
+  out="$(COHORT_PREP_URL="$SETUP_PREP_STUB" TRAINING_API_KEY=dummy-key-smoke bash "$SETUP" 2>&1)"
+  printf '%s' "$out" | grep -q "already installed" || fail "cohort-setup.sh did not detect the installed app"
+  printf '%s' "$out" | grep -q "cohort-prep stubbed" || fail "cohort-setup.sh did not delegate to cohort-prep"
+  echo "  app-detect + delegate to cohort-prep OK"
+else
+  echo "  SKIP app-detect branch (no DSH Desktop.app on this host)"
+fi
+note "Step 3.5 passed"
 
 # ----------------------------------------------------------------------------
 # Step 4 — real minimal Q&A: key + endpoint + content-inspection header.

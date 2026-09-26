@@ -8,15 +8,17 @@
 # What it tests (the real end-to-end, including the URL-fetch prep path that
 # failed on a learner's machine):
 #   1. revert Windows VM to clean-base, boot, SSH in.
-#   2. install DSH Desktop (reuse dsh-desktop/ci/install-windows.ps1).
-#   3. run the LATEST committed cohort-prep.ps1 (scp'd in) with a real key.
-#      PREP_URL is left at its default (Pages) so the fixed
+#   2. run the LATEST committed cohort-setup.ps1 (scp'd in) with a real key:
+#      it finds no DSH Desktop on the clean VM, downloads the PINNED release
+#      (DSH_VERSION in the script) from GitHub Releases, silent-installs it,
+#      then delegates to cohort-prep.ps1 (scp'd in via COHORT_PREP_URL).
+#      PREP_URL stays at its default (Pages) so the fixed
 #        iex (curl.exe -sL ... | Out-String)
 #      branch is exercised. inject_provider.py is scp'd and pointed at via
 #      INJECT_URL so the cohort injection uses latest committed code (no Pages
 #      lag dependency for the new file).
-#   4. verify the cohort injection (verify-cohort-windows.ps1).
-#   5. power off (hard) — VM left at clean-base for the next run.
+#   3. verify the cohort injection (verify-cohort-windows.ps1).
+#   4. power off (hard) — VM left at clean-base for the next run.
 #
 # Usage (from the repo root on the CI host, or via ssh yuan):
 #   bash dsh-desktop/cohort/ci/run-cohort-windows.sh
@@ -67,18 +69,14 @@ ip=$(guest_ip "$WIN_VMX" "${WIN_HOST:-}") || fail "windows: no guest IP"
 note "[cohort/win] guest IP: $ip — waiting for SSH"
 ssh_wait "$ip" "$WIN_USER" || fail "windows SSH timeout"
 
-note "[cohort/win] scp latest cohort + inject + install + verify into VM"
+note "[cohort/win] scp latest cohort-setup + cohort-prep + inject + verify into VM"
 scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
+  dsh-desktop/cohort/cohort-setup.ps1 \
   dsh-desktop/cohort/cohort-prep.ps1 \
   dsh-desktop/cohort/inject_provider.py \
-  dsh-desktop/ci/install-windows.ps1 \
   dsh-desktop/cohort/ci/verify-cohort-windows.ps1 \
   "$WIN_USER@$ip": 2>&1 | tail -1
 
-note "[cohort/win] installing DSH Desktop (if not already)"
-ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$WIN_USER@$ip" \
-  "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/install-windows.ps1" \
-  2>&1 | tail -3
 # the silent installer may auto-launch DSH Desktop; the app's first-run init can
 # peg the VM and make SSH time out. Kill it, then re-wait for SSH before prep.
 ssh_retry() {
@@ -89,13 +87,15 @@ ssh_retry() {
   done
   return 1
 }
-ssh_retry "taskkill /F /IM \"DSH Desktop.exe\" 2>nul; exit 0" 2>&1 | tail -1 || { note "[cohort/win] VM unreachable after install"; }
 
-note "[cohort/win] running cohort-prep.ps1 (PREP_URL=Pages default -> tests the fixed iex|Out-String branch)"
-ssh_retry "set TRAINING_API_KEY=$TEST_API_KEY&& set INJECT_URL=C:\\Users\\$WIN_USER\\inject_provider.py&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\cohort-prep.ps1" \
+note "[cohort/win] guaranteeing the fresh-machine path: remove any DSH Desktop first"
+ssh_retry "taskkill /F /IM \"DSH Desktop.exe\" 2>nul& powershell -NoProfile -Command \"Remove-Item -Recurse -Force (Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop') -ErrorAction SilentlyContinue; exit 0\"" 2>&1 | tail -1
+
+note "[cohort/win] running cohort-setup.ps1 (pinned DSH Desktop download + silent install + delegate; PREP_URL=Pages default -> tests the fixed iex|Out-String branch)"
+ssh_retry "set TRAINING_API_KEY=$TEST_API_KEY&& set INJECT_URL=C:\\Users\\$WIN_USER\\inject_provider.py&& set COHORT_PREP_URL=C:\\Users\\$WIN_USER\\cohort-prep.ps1&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\cohort-setup.ps1" \
   2>&1 | tee "ci/logs/cohort-win-$stamp.log"
 rc=$?
-note "[cohort/win] cohort-prep exit: $rc"
+note "[cohort/win] cohort-setup exit: $rc"
 
 note "[cohort/win] verifying the cohort injection"
 VERIFY_KEY="$TEST_API_KEY" ssh_retry "set VERIFY_KEY=$TEST_API_KEY&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\verify-cohort-windows.ps1" \

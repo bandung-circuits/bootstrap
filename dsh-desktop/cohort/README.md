@@ -2,31 +2,56 @@
 
 For each training cohort, the organizer generates **one self-contained HTML page**
 and sends the file to learners. The page contains a one-command setup whose
-command has the cohort's shared Bailian API key baked in. The learner (who has
-already installed DSH Desktop) runs it and gets a ready `~/ai-workspace` with
-the key configured, the content-inspection header set, the default model pinned
-to the cohort model (currently `deepseek-v4-flash-0731`), and permission set to
-Full Access — no manual key entry.
+command has the cohort's shared Bailian API key baked in. The learner runs it
+and gets everything on a fresh computer: DSH Desktop itself (pinned version,
+installed silently if missing) plus a ready `~/ai-workspace` with the key
+configured, the content-inspection header set, the default model pinned to the
+cohort model (currently `deepseek-v4-flash-0731`), and permission set to Full
+Access — no manual key entry, no separate app download.
 
 This subtree is **separate from** the public `dsh-desktop/prep.*` flow. It
-reuses the public prep verbatim (by running it) and only adds the provider/key
-injection. The public site files (`prep.sh`, `prep.ps1`, `dsh-desktop.html`,
-`index.html`, `templates/`) are not modified.
+reuses the public prep verbatim (by running it) and only adds (a) the pinned
+DSH Desktop install when the app is missing and (b) the provider/key injection.
+The public site files (`prep.sh`, `prep.ps1`, `dsh-desktop.html`, `index.html`,
+`templates/`) are not modified.
 
 ## Layout
 
 ```
 generate.py            generator — bakes the key into a per-cohort HTML page
-cohort-prep.sh         macOS learner command target (published to Pages, no secret)
-cohort-prep.ps1        Windows learner command target (same)
+cohort-setup.sh        macOS learner command target: DSH Desktop (pinned) if
+                       missing, then cohort-prep.sh (published to Pages, no secret)
+cohort-setup.ps1       Windows learner command target (same)
+cohort-prep.sh         macOS: public prep + provider/key injection (called by
+                       cohort-setup.sh; also usable directly when the app is
+                       already installed)
+cohort-prep.ps1        Windows: same
 inject_provider.py     single source of truth for the settings.yaml + .credentials.yaml
                        injection (provider, key, header, default model). Called by
-                       both cohort-prep.* entries, never duplicated across languages.
+                       cohort-prep.*, never duplicated across languages.
 templates/cohort-page.html   the per-cohort HTML page template
 cohorts/               gitignored — generated pages contain the key, never commit
-ci/smoke.sh            host-side smoke (inject unit tests + generator + real chat)
+ci/smoke.sh            host-side smoke (inject unit tests + generator + setup glue + real chat)
 ci/fixtures/settings.sample.yaml   de-sanitized real settings.yaml for unit tests
 ```
+
+## Pinned DSH Desktop version
+
+On a fresh machine the learner command downloads and silently installs a
+**pinned** DSH Desktop release — currently `v0.9.2` (verified with the cohort
+flow in CI), from the official GitHub releases:
+
+- macOS: DMG (`dsh-desktop-mac-arm64` / `-x64`), mounted and copied to
+  `/Applications` (falls back to `~/Applications` without admin rights).
+- Windows: NSIS setup with `/S`, per-user, no admin prompt — the same proven
+  method as `dsh-desktop/ci/install-windows.ps1`.
+
+The pin controls only what WE install; the app's own auto-updater still offers
+newer versions afterwards and harness config survives upgrades (same exposure
+as the manual-install flow). Bump the pin deliberately after verifying a new
+version with the cohort flow: change `DSH_VERSION` in `cohort-setup.sh`,
+`cohort-setup.ps1`, and `generate.py` (the smoke checks all three agree).
+
 
 ## Generate a cohort page
 
@@ -45,15 +70,18 @@ Output: `dsh-desktop/cohort/cohorts/202609-nepal.html` (gitignored — it contai
 the key). Send that file to the cohort's learners out of band (email, chat,
 class folder). **Do not publish it to GitHub Pages or commit it.**
 
-The commands on the page point at the public cohort-prep scripts on Pages, so
+The commands on the page point at the public cohort-setup scripts on Pages, so
 fixing the script later upgrades all future cohorts without re-issuing old pages
-(only the key differs per cohort).
+(only the key differs per cohort). Note this also means a pin bump (or any
+setup-script change) reaches future learners on old pages automatically.
 
 ## What the learner's command does
 
-1. Runs the public `dsh-desktop/prep.sh` (or `.ps1`) verbatim — workspace,
+1. Installs DSH Desktop if it is missing (pinned version, silent — see above);
+   skips this when the app is already installed.
+2. Runs the public `dsh-desktop/prep.sh` (or `.ps1`) verbatim — workspace,
    crawl4ai MCP, browser, Full Access permission. (Reuse; not duplicated.)
-2. Calls `inject_provider.py`, which writes into the DSH Desktop harness dir:
+3. Calls `inject_provider.py`, which writes into the DSH Desktop harness dir:
    - `settings.yaml` — the `training` provider (baseURL, `apiKeyEnv`,
      `X-DashScope-DataInspection: {"input":"disable","output":"disable"}`,
      models), and `agent-default-model` pinned to the cohort model.
@@ -84,6 +112,7 @@ bash dsh-desktop/cohort/ci/smoke.sh
 
 It runs: inject unit tests (replace + insert paths, idempotency) → generator
 test (dummy key) → `cohort-prep.sh` end-to-end glue (prep stubbed, temp harness)
+→ `cohort-setup.sh` glue (pin consistency, key guard, app-detect + delegate)
 → a real minimal chat call to Bailian with the content-inspection header →
 (optional) the same call with the cohort main model. The key is masked in all
 logs; generated test artifacts use a dummy key and are deleted.

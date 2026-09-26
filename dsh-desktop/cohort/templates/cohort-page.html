@@ -52,28 +52,24 @@
 <div class="wrap">
   <span class="badge">training cohort</span>
   <h1>{{LABEL}}</h1>
-  <p class="sub">Welcome. Run <strong>one command</strong> below and your AI workspace is ready — the model key is
-  already built into the command, the content-safety header is set, the default model
-  (<code class="inline">{{MODEL}}</code>) is selected, and permission is Full Access. You do not paste any key by hand.</p>
-
-  <div class="card">
-    <h2>Step 1 — Install DSH Desktop (if you haven&rsquo;t already)</h2>
-    <p>Download it from <a href="https://dshdesktop.com/en/">dshdesktop.com/en/</a> and install it normally
-    (drag to Applications on macOS, run the installer on Windows). Supported: <strong>macOS</strong> and
-    <strong>Windows</strong>. If you already have it installed, skip to Step 2.</p>
-  </div>
+  <p class="sub">Welcome. Run <strong>one command</strong> below and everything is ready — if you don&rsquo;t have
+  DSH Desktop yet, the command installs it for you. The model key is already built into the command, the
+  content-safety header is set, the default model (<code class="inline">{{MODEL}}</code>) is selected, and
+  permission is Full Access. You do not paste any key by hand.</p>
 
   <div class="card notice">
-    <p><strong>Before you run the command: quit DSH Desktop completely.</strong>
+    <p><strong>Already have DSH Desktop? Quit it completely before running the command.</strong>
     Close its window; on Windows, make sure it isn&rsquo;t still running in the system tray. While the app is
-    running it can hold onto its config files and block the command from updating them.</p>
+    running it can hold onto its config files and block the command from updating them. On a fresh computer
+    you can ignore this.</p>
   </div>
 
   <div class="card">
-    <h2>Step 2 — Run one command <span id="os-hint" style="font-weight:600;color:var(--accent)"></span></h2>
+    <h2>Step 1 — Run one command <span id="os-hint" style="font-weight:600;color:var(--accent)"></span></h2>
     <p>Open a terminal (macOS: Applications &rarr; Utilities &rarr; Terminal) or PowerShell (Windows),
-    paste the command for your system, press Enter. It takes a few minutes the first time (it downloads a
-    small browser for web search).</p>
+    paste the command for your system, press Enter. It takes a few minutes the first time (it installs
+    DSH Desktop <code class="inline">{{DSH_VERSION}}</code> if needed, then downloads a small browser for
+    web search). Supported systems: <strong>macOS</strong> and <strong>Windows</strong>.</p>
 
     <div class="tabs">
       <div class="tab active" id="tab-mac" onclick="show('mac')">macOS</div>
@@ -103,7 +99,7 @@
   </div>
 
   <div class="card">
-    <h2>Step 3 — Open the app and start</h2>
+    <h2>Step 2 — Open the app and start</h2>
     <ol class="steps">
       <li>Open <strong>DSH Desktop</strong>.</li>
       <li>Click <strong>Choose workspace</strong> and pick
@@ -125,6 +121,7 @@
     <details>
       <summary style="cursor:pointer;color:var(--muted);font-size:.92rem">What the command actually did (tap to expand)</summary>
       <ol class="steps" style="margin-top:.8rem">
+        <li>Installed <strong>DSH Desktop</strong> (pinned version {{DSH_VERSION}}, from its official GitHub releases) if it wasn&rsquo;t already on the computer.</li>
         <li>Created <code class="inline">~/ai-workspace</code> with workspace rules (AGENTS.md), a README, .gitignore and a NEXT-STEPS.md.</li>
         <li>Installed <strong>inside that folder</strong> everything the web tools need: a Python environment with crawl4ai, and the browser it uses.</li>
         <li>Enabled the <strong>crawl4ai</strong> web fetch &amp; search tools (free, no key) through the official DSH MCP client.</li>

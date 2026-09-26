@@ -46,7 +46,8 @@ README.md                    this file
 `cohort/` is a separate subtree for training-cohort setups where the organizer
 pre-issues a shared Bailian API key per cohort. A generator bakes the key into a
 per-cohort single-page HTML the organizer sends to learners; the learner's
-one-command setup runs the public prep above verbatim, then injects the
-provider/key/content-inspection header/default model. See
+one-command setup installs DSH Desktop itself when it is missing (a pinned
+release, installed silently), then runs the public prep above verbatim, then
+injects the provider/key/content-inspection header/default model. See
 [`cohort/README.md`](cohort/README.md). The public prep files here are not
 modified by the cohort feature.
