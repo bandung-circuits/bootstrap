@@ -33,3 +33,16 @@ if (Test-Path $PrepUrl) {
 } else {
   Invoke-Expression (curl.exe -sL $PrepUrl | Out-String)
 }
+
+# 3. The end line learners are told to look for on the setup page. Keep the
+#    text identical to the "how it ends when it worked" sample shown there
+#    (same banner in setup.sh, setup.ps1, cohort-setup.sh, cohort-setup.ps1).
+#    ASCII-only: Windows PowerShell 5.1 parses BOM-less files as ANSI.
+Write-Host @'
+
+  ============================================
+    Setup complete!
+    Now open the DSH Desktop app
+    (Mac: Launchpad  |  Windows: Start menu)
+  ============================================
+'@ -ForegroundColor Green

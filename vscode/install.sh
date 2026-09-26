@@ -174,6 +174,8 @@ main() {
   The crawl4ai MCP (web fetch/search) is registered and ready.
 NEXT
   workspace_open
+
+  printf '\033[1;32m  Setup finished.\033[0m\n'
 }
 
 main "$@"

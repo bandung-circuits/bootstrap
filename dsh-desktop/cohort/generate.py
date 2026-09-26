@@ -17,8 +17,10 @@
 # pages.
 
 import argparse
+import base64
 import html
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +38,31 @@ DEFAULT_MODEL = "deepseek-v4-flash-0731"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_LABEL = "Training"
 DEFAULT_PROVIDER = "training"
+
+# The DSH Desktop app icon, embedded into the page as a data URI so the page
+# stays a single self-contained file (learners open it offline).
+ICON_PATH = os.path.join(HERE, "..", "..", "assets", "dsh-desktop-icon.png")
+
+# Learner-facing step/helper lines, shown under the English text on the page.
+# {{NE_*}} placeholders in the template; blanked out entirely when --lang is
+# not given (CSS hides empty .ne spans). Keys must exist in the template.
+# Nepali strings below were machine-drafted — have a native speaker glance
+# over them before the next cohort.
+TRANSLATIONS = {
+    "ne": {
+        "NE_SUB": "एउटा आदेश चलाउनुहोस्। करिब ५ मिनेटमा तपाईंको AI वर्कस्पेस तयार हुन्छ।",
+        "NE_STEP1": "कालो विन्डो खोल्नुहोस्",
+        "NE_STEP1H": "Mac मा: ⌘ र Space एकसाथ थिच्नुहोस्, अनि Terminal टाइप गरेर Enter थिच्नुहोस्। Windows मा: Win कुन्जी थिच्नुहोस्, अनि PowerShell टाइप गरेर Enter थिच्नुहोस्।",
+        "NE_STEP2": "तलको हरियो बटन थिचेर आदेश कपी गर्नुहोस्",
+        "NE_STEP3": "कालो विन्डोमा पेस्ट गरेर Enter थिच्नुहोस्, त्यसपछि करिब ५ मिनेट पर्खनुहोस्",
+        "NE_DONTREAD": "आदेश बुझ्न जरुरी छैन — कपी मात्र गर्नुहोस्।",
+        "NE_BTN": "आदेश कपी गर्नुहोस्",
+        "NE_COPIED": "कपी भयो! अब कालो विन्डोमा पेस्ट गरेर Enter थिच्नुहोस्",
+        "NE_SCROLL": "धेरै अंग्रेजी टेक्स्ट स्क्रोल हुनेछ। यो सामान्य हो — इन्स्टल भइरहेको छ। करिब ५ मिनेट पर्खनुहोस्।",
+        "NE_STEP4": "DSH Desktop एप खोल्नुहोस्",
+        "NE_STUCK": "अल्झिनुभयो भने प्रशिक्षकलाई भन्नुहोस्।",
+    },
+}
 
 
 def build_mac_command(key, model, base_url, label, provider):
@@ -88,6 +115,8 @@ def main():
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL)
     ap.add_argument("--provider", default=DEFAULT_PROVIDER)
+    ap.add_argument("--lang", help="add second-language step/helper lines on the "
+                    "page, e.g. 'ne' (Nepali). Omit for English only.")
     args = ap.parse_args()
 
     key = read_key(args)
@@ -101,12 +130,30 @@ def main():
     win_cmd = build_win_command(key, args.model, args.base_url, args.label, args.provider)
 
     tpl = open(os.path.join(HERE, "templates", "cohort-page.html"), encoding="utf-8").read()
+
+    # Second-language step/helper lines. Fill {{NE_*}} from the translation
+    # table, then blank out any that remain (CSS hides empty .ne spans).
+    if args.lang:
+        if args.lang not in TRANSLATIONS:
+            sys.exit(f"ERROR: unknown --lang '{args.lang}'. Available: {', '.join(sorted(TRANSLATIONS))}")
+        for name, text in TRANSLATIONS[args.lang].items():
+            tpl = tpl.replace("{{" + name + "}}", html.escape(text))
+    out = re.sub(r"\{\{NE_[A-Z0-9_]+\}\}", "", tpl)
+
+    # App icon as data URI — the page must stay a single self-contained file.
+    try:
+        with open(ICON_PATH, "rb") as f:
+            icon_uri = "data:image/png;base64," + base64.b64encode(f.read()).decode("ascii")
+    except OSError as e:
+        sys.exit(f"ERROR: cannot read app icon ({ICON_PATH}): {e}")
+
     # HTML-escape the command strings (keys are safe chars, but be correct).
     out = (
-        tpl.replace("{{LABEL}}", html.escape(args.label))
+        out.replace("{{LABEL}}", html.escape(args.label))
         .replace("{{COHORT_ID}}", html.escape(args.id))
         .replace("{{MODEL}}", html.escape(args.model))
         .replace("{{DSH_VERSION}}", html.escape(DSH_VERSION))
+        .replace("{{DSH_ICON}}", icon_uri)
         .replace("{{MAC_COMMAND}}", html.escape(mac_cmd))
         .replace("{{WIN_COMMAND}}", html.escape(win_cmd))
     )
@@ -116,7 +163,7 @@ def main():
     out_path = os.path.join(out_dir, f"{args.id}.html")
     open(out_path, "w", encoding="utf-8").write(out)
     print(f"wrote {out_path}")
-    print(f"  cohort: {args.id}  model: {args.model}")
+    print(f"  cohort: {args.id}  model: {args.model}" + (f"  lang: {args.lang}" if args.lang else ""))
     # keep the key out of our own stdout.
     masked = key[:4] + "…" + key[-4:] if len(key) > 8 else "…"
     print(f"  key (masked): {masked}")

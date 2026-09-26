@@ -449,3 +449,4 @@ if ($env:BOOTSTRAP_NO_LAUNCH -eq '1') {
     # (Seed-VSCodeState) instead; the user opens it with the Spark icon.
     Start-Process code -ArgumentList "`"$WS`"", "`"$(Join-Path $WS 'NEXT-STEPS.md')`""
 }
+Write-Host '  Setup finished.' -ForegroundColor Green

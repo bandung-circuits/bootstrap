@@ -41,3 +41,8 @@ if [ -f "$COHORT_PREP_URL" ]; then
 else
   curl -fsSL "$COHORT_PREP_URL" | bash
 fi
+
+# 3. The end line learners are told to look for on the cohort page. Keep the
+#    text identical to the "how it ends when it worked" sample shown there
+#    (same banner in setup.sh, setup.ps1, cohort-setup.sh, cohort-setup.ps1).
+printf '\033[1;32m\n  ============================================\n    Setup complete!\n    Now open the DSH Desktop app\n    (Mac: Launchpad  |  Windows: Start menu)\n  ============================================\n\033[0m'
