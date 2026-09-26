@@ -8,9 +8,9 @@
 #   2. generate.py — the page contains the (dummy) key and both commands.
 #   3. cohort-prep.sh — the glue (key check, pristine backup, python pick,
 #      inject invocation) against a temp harness with prep stubbed out.
-#   3.5. cohort-setup.sh — the app-install glue: version pins agree across
-#      sh/ps1/generate.py, missing key fails fast, app-detect + delegate to
-#      cohort-prep (download branch only on a host without the app).
+#   3.5. setup glue — version pins agree across install-dsh sh/ps1 +
+#      generate.py, missing key fails fast, install-dsh app-detect + delegate
+#      to cohort-prep (download branch only on a host without the app).
 #   4. a real minimal chat call to Bailian with the content-inspection header,
 #      proving key + endpoint + header actually work together.
 #   5. (opt) the same call with the cohort main model.
@@ -230,18 +230,25 @@ note "Step 3 passed"
 # CI); on a host without DSH Desktop.app that branch is skipped (same policy as
 # dsh-desktop/ci/verify/verify-macos.sh tier 2). PowerShell syntax is not
 # checked here (no pwsh on the mac host); cohort-setup.ps1 reuses the exact
-# silent-install method proven by dsh-desktop/ci/install-windows.ps1 in the VM.
+# silent-install method proven in the Windows VM (formerly install-windows.ps1,
+# now install-dsh.ps1 itself).
 # ----------------------------------------------------------------------------
-note "Step 3.5: cohort-setup.sh glue (pins, key guard, delegate)"
+note "Step 3.5: setup glue (pins, key guard, install-dsh, delegate)"
 SETUP="$HERE/../cohort-setup.sh"
+INSTALL_DSH="$HERE/../../install-dsh.sh"
+PUBLIC_SETUP="$HERE/../../setup.sh"
 bash -n "$SETUP" || fail "cohort-setup.sh syntax error"
+bash -n "$INSTALL_DSH" || fail "install-dsh.sh syntax error"
+bash -n "$PUBLIC_SETUP" || fail "public setup.sh syntax error"
 
-pin_sh="$(sed -n 's/^DSH_VERSION="\${DSH_VERSION:-\(v[0-9.]*\)}".*/\1/p' "$SETUP" | head -1)"
-pin_ps="$(sed -n "s/.*else { '\(v[0-9.]*\)'.*/\1/p" "$HERE/../cohort-setup.ps1" | head -1)"
+# pin lives in the shared install-dsh.* front half (single source of truth),
+# mirrored into generate.py for the cohort page text.
+pin_sh="$(sed -n 's/^DSH_VERSION="\${DSH_VERSION:-\(v[0-9.]*\)}".*/\1/p' "$INSTALL_DSH" | head -1)"
+pin_ps="$(sed -n "s/.*else { '\(v[0-9.]*\)'.*/\1/p" "$HERE/../../install-dsh.ps1" | head -1)"
 pin_gen="$("$PYBIN" -c "import re,sys;print(re.search(r'DSH_VERSION = \"(v[0-9.]+)\"', open(sys.argv[1]).read()).group(1))" "$HERE/../generate.py")"
 [ -n "$pin_sh" ] && [ "$pin_sh" = "$pin_ps" ] && [ "$pin_sh" = "$pin_gen" ] \
-  || fail "DSH Desktop version pin mismatch: sh=$pin_sh ps1=$pin_ps generate.py=$pin_gen"
-echo "  version pin consistent across sh/ps1/generate.py: $pin_sh"
+  || fail "DSH Desktop version pin mismatch: install-dsh.sh=$pin_sh install-dsh.ps1=$pin_ps generate.py=$pin_gen"
+echo "  version pin consistent across install-dsh sh/ps1 + generate.py: $pin_sh"
 
 SETUP_PREP_STUB="$TMP/cohort-prep-stub.sh"
 printf '#!/usr/bin/env bash\necho "(cohort-prep stubbed for setup smoke)"\n' > "$SETUP_PREP_STUB"

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>DSH Desktop workspace — Bootstrap</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Install DSH Desktop, then one command prepares a ready AI workspace: ~/ai-workspace with workspace rules and the crawl4ai MCP enabled through the official DSH MCP client. macOS and Windows.">
+<meta name="description" content="One command installs DSH Desktop (pinned version, if missing) and prepares a ready AI workspace: ~/ai-workspace with workspace rules and the crawl4ai MCP enabled through the official DSH MCP client. macOS and Windows.">
 <style>
   :root{
     --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3;
@@ -49,26 +49,19 @@
   <a class="back" href="index.html">← All setups</a>
   <h1>DSH Desktop workspace</h1>
   <p class="sub">A ready AI workspace for <strong>DSH Desktop</strong> in one command — free, open source, runs
-  on your own computer. First install the app, then run the command.</p>
+  on your own computer. The command installs the app itself (pinned version) if it&rsquo;s missing, then sets
+  everything else up.</p>
 
   <div class="card">
-    <h2>Step 1 — Install DSH Desktop and set up a model subscription</h2>
-    <p>Download the app for your computer from <a href="https://dshdesktop.com/en/">dshdesktop.com/en/</a> and
-    install it normally (drag to Applications on macOS, run the installer on Windows).
+    <h2>Step 1 — Run one command <span class="os-tag" style="font-weight:600;color:var(--accent)" id="os-hint"></span></h2>
+    <p>Open a terminal (macOS: Applications → Utilities → Terminal) or PowerShell (Windows), paste the command for
+    your system, press Enter. It takes a few minutes the first time: it installs DSH Desktop (pinned
+    <code class="inline">v0.9.2</code>) if needed, then downloads a small browser for web search.
     Supported: <strong>macOS</strong> (Apple Silicon and Intel) and <strong>Windows</strong>.
     Linux is not supported yet.</p>
-    <p>The app needs a model service behind it. Sign up for one (a small paid subscription) and paste the key into
-    <strong>Settings → Models</strong> inside the app. Recommended: <a href="https://openrouter.ai/">OpenRouter</a>;
-    <a href="https://www.alibabacloud.com/">Alibaba Cloud Model Studio</a> (international) also works well.</p>
-  </div>
-
-  <div class="card">
-    <h2>Step 2 — Run one command <span class="os-tag" style="font-weight:600;color:var(--accent)" id="os-hint"></span></h2>
-    <p style="margin-bottom:.2rem"><strong>Before you run the command:</strong> <strong>quit DSH Desktop completely</strong>
-    (close its window; on Windows, make sure it isn&rsquo;t still running in the tray). The app can hold onto its config
-    files and block the command from updating them.</p>
-    <p>Then open a terminal (macOS: Applications → Utilities → Terminal) or PowerShell (Windows), paste the command for
-    your system, press Enter.</p>
+    <p style="margin-bottom:.2rem"><strong>Already have DSH Desktop?</strong> Quit it completely before running the
+    command (close its window; on Windows, make sure it isn&rsquo;t still running in the tray). The app can hold onto
+    its config files and block the command from updating them. On a fresh computer you can ignore this.</p>
 
     <div class="tabs">
       <div class="tab active" id="tab-desk-mac" onclick="show('mac')">macOS</div>
@@ -78,13 +71,13 @@
 
     <div id="desk-mac">
       <div class="cmd">
-        <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.sh | bash</code>
+        <code>curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.sh | bash</code>
         <button class="copy" onclick="cp(this)">Copy</button>
       </div>
     </div>
     <div id="desk-win" class="hidden">
       <div class="cmd">
-        <code>iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | Out-String)</code>
+        <code>iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.ps1 | Out-String)</code>
         <button class="copy" onclick="cp(this)">Copy</button>
       </div>
     </div>
@@ -98,7 +91,10 @@
   </div>
 
   <div class="card">
-    <h2>Then what?</h2>
+    <h2>Step 2 — Add your model key and start</h2>
+    <p>The app needs a model service behind it. Sign up for one (a small paid subscription); recommended:
+    <a href="https://openrouter.ai/">OpenRouter</a>; <a href="https://www.alibabacloud.com/">Alibaba Cloud Model
+    Studio</a> (international) also works well. Then:</p>
     <ol class="steps">
       <li>Open <strong>DSH Desktop</strong> → Settings → Models → paste your API key.</li>
       <li>Click <strong>Choose workspace</strong> and pick <code class="inline">~/ai-workspace</code>.</li>
@@ -110,6 +106,7 @@
     <details>
       <summary style="cursor:pointer;color:var(--muted);font-size:.92rem">What the command actually did (tap to expand)</summary>
       <ol class="steps" style="margin-top:.8rem">
+        <li>Installed <strong>DSH Desktop</strong> (pinned version <code class="inline">v0.9.2</code>, from its official GitHub releases) if it wasn&rsquo;t already on the computer.</li>
         <li>Created <code class="inline">~/ai-workspace</code> (Windows: <code class="inline">C:\Users\&lt;you&gt;\ai-workspace</code>) with workspace rules (AGENTS.md), a README, .gitignore and a NEXT-STEPS.md.</li>
         <li>Installed <strong>inside that folder</strong> everything the web tools need: a Python environment with crawl4ai, the browser it uses, and a helper.</li>
         <li>Enabled the <strong>crawl4ai</strong> web fetch &amp; search tools (free, no key) through the official DSH MCP client, so the assistant can read web pages.</li>

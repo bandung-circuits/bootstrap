@@ -38,20 +38,17 @@ ci/fixtures/settings.sample.yaml   de-sanitized real settings.yaml for unit test
 ## Pinned DSH Desktop version
 
 On a fresh machine the learner command downloads and silently installs a
-**pinned** DSH Desktop release — currently `v0.9.2` (verified with the cohort
-flow in CI), from the official GitHub releases:
-
-- macOS: DMG (`dsh-desktop-mac-arm64` / `-x64`), mounted and copied to
-  `/Applications` (falls back to `~/Applications` without admin rights).
-- Windows: NSIS setup with `/S`, per-user, no admin prompt, no windows — the
-  same proven method as `dsh-desktop/ci/install-windows.ps1`. The learner is
-  told it takes about 5 minutes and nothing is required from them.
+**pinned** DSH Desktop release — currently `v0.9.2` (verified end to end with
+this flow), from the official GitHub releases. The install logic and the pin
+live in the shared front half [`../install-dsh.sh` / `.ps1`](../README.md)
+(also used by the public `setup.*` entry); see that README for platform
+details. `generate.py` carries the same version for the cohort page text.
 
 The pin controls only what WE install; the app's own auto-updater still offers
 newer versions afterwards and harness config survives upgrades (same exposure
 as the manual-install flow). Bump the pin deliberately after verifying a new
-version with the cohort flow: change `DSH_VERSION` in `cohort-setup.sh`,
-`cohort-setup.ps1`, and `generate.py` (the smoke checks all three agree).
+version with the cohort flow: change `DSH_VERSION` in `../install-dsh.sh`,
+`../install-dsh.ps1`, and `generate.py` (the smoke checks all three agree).
 
 
 ## Generate a cohort page

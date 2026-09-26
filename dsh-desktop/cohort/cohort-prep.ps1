@@ -66,7 +66,7 @@ foreach ($f in @((Join-Path $HARNESS 'settings.yaml'), (Join-Path $HARNESS '.cre
 
 # 3. run the public prep (workspace, venv, crawl4ai MCP, Full Access). REUSE.
 # curl.exe returns an Object[] of lines; iex needs a single string, so pipe
-# through Out-String (same pattern as dsh-desktop/ci/run-prep.ps1).
+# through Out-String (same pattern as dsh-desktop/setup.ps1's delegation).
 Note 'Running the standard workspace prep'
 if (Test-Path $PrepUrl) {
   & powershell -NoProfile -File $PrepUrl

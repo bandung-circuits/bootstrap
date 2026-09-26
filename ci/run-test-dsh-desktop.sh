@@ -61,17 +61,13 @@ if [ -n "${WIN_VMX:-}" ]; then
   ip=$(guest_ip "$WIN_VMX" "${WIN_HOST:-}") || fail "windows: no guest IP"
   note "[win] guest IP: $ip — waiting for SSH"
   ssh_wait "$ip" "$WIN_USER" || fail "windows SSH timeout"
-  note "[win] scp CI-internal scripts into VM"
+  note "[win] scp latest learner entry + verify into VM"
   scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
-    dsh-desktop/ci/install-windows.ps1 dsh-desktop/ci/verify/verify-windows.ps1 \
-    dsh-desktop/ci/run-prep.ps1 "$WIN_USER@$ip": 2>&1 | tail -1
-  note "[win] installing DSH Desktop (if needed)"
-  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/install-windows.ps1" \
-    2>&1 | tail -3
-  note "[win] running prep via REAL user path: irm | iex (fetches from Pages)"
-  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/run-prep.ps1" \
+    dsh-desktop/setup.ps1 dsh-desktop/install-dsh.ps1 dsh-desktop/ci/verify/verify-windows.ps1 \
+    "$WIN_USER@$ip": 2>&1 | tail -1
+  note "[win] running setup.ps1 (pinned DSH Desktop install + prep via REAL user path)"
+  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$WIN_USER@$ip" \
+    "set INSTALL_DSH_URL=C:\\Users\\$WIN_USER\\install-dsh.ps1&& powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/setup.ps1" \
     2>&1 | tail -10
   note "[win] verifying"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \

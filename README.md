@@ -13,19 +13,19 @@
 
 ### 方案一（首选）：DSH Desktop 工作区
 
-页面：`https://bandung-circuits.github.io/bootstrap/dsh-desktop.html`。学员先自己装 DSH Desktop（https://dshdesktop.com/en/，仅 macOS/Windows），再运行一条命令：
+页面：`https://bandung-circuits.github.io/bootstrap/dsh-desktop.html`。一条命令完成全部（app 没装则先静默安装钉版 DSH Desktop，再配工作区）：
 
 ```bash
-curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.sh | bash
+curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.sh | bash
 ```
 
 Windows（PowerShell）：
 
 ```powershell
-iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.ps1 | Out-String)
+iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.ps1 | Out-String)
 ```
 
-得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
+得到 DSH Desktop（钉版 v0.9.2，如已装则跳过）+ `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
 
 ### 方案二（次选）：VS Code + Claude Code
 
@@ -66,9 +66,12 @@ lib/detect.sh                               共享：OS/arch/region 检测（两
 vscode/                方案 A：VS Code + Claude Code
   install.sh / install.ps1 / install-wsl.sh
   lib/  providers/  templates/  ci/verify/  wip/
-dsh-desktop/           方案 B：给 DSH Desktop 学员准备工作区（一条命令）
-  prep.sh / prep.ps1   templates/  README.md
-  cohort/              培训期单页安装指南生成器（每期 key 烧进单页 HTML，与公开 prep 复用不耦合）
+dsh-desktop/           方案 B：DSH Desktop 学员一条命令装好一切
+  install-dsh.sh / .ps1  共享前半段：钉版 DSH Desktop 静默安装（单一版本钉事实源）
+  setup.sh / setup.ps1   公开学员入口：install-dsh + prep
+  prep.sh / prep.ps1     工作区逻辑（venv、crawl4ai、MCP、权限；CI 与上层脚本复用）
+  templates/  README.md
+  cohort/              培训期单页安装指南生成器（每期 key 烧进单页 HTML，复用 install-dsh + prep）
 index.html              站点首页：二选一门户（两个并列方案块，DSH Desktop 首选）
 vscode.html             方案 A 页面：VS Code + Claude Code（安装命令与说明）
 dsh-desktop.html        方案 B 页面：DSH Desktop 工作区
@@ -78,7 +81,7 @@ ci/         CI：VMware Fusion Pro 上的 Linux ARM + Windows 11 ARM 模板机�
 docs/       设计决策（design-vscode.md 为方案 A 记录）
 ```
 
-- DSH Desktop 方案：学员先自己装 DSH Desktop（https://dshdesktop.com/en/，仅 macOS/Windows），再运行一条命令（`curl .../dsh-desktop/prep.sh | bash` 或 `irm .../prep.ps1 | iex`），得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
+- DSH Desktop 方案：一条命令（`curl .../dsh-desktop/setup.sh | bash` 或 `iex (curl.exe -sL .../setup.ps1 | Out-String)`），app 没装则先静默安装钉版 DSH Desktop（v0.9.2，MIT 开源，GitHub 官方 release），再得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
 - 设计原则：每个方案的种子配置都是 `templates/` 里的真实静态文件，脚本只拷贝 + 占位符替换。
 
 详见 `docs/design-vscode.md` 与 `ci/vm-setup.md`。
