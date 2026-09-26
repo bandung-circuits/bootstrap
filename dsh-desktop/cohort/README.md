@@ -62,7 +62,6 @@ python3 dsh-desktop/cohort/generate.py \
   --key sk-xxxxxxxx
 # optional: --model deepseek-v4-flash-0731  --base-url <bailian endpoint>
 # key may also come from env BAILIAN_KEY or --key-file (keeps it out of shell history)
-# --lang ne  adds Nepali learner-step lines under the English (omit = English only)
 ```
 
 Output: `dsh-desktop/cohort/cohorts/202609-nepal.html` (gitignored — it contains
@@ -77,12 +76,12 @@ setup-script change) reaches future learners on old pages automatically.
 Page design notes: the page is aimed at learners with no IT background. It shows
 three numbered steps (open the terminal, copy via a big green button, paste +
 Enter), styles the command as a mock terminal window so learners recognise the
-real one, auto-detects the OS and shows only one command, and shows a sample of
-the script's exact final output ("Setup complete!" banner printed by the
-cohort-setup scripts — keep the two in sync). `--lang` adds second-language
-learner lines (currently `ne` = Nepali; machine-drafted, have a native speaker
-review before the next cohort). The DSH Desktop app icon (`assets/`) is
-embedded as a data URI so the page stays a single self-contained file.
+real one (macOS traffic lights for Mac learners, Windows title-bar controls for
+Windows learners), auto-detects the OS and shows only one command, and shows a
+sample of the script's exact final output ("Setup complete!" banner printed by
+the cohort-setup scripts — keep the two in sync). The DSH Desktop app icon
+(`assets/`) is embedded as a data URI so the page stays a single
+self-contained file.
 
 ## What the learner's command does
 

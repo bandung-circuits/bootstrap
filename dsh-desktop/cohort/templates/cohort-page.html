@@ -25,8 +25,6 @@
   h1{font-size:1.6rem;margin:.1em 0 .2em;line-height:1.25}
   .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1rem}
   .sub strong{color:var(--text)}
-  .ne{color:var(--muted);font-weight:400}
-  .ne:empty{display:none!important}
   .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin:1rem 0}
   .card h2{margin:0 0 .6rem;font-size:1.05rem}
   .card p{margin:0 0 .8rem;color:var(--muted)}
@@ -40,9 +38,8 @@
                  background:var(--accent);color:#fff;font-weight:700;font-size:1rem;
                  display:flex;align-items:center;justify-content:center}
   .bstep .t{font-weight:700;font-size:1rem;line-height:1.35;padding-top:.15rem}
-  .bstep .t .ne{display:block;font-weight:400;font-size:.88rem}
   .bstep .d{font-size:.85rem;color:var(--muted);margin-top:.3rem;line-height:1.5}
-  .bstep .d .ne{display:block;font-size:.85rem}
+  .osline{font-size:.9rem;font-weight:600;color:var(--ok);margin:0 0 .9rem}
   kbd{display:inline-block;min-width:1.5rem;text-align:center;background:var(--code);
       border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;
       padding:.05rem .4rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -58,6 +55,14 @@
   .term-body{padding:.7rem .85rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
              font-size:.8rem;line-height:1.55;color:#e6edf3;white-space:pre-wrap;word-break:break-all}
   .term.mini .term-body{font-size:.73rem;color:#b6c2cf}
+  /* Windows-style window chrome: title left, controls right */
+  .term-bar.win{padding:.35rem .6rem .35rem .7rem}
+  .psico{display:inline-flex;align-items:center;justify-content:center;width:1.05rem;height:1.05rem;border-radius:3px;
+         background:#1b3a5c;color:#cfe6ff;font:700 .55rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+         margin-right:.5rem;flex:none}
+  .term-bar.win .term-title{position:static;text-align:left;flex:1;color:#c9d4de}
+  .winbtns{display:flex;align-items:center;gap:.85rem;margin-left:auto;padding-left:.6rem}
+  .winbtns span{color:#c9d4de;font-size:.72rem;line-height:1}
   .p{color:#3fb950;font-weight:700}
   .cur{display:inline-block;width:.55em;height:1em;background:#e6edf3;vertical-align:-.15em;
        margin-left:1px;animation:blink 1.1s steps(1) infinite}
@@ -69,7 +74,6 @@
           border-radius:10px;padding:.8rem 1rem;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center}
   .bigbtn:hover{background:#2ea043}
   .bigbtn.copied{background:#1a7f37}
-  .bigbtn .ne{display:block;color:#d3f2da;font-size:.86rem;font-weight:400;margin-top:.1rem}
   .switch{font-size:.85rem;color:var(--muted);text-align:center;margin:.55rem 0 0}
   .switch a{color:var(--accent);cursor:pointer}
   .notice{border-color:var(--gold)}
@@ -95,7 +99,6 @@
   .kv{font-size:.9rem;color:var(--muted)}
   .kv b{color:var(--text)}
   .stuck{font-weight:700;color:var(--text);margin-top:.8rem}
-  .stuck .ne{font-weight:400;display:block}
   .foot{margin-top:2.5rem;color:var(--muted);font-size:.82rem;border-top:1px solid var(--border);padding-top:1rem}
 </style>
 </head>
@@ -105,22 +108,21 @@
   <h1>{{LABEL}}</h1>
   <p class="sub">Only one thing to do: run the command below. In about <strong>5 minutes</strong> your AI
   workspace is ready — then just ask the AI.</p>
-  <p class="sub ne">{{NE_SUB}}</p>
 
   <div class="card" id="hero" data-os="other">
+    <p class="osline" id="osline" hidden></p>
     <ol class="bigsteps">
       <li class="bstep">
-        <div class="t">Open the black window <span class="ne">{{NE_STEP1}}</span></div>
+        <div class="t">Open the black window</div>
         <div class="d mac-only">Mac: press <kbd>⌘</kbd>+<kbd>Space</kbd>, type <code class="ic">Terminal</code>, press <kbd>⏎ Enter</kbd></div>
         <div class="d win-only">Windows: press the <kbd>⊞ Win</kbd> key, type <code class="ic">PowerShell</code>, press <kbd>⏎ Enter</kbd></div>
-        <div class="d ne">{{NE_STEP1H}}</div>
       </li>
       <li class="bstep">
-        <div class="t">Click the green button to copy <span class="ne">{{NE_STEP2}}</span></div>
+        <div class="t">Click the green button to copy</div>
         <div class="d">The button is just below.</div>
       </li>
       <li class="bstep">
-        <div class="t">Paste it there, press Enter, wait <span class="ne">{{NE_STEP3}}</span></div>
+        <div class="t">Paste it there, press Enter, wait</div>
         <div class="d">Paste into the black window, press <kbd>⏎ Enter</kbd>, then wait about <strong>5 minutes</strong>.</div>
       </li>
     </ol>
@@ -130,22 +132,56 @@
         <div class="term-bar"><i></i><i></i><i></i><span class="term-title">Terminal — macOS</span></div>
         <div class="term-body"><span class="p">$ </span><code>{{MAC_COMMAND}}</code><span class="cur"></span></div>
       </div>
-      <p class="dontread">You don&rsquo;t need to understand this command — just copy it. <span class="ne">{{NE_DONTREAD}}</span></p>
-      <button class="bigbtn" data-copied-en="Copied! Now paste it in the black window and press Enter" data-copied-ne="{{NE_COPIED}}" onclick="cp(this)">
-        <span>⬇&nbsp; Copy the command</span><span class="ne">{{NE_BTN}}</span>
+      <p class="dontread">You don&rsquo;t need to understand this command — just copy it.</p>
+      <button class="bigbtn" data-copied-en="Copied! Now paste it in the black window and press Enter" onclick="cp(this)">
+        <span>⬇&nbsp; Copy the command</span>
       </button>
+      <div class="expect">
+        <p>After you press Enter, the black window will scroll a lot of English text. <strong style="color:var(--text)">That is
+        normal</strong> — it is installing. Do nothing, just wait until it stops (about 5 minutes, depending on internet speed).</p>
+        <div class="term mini">
+          <div class="term-bar"><i></i><i></i><i></i><span class="term-title">how it ends when it worked</span></div>
+          <div class="term-body">==> Done.
+
+  Your AI workspace is ready at  ~/ai-workspace
+
+  ============================================
+    <span class="ok">Setup complete!</span>
+    <span class="ok">Now open the DSH Desktop app</span>
+    (Mac: Launchpad  |  Windows: Start menu)
+  ============================================</div>
+        </div>
+        <p class="mini-cap">When the window ends with this, it worked. If it shows a red ERROR line instead, ask for help.</p>
+      </div>
       <p class="switch">Using Windows instead? <a onclick="setOS('win')">Switch to Windows</a></p>
     </div>
 
     <div class="win-only">
       <div class="term">
-        <div class="term-bar"><i></i><i></i><i></i><span class="term-title">PowerShell — Windows</span></div>
+        <div class="term-bar win"><span class="psico">&gt;_</span><span class="term-title">Windows PowerShell</span><span class="winbtns"><span>─</span><span>□</span><span>✕</span></span></div>
         <div class="term-body"><span class="p">PS C:\Users\you&gt; </span><code>{{WIN_COMMAND}}</code><span class="cur"></span></div>
       </div>
-      <p class="dontread">You don&rsquo;t need to understand this command — just copy it. <span class="ne">{{NE_DONTREAD}}</span></p>
-      <button class="bigbtn" data-copied-en="Copied! Now paste it in the black window and press Enter" data-copied-ne="{{NE_COPIED}}" onclick="cp(this)">
-        <span>⬇&nbsp; Copy the command</span><span class="ne">{{NE_BTN}}</span>
+      <p class="dontread">You don&rsquo;t need to understand this command — just copy it.</p>
+      <button class="bigbtn" data-copied-en="Copied! Now paste it in the black window and press Enter" onclick="cp(this)">
+        <span>⬇&nbsp; Copy the command</span>
       </button>
+      <div class="expect">
+        <p>After you press Enter, the black window will scroll a lot of English text. <strong style="color:var(--text)">That is
+        normal</strong> — it is installing. Do nothing, just wait until it stops (about 5 minutes, depending on internet speed).</p>
+        <div class="term mini">
+          <div class="term-bar win"><span class="psico">&gt;_</span><span class="term-title">how it ends when it worked</span><span class="winbtns"><span>─</span><span>□</span><span>✕</span></span></div>
+          <div class="term-body">==> Done.
+
+  Your AI workspace is ready at  ~/ai-workspace
+
+  ============================================
+    <span class="ok">Setup complete!</span>
+    <span class="ok">Now open the DSH Desktop app</span>
+    (Mac: Launchpad  |  Windows: Start menu)
+  ============================================</div>
+        </div>
+        <p class="mini-cap">When the window ends with this, it worked. If it shows a red ERROR line instead, ask for help.</p>
+      </div>
       <p class="switch">Using a Mac instead? <a onclick="setOS('mac')">Switch to macOS</a></p>
     </div>
 
@@ -155,29 +191,10 @@
         It works on macOS and Windows only. Please contact your training organizer for an alternative setup.</p>
       </div>
     </div>
-
-    <div class="expect">
-      <p>After you press Enter, the black window will scroll a lot of English text. <strong style="color:var(--text)">That is
-      normal</strong> — it is installing. Do nothing, just wait until it stops (about 5 minutes, depending on internet speed).
-      <span class="ne">{{NE_SCROLL}}</span></p>
-      <div class="term mini">
-        <div class="term-bar"><i></i><i></i><i></i><span class="term-title">how it ends when it worked</span></div>
-        <div class="term-body">==> Done.
-
-  Your AI workspace is ready at  ~/ai-workspace
-
-  ============================================
-    <span class="ok">Setup complete!</span>
-    <span class="ok">Now open the DSH Desktop app</span>
-    (Mac: Launchpad  |  Windows: Start menu)
-  ============================================</div>
-      </div>
-      <p class="mini-cap">When the window ends with this, it worked. If it shows a red ERROR line instead, ask for help.</p>
-    </div>
   </div>
 
   <div class="card">
-    <h2><span class="n4">4</span> Open DSH Desktop and start asking <span class="ne">{{NE_STEP4}}</span></h2>
+    <h2><span class="n4">4</span> Open DSH Desktop and start asking</h2>
     <div class="approw">
       <img class="appicon" src="{{DSH_ICON}}" alt="DSH Desktop app icon">
       <div>
@@ -229,7 +246,7 @@
   </details>
 
   <div class="foot">
-    <p class="stuck">Stuck? Ask your trainer. <span class="ne">{{NE_STUCK}}</span></p>
+    <p class="stuck">Stuck? Ask your trainer.</p>
     Cohort: <code>{{COHORT_ID}}</code> &middot; The API key in the command above is <strong>shared by everyone in this
     cohort and expires after the training</strong>. Keep it on this page; do not post it publicly or share it outside
     the cohort. &middot; A Bandung Circuits project.
@@ -238,13 +255,18 @@
 <script>
   function setOS(os){
     document.getElementById('hero').setAttribute('data-os', os);
+    var line = document.getElementById('osline');
+    var msgs = {
+      mac: '✓ This is a Mac — everything below is set up for macOS.',
+      win: '✓ This is a Windows PC — everything below is set up for Windows.'
+    };
+    if (msgs[os]) { line.textContent = msgs[os]; line.hidden = false; }
   }
   function cp(btn){
     var code = btn.closest('.mac-only, .win-only').querySelector('.term-body code');
     var done = function(){
       btn.classList.add('copied');
-      btn.innerHTML = '<span>✓&nbsp; ' + btn.getAttribute('data-copied-en') + '</span>' +
-        (btn.getAttribute('data-copied-ne') ? '<span class="ne">' + btn.getAttribute('data-copied-ne') + '</span>' : '');
+      btn.innerHTML = '<span>✓&nbsp; ' + btn.getAttribute('data-copied-en') + '</span>';
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(code.innerText).then(done, function(){ fallback(); });

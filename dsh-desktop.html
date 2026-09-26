@@ -38,6 +38,7 @@
                  display:flex;align-items:center;justify-content:center}
   .bstep .t{font-weight:700;font-size:1rem;line-height:1.35;padding-top:.15rem}
   .bstep .d{font-size:.85rem;color:var(--muted);margin-top:.3rem;line-height:1.5}
+  .osline{font-size:.9rem;font-weight:600;color:var(--ok);margin:0 0 .9rem}
   kbd{display:inline-block;min-width:1.5rem;text-align:center;background:var(--code);
       border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;
       padding:.05rem .4rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -54,6 +55,14 @@
   .term-body{padding:.7rem .85rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
              font-size:.8rem;line-height:1.55;color:#e6edf3;white-space:pre-wrap;word-break:break-word}
   .term.mini .term-body{font-size:.73rem;color:#b6c2cf}
+  /* Windows-style window chrome: title left, controls right */
+  .term-bar.win{padding:.35rem .6rem .35rem .7rem}
+  .psico{display:inline-flex;align-items:center;justify-content:center;width:1.05rem;height:1.05rem;border-radius:3px;
+         background:#1b3a5c;color:#cfe6ff;font:700 .55rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+         margin-right:.5rem;flex:none}
+  .term-bar.win .term-title{position:static;text-align:left;flex:1;color:#c9d4de}
+  .winbtns{display:flex;align-items:center;gap:.85rem;margin-left:auto;padding-left:.6rem}
+  .winbtns span{color:#c9d4de;font-size:.72rem;line-height:1}
   .p{color:#3fb950;font-weight:700}
   .cur{display:inline-block;width:.55em;height:1em;background:#e6edf3;vertical-align:-.15em;
        margin-left:1px;animation:blink 1.1s steps(1) infinite}
@@ -99,6 +108,7 @@
   and your AI workspace is ready, backed by <strong>DeepSeek V4 Flash 0731</strong>. Then just ask the AI.</p>
 
   <div class="card" id="hero" data-os="other">
+    <p class="osline" id="osline" hidden></p>
     <ol class="bigsteps">
       <li class="bstep">
         <div class="t">Open the black window</div>
@@ -124,18 +134,52 @@
       <button class="bigbtn" data-copied-en="Copied! Now paste it in the black window and press Enter" onclick="cp(this)">
         <span>⬇&nbsp; Copy the command</span>
       </button>
+      <div class="expect">
+        <p>After you press Enter, the black window will scroll a lot of English text. <strong style="color:var(--text)">That is
+        normal</strong> — it is installing. Do nothing, just wait until it stops (about 5 minutes, depending on internet speed).</p>
+        <div class="term mini">
+          <div class="term-bar"><i></i><i></i><i></i><span class="term-title">how it ends when it worked</span></div>
+          <div class="term-body">==> Done.
+
+  Your AI workspace is ready at  ~/ai-workspace
+
+  ============================================
+    <span class="ok">Setup complete!</span>
+    <span class="ok">Now open the DSH Desktop app</span>
+    (Mac: Launchpad  |  Windows: Start menu)
+  ============================================</div>
+        </div>
+        <p class="mini-cap">When the window ends with this, it worked. If it shows a red ERROR line instead, scroll up — the first error usually says what went wrong.</p>
+      </div>
       <p class="switch">Using Windows instead? <a onclick="setOS('win')">Switch to Windows</a></p>
     </div>
 
     <div class="win-only">
       <div class="term">
-        <div class="term-bar"><i></i><i></i><i></i><span class="term-title">PowerShell — Windows</span></div>
+        <div class="term-bar win"><span class="psico">&gt;_</span><span class="term-title">Windows PowerShell</span><span class="winbtns"><span>─</span><span>□</span><span>✕</span></span></div>
         <div class="term-body"><span class="p">PS C:\Users\you&gt; </span><code>iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.ps1 | Out-String)</code><span class="cur"></span></div>
       </div>
       <p class="dontread">You don&rsquo;t need to understand this command — just copy it.</p>
       <button class="bigbtn" data-copied-en="Copied! Now paste it in the black window and press Enter" onclick="cp(this)">
         <span>⬇&nbsp; Copy the command</span>
       </button>
+      <div class="expect">
+        <p>After you press Enter, the black window will scroll a lot of English text. <strong style="color:var(--text)">That is
+        normal</strong> — it is installing. Do nothing, just wait until it stops (about 5 minutes, depending on internet speed).</p>
+        <div class="term mini">
+          <div class="term-bar win"><span class="psico">&gt;_</span><span class="term-title">how it ends when it worked</span><span class="winbtns"><span>─</span><span>□</span><span>✕</span></span></div>
+          <div class="term-body">==> Done.
+
+  Your AI workspace is ready at  ~/ai-workspace
+
+  ============================================
+    <span class="ok">Setup complete!</span>
+    <span class="ok">Now open the DSH Desktop app</span>
+    (Mac: Launchpad  |  Windows: Start menu)
+  ============================================</div>
+        </div>
+        <p class="mini-cap">When the window ends with this, it worked. If it shows a red ERROR line instead, scroll up — the first error usually says what went wrong.</p>
+      </div>
       <p class="switch">Using a Mac instead? <a onclick="setOS('mac')">Switch to macOS</a></p>
     </div>
 
@@ -145,24 +189,6 @@
         It currently works on macOS and Windows only. If you&rsquo;re on Linux (or anything else), the
         <a href="vscode.html">VS Code + Claude Code</a> option works on your system — or check back later.</p>
       </div>
-    </div>
-
-    <div class="expect">
-      <p>After you press Enter, the black window will scroll a lot of English text. <strong style="color:var(--text)">That is
-      normal</strong> — it is installing. Do nothing, just wait until it stops (about 5 minutes, depending on internet speed).</p>
-      <div class="term mini">
-        <div class="term-bar"><i></i><i></i><i></i><span class="term-title">how it ends when it worked</span></div>
-        <div class="term-body">==> Done.
-
-  Your AI workspace is ready at  ~/ai-workspace
-
-  ============================================
-    <span class="ok">Setup complete!</span>
-    <span class="ok">Now open the DSH Desktop app</span>
-    (Mac: Launchpad  |  Windows: Start menu)
-  ============================================</div>
-      </div>
-      <p class="mini-cap">When the window ends with this, it worked. If it shows a red ERROR line instead, scroll up — the first error usually says what went wrong.</p>
     </div>
   </div>
 
@@ -224,6 +250,12 @@
 <script>
   function setOS(os){
     document.getElementById('hero').setAttribute('data-os', os);
+    var line = document.getElementById('osline');
+    var msgs = {
+      mac: '✓ This is a Mac — everything below is set up for macOS.',
+      win: '✓ This is a Windows PC — everything below is set up for Windows.'
+    };
+    if (msgs[os]) { line.textContent = msgs[os]; line.hidden = false; }
   }
   function cp(btn){
     var code = btn.closest('.mac-only, .win-only').querySelector('.term-body code');
