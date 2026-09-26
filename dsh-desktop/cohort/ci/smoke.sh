@@ -123,13 +123,16 @@ assert 'maku-bailian' in d['llm-pi-ai']['providers']
 print('  insert-path OK')
 PY
 
-# 1d. credentials: key written + masked value present.
+# 1d. credentials: version:1 first (0.9.x hard requirement) + key under refs.
 "$PYBIN" - "$TMP/insert-harness/.credentials.yaml" "$KEY" <<'PY' || fail "credentials assertions failed"
 import sys, yaml
-d = yaml.safe_load(open(sys.argv[1]))
-key = sys.argv[2]
+path, key = sys.argv[1], sys.argv[2]
+raw = open(path).read()
+first = next(ln for ln in raw.splitlines() if ln.strip())
+assert first == "version: 1", f"credentials file must start with 'version: 1' (got {first!r}) -- 0.9.x harness refuses to start otherwise"
+d = yaml.safe_load(raw)
 assert d['refs']['TRAINING_API_KEY'] == key, d.get('refs')
-print('  credentials OK')
+print('  credentials OK (version: 1 + refs nesting)')
 PY
 
 note "Step 1 passed"

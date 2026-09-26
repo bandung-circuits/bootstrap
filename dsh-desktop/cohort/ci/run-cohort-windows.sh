@@ -91,8 +91,8 @@ ssh_retry() {
 note "[cohort/win] guaranteeing the fresh-machine path: remove any DSH Desktop first"
 ssh_retry "taskkill /F /IM \"DSH Desktop.exe\" 2>nul& powershell -NoProfile -Command \"Remove-Item -Recurse -Force (Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop') -ErrorAction SilentlyContinue; exit 0\"" 2>&1 | tail -1
 
-note "[cohort/win] running cohort-setup.ps1 (pinned DSH Desktop download + install + delegate; DSH_SILENT=1 for the headless VM; PREP_URL=Pages default -> tests the fixed iex|Out-String branch)"
-ssh_retry "set TRAINING_API_KEY=$TEST_API_KEY&& set DSH_SILENT=1&& set INJECT_URL=C:\\Users\\$WIN_USER\\inject_provider.py&& set COHORT_PREP_URL=C:\\Users\\$WIN_USER\\cohort-prep.ps1&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\cohort-setup.ps1" \
+note "[cohort/win] running cohort-setup.ps1 (pinned DSH Desktop download + silent install + delegate; PREP_URL=Pages default -> tests the fixed iex|Out-String branch)"
+ssh_retry "set TRAINING_API_KEY=$TEST_API_KEY&& set INJECT_URL=C:\\Users\\$WIN_USER\\inject_provider.py&& set COHORT_PREP_URL=C:\\Users\\$WIN_USER\\cohort-prep.ps1&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\cohort-setup.ps1" \
   2>&1 | tee "ci/logs/cohort-win-$stamp.log"
 rc=$?
 note "[cohort/win] cohort-setup exit: $rc"

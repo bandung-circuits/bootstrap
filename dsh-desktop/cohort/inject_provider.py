@@ -148,22 +148,32 @@ def patch_agent_default_model(lines, pid, model):
 
 def patch_credentials(lines, key):
     """Line-surgery on .credentials.yaml: set `refs.TRAINING_API_KEY`.
-    Quoted scalar — keys may contain dots/dashes; quoting is always safe."""
+    Quoted scalar — keys may contain dots/dashes; quoting is always safe.
+
+    DSH Desktop 0.9.x requires `version: 1` as the first key: without it the
+    credentials-local plugin rejects the file ("pre-release flat layout") and
+    the whole harness refuses to start. Ensure it (prepends when missing)."""
     val = f"  {API_KEY_ENV}: '{key}'"
     # existing ref line?
     for i, ln in enumerate(lines):
         if re.match(rf"^  {API_KEY_ENV}:\s", ln):
             lines[i] = val
-            return lines
-    # existing refs: block?
-    for i, ln in enumerate(lines):
-        if re.match(r"^refs:\s*$", ln):
-            return lines[: i + 1] + [val] + lines[i + 1:]
-    # no refs at all — append a refs block.
-    head = lines[:]
-    if head and head[-1].strip() != "":
-        head.append("")
-    return head + ["refs:", val]
+            break
+    else:
+        # existing refs: block?
+        for i, ln in enumerate(lines):
+            if re.match(r"^refs:\s*$", ln):
+                lines = lines[: i + 1] + [val] + lines[i + 1:]
+                break
+        else:
+            # no refs at all — append a refs block.
+            if lines and lines[-1].strip() != "":
+                lines.append("")
+            lines = lines + ["refs:", val]
+    # ensure `version: 1` first (idempotent; no-op when the app put it there)
+    if not any(re.match(r"^version:\s*1\s*$", ln) for ln in lines):
+        lines = ["version: 1"] + lines
+    return lines
 
 
 # ---------- workspace pre-registration ----------
