@@ -327,8 +327,10 @@ function Ensure-Plugins {
             # peer-dependency gap; the CLI prints the exact exemption command.
             # Accept the documented risk it offers (its plugin-manager UI does
             # the same) and retry once. Non-fatal if still refused.
-            $cmd = Get-Content $log -ErrorAction SilentlyContinue |
-                ForEach-Object { if ($_ -match 'allow-version ([^`]*--accept-risk)') { $Matches[1]; break } }
+            # NOTE: use Select-String -- `break` inside ForEach-Object aborts
+            # the whole pipeline assignment, which silently left $cmd null.
+            $m = Select-String -Path $log -Pattern 'allow-version ([^`]*--accept-risk)' -ErrorAction SilentlyContinue | Select-Object -First 1
+            $cmd = if ($m) { $m.Matches[0].Groups[1].Value } else { $null }
             if ($cmd) {
                 Note "granting compatibility exemption for $pkg ($cmd)"
                 $args = @($cmd.Trim() -split '\s+') -ne ''
