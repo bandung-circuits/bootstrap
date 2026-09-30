@@ -70,7 +70,7 @@ if ($pc -match 'mcp-crawl4ai' -and $pc -match '@deepseek-ai/dsh-mcp-client' -and
 # --dump-config` errors "profile ... managed exclusively by the Electron
 # application", and plugin install needs the app opened once to initialize the
 # profile. So macOS/Windows CI can't dump the composed toolset from outside the
-# app — that happens at app runtime. What we CAN assert: the desktop profile
+# app -- that happens at app runtime. What we CAN assert: the desktop profile
 # dir exists with the patch (tier-1 already checks the patch file) and, once
 # initialized, that the plugin manager can list the profile's plugins.
 $profileInit = Test-Path (Join-Path $HARNESS 'package.json')
@@ -89,10 +89,10 @@ if ($profileInit -and $cli) {
     if ($LASTEXITCODE -eq 0) {
         OK 'official plugin manager can operate the desktop profile (app-exclusive runtime OK)'
     } else {
-        NO "plugin manager could not list the desktop profile — profile may be broken: $list"
+        NO "plugin manager could not list the desktop profile -- profile may be broken: $list"
     }
 } elseif ($appDir -and -not $profileInit) {
-    SK 'desktop profile not initialized yet (open app once, then re-run setup) — plugin/compose deferred'
+    SK 'desktop profile not initialized yet (open app once, then re-run setup) -- plugin/compose deferred'
 } else {
     NO "bundled official harness not found (app=$appDir)"
 }
@@ -108,7 +108,7 @@ if (Test-Path $pkgJson) {
     if ($deps -contains 'dsh-better-reasoning-effort' -and $bundles -contains 'dsh-better-reasoning-effort') { OK 'plugin dsh-better-reasoning-effort in deps+bundles' } else { NO 'plugin dsh-better-reasoning-effort missing' }
   } else { NO 'profiles/desktop/package.json unreadable' }
 } elseif (-not $profileInit) {
-  SK 'desktop profile not initialized yet (open app once, then re-run setup) — plugins deferred by design'
+  SK 'desktop profile not initialized yet (open app once, then re-run setup) -- plugins deferred by design'
 } else { NO 'profiles/desktop/package.json not found (plugins not installed)' }
 
 Write-Host ''

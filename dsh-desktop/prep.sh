@@ -306,8 +306,16 @@ ensure_plugins() {
   # sub-processes don't contain this exact path substring, so they don't
   # false-positive).
   if pgrep -f "DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" >/dev/null 2>&1; then
-    warn "DeepSeek Harness is running — quit it before plugin install; skipping plugins for now"
-    return 0
+    # The app may still be shutting down after the learner quit it; give it a
+    # short grace period before skipping, so a quick re-run isn't a no-op.
+    waited=0
+    while pgrep -f "DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" >/dev/null 2>&1 && [ "$waited" -lt 20 ]; do
+      sleep 3; waited=$((waited+3))
+    done
+    if pgrep -f "DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" >/dev/null 2>&1; then
+      warn "DeepSeek Harness is running — quit it before plugin install; skipping plugins for now"
+      return 0
+    fi
   fi
   # The desktop app must be opened once (first run) to initialize its profile
   # before `dsh plugin --profile desktop` will act. Fresh installs haven't done

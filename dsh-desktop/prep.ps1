@@ -276,7 +276,14 @@ function Ensure-Plugins {
     if (-not $cli) { Warn "bundled dsh CLI not found under $appDir -- skipping plugin install"; return }
     # The app's main process should not run while pnpm mutates the profile dir.
     $run = Get-Process -Name 'DeepSeek Harness' -ErrorAction SilentlyContinue
-    if ($run) { Warn 'DeepSeek Harness is running -- quit it before plugin install; skipping plugins for now'; return }
+    if ($run) {
+        # The app may still be shutting down after the learner quit it; give it
+        # a short grace period before skipping, so a quick re-run isn't a no-op.
+        for ($i = 0; $i -lt 7 -and (Get-Process -Name 'DeepSeek Harness' -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Seconds 3 }
+        if (Get-Process -Name 'DeepSeek Harness' -ErrorAction SilentlyContinue) {
+            Warn 'DeepSeek Harness is running -- quit it before plugin install; skipping plugins for now'; return
+        }
+    }
     # The desktop app must be opened once (first run) to initialize its profile
     # before `dsh plugin --profile desktop` will act. Fresh installs haven't done
     # that yet, so defer plugins with clear guidance; re-running setup after the
