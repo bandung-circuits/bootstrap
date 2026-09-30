@@ -66,11 +66,13 @@ if ($pc -match 'mcp-crawl4ai' -and $pc -match '@deepseek-ai/dsh-mcp-client' -and
 }
 
 # --- bundled harness composes the patch; plugins land on FIRST OPEN ---
-# The official desktop refuses to compose the profile (or install plugins)
-# until the app has been opened once to initialize it — a real learner opens
-# it right after setup. On a fresh VM that hasn't happened yet, so prep
-# correctly defers plugins; treat that as SKIP (matching prep's design), and
-# only assert strongly once the profile is initialized.
+# The official desktop refuses the CLI on its `desktop` profile: `dsh web
+# --dump-config` errors "profile ... managed exclusively by the Electron
+# application", and plugin install needs the app opened once to initialize the
+# profile. So macOS/Windows CI can't dump the composed toolset from outside the
+# app — that happens at app runtime. What we CAN assert: the desktop profile
+# dir exists with the patch (tier-1 already checks the patch file) and, once
+# initialized, that the plugin manager can list the profile's plugins.
 $profileInit = Test-Path (Join-Path $HARNESS 'package.json')
 $appDir = @(
   (Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness'),
@@ -83,10 +85,14 @@ if ($appDir) {
 }
 if ($profileInit -and $cli) {
     $env:DSH_HOME = $DshHome
-    $out = & $cli.FullName web --dump-config 2>&1 | Out-String
-    if ($out -match 'mcp-crawl4ai') { OK 'official DeepSeek Harness composes mcp-crawl4ai (dump-config)' } else { NO 'official harness did not compose mcp-crawl4ai' }
+    $list = & $cli.FullName plugin --profile desktop list *>&1 | Out-String
+    if ($LASTEXITCODE -eq 0) {
+        OK 'official plugin manager can operate the desktop profile (app-exclusive runtime OK)'
+    } else {
+        NO "plugin manager could not list the desktop profile — profile may be broken: $list"
+    }
 } elseif ($appDir -and -not $profileInit) {
-    SK 'desktop profile not initialized yet (open app once, then re-run setup) — compose deferred'
+    SK 'desktop profile not initialized yet (open app once, then re-run setup) — plugin/compose deferred'
 } else {
     NO "bundled official harness not found (app=$appDir)"
 }

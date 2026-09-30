@@ -80,7 +80,7 @@ if [ -n "${WIN_VMX:-}" ]; then
   note "[win] re-running prep so default plugins install into the initialized profile"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$WIN_USER@$ip" \
     "set \"INSTALL_DSH_URL=C:\\Users\\$WIN_USER\\install-dsh.ps1\"&& set \"PREP_URL=C:\\Users\\$WIN_USER\\prep.ps1\"&& powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/setup.ps1" \
-    2>&1 | tail -6
+    2>&1 | tee "ci/logs/dshdesktop-win-prep-$stamp.log" | tail -80
   note "[win] verifying"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
     "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/verify-windows.ps1" \

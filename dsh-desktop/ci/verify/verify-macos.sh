@@ -91,27 +91,22 @@ else
   sk 'git not on this host (best-effort install skipped)'
 fi
 
-# ---------- tier 2: real bundled harness composes the patch ----------
-# The official desktop only composes a profile (reads cordis.patch.yml) once
-# the app has initialized it — a throwaway prep profile isn't initialized, so
-# skip (not fail) on fresh/isolated setups; this mirrors prep's deferral.
+# ---------- tier 2: desktop-profile runtime is app-exclusive ----------
+# The official desktop owns `~/.dsh/profiles/desktop` exclusively: the CLI
+# refuses `dsh web`/`--dump-config` on it ("profile ... managed exclusively by
+# the Electron application"). So the composed toolset (incl. mcp-crawl4ai)
+# can't be dumped from a shell on ANY platform — it materializes only when the
+# desktop app runs its Host. Tier 1 already asserts the patch FILE is written
+# correctly; tier 2 is therefore a documented no-op (skip), not a failure.
 BIN=""
 if [ -d "/Applications/DeepSeek Harness.app" ] || [ -d "$HOME/Applications/DeepSeek Harness.app" ]; then
   app="/Applications/DeepSeek Harness.app"; [ -d "$app" ] || app="$HOME/Applications/DeepSeek Harness.app"
-  cli="$app/Contents/Resources/runtime/cli/bin/dsh"
-  [ -x "$cli" ] && BIN="$cli"
+  BIN="$app/Contents/Resources/runtime/cli/bin/dsh"
 fi
-if [ -n "$BIN" ] && [ -f "$T/harness/profiles/desktop/package.json" ]; then
-  out2="$(DSH_HOME="$T/harness" "$BIN" web --dump-config 2>&1 || true)"
-  if printf '%s' "$out2" | grep -q 'mcp-crawl4ai'; then
-    ok 'official DeepSeek Harness composes mcp-crawl4ai (dump-config)'
-  else
-    no 'official harness did not compose mcp-crawl4ai'
-  fi
-elif [ -n "$BIN" ]; then
-  sk 'desktop profile not initialized in the throwaway harness — compose deferred (open the official app once)'
+if [ -n "$BIN" ]; then
+  sk 'desktop profile runtime is app-exclusive (CLI cannot dump it) — patch asserted in tier 1; compose verified by running the app'
 else
-  sk 'DeepSeek Harness.app not found on this host — bundled-compose tier skipped'
+  sk 'DeepSeek Harness.app not found on this host — tier skipped'
 fi
 
 echo
