@@ -4,9 +4,10 @@
 # pointing at the workspace venv (with in-workspace browsers/data env), and that
 # the app's bundled harness composes the patch (dump-config).
 $ErrorActionPreference = 'Continue'
-$pass = 0; $fail = 0
+$pass = 0; $fail = 0; $skip = 0
 function OK($m){ Write-Host "  PASS  $m"; $script:pass++ }
 function NO($m){ Write-Host "  FAIL  $m"; $script:fail++ }
+function SK($m){ Write-Host "  SKIP  $m"; $script:skip++ }
 
 $WS      = Join-Path $env:USERPROFILE 'ai-workspace'
 # Official DeepSeek Harness data root + desktop profile (mirrors prep.ps1).
@@ -64,19 +65,28 @@ if ($pc -match 'mcp-crawl4ai' -and $pc -match '@deepseek-ai/dsh-mcp-client' -and
     Write-Host ($pc.Substring(0,[Math]::Min(400,[string]$pc.Length)))
 }
 
-# --- bundled harness composes the patch ---
+# --- bundled harness composes the patch; plugins land on FIRST OPEN ---
+# The official desktop refuses to compose the profile (or install plugins)
+# until the app has been opened once to initialize it — a real learner opens
+# it right after setup. On a fresh VM that hasn't happened yet, so prep
+# correctly defers plugins; treat that as SKIP (matching prep's design), and
+# only assert strongly once the profile is initialized.
+$profileInit = Test-Path (Join-Path $HARNESS 'package.json')
 $appDir = @(
   (Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness'),
   (Join-Path $env:ProgramFiles 'DeepSeek Harness')
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+$cli = $null
 if ($appDir) {
     $cli = Get-ChildItem (Join-Path $appDir 'resources\runtime\cli\bin') -Filter 'dsh*' -ErrorAction SilentlyContinue |
         Where-Object { $_.Extension -eq '' -or $_.Extension -in '.cmd','.ps1' } | Select-Object -First 1
-} else { $cli = $null }
-if ($cli) {
+}
+if ($profileInit -and $cli) {
     $env:DSH_HOME = $DshHome
     $out = & $cli.FullName web --dump-config 2>&1 | Out-String
     if ($out -match 'mcp-crawl4ai') { OK 'official DeepSeek Harness composes mcp-crawl4ai (dump-config)' } else { NO 'official harness did not compose mcp-crawl4ai' }
+} elseif ($appDir -and -not $profileInit) {
+    SK 'desktop profile not initialized yet (open app once, then re-run setup) — compose deferred'
 } else {
     NO "bundled official harness not found (app=$appDir)"
 }
@@ -91,8 +101,10 @@ if (Test-Path $pkgJson) {
     if ($deps -contains 'dshmarket' -and $bundles -contains 'dshmarket') { OK 'plugin dshmarket in deps+bundles' } else { NO 'plugin dshmarket missing' }
     if ($deps -contains 'dsh-better-reasoning-effort' -and $bundles -contains 'dsh-better-reasoning-effort') { OK 'plugin dsh-better-reasoning-effort in deps+bundles' } else { NO 'plugin dsh-better-reasoning-effort missing' }
   } else { NO 'profiles/desktop/package.json unreadable' }
+} elseif (-not $profileInit) {
+  SK 'desktop profile not initialized yet (open app once, then re-run setup) — plugins deferred by design'
 } else { NO 'profiles/desktop/package.json not found (plugins not installed)' }
 
 Write-Host ''
-Write-Host "RESULT: $pass passed, $fail failed"
+Write-Host "RESULT: $pass passed, $fail failed, $skip skipped"
 exit $fail
