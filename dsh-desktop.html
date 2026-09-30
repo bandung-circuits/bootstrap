@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>DSH Desktop workspace — Bootstrap</title>
+<title>DeepSeek Harness workspace — Bootstrap</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="One command installs DSH Desktop (pinned version, if missing) and prepares a ready AI workspace: ~/ai-workspace with workspace rules and the crawl4ai MCP enabled through the official DSH MCP client. macOS and Windows.">
+<meta name="description" content="One command installs DeepSeek Harness (pinned version, if missing) and prepares a ready AI workspace: ~/ai-workspace with workspace rules and the crawl4ai MCP enabled through the official DSH MCP client. macOS and Windows.">
 <style>
   :root{
     --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3;
@@ -103,7 +103,7 @@
 <body>
 <div class="wrap">
   <a class="back" href="index.html">← All setups</a>
-  <h1>DSH Desktop workspace</h1>
+  <h1>DeepSeek Harness workspace</h1>
   <p class="sub">Free, open source, runs on your own computer. One command — about <strong>5 minutes</strong> —
   and your AI workspace is ready, backed by <strong>DeepSeek V4 Flash 0731</strong>. Then just ask the AI.</p>
 
@@ -145,7 +145,7 @@
   ...
   ============================================
     <span class="ok">Setup complete!</span>
-    <span class="ok">Now open the DSH Desktop app</span>
+    <span class="ok">Now open the DeepSeek Harness app</span>
     (Mac: Launchpad  |  Windows: Start menu)
   ============================================</div>
         </div>
@@ -174,7 +174,7 @@
   ...
   ============================================
     <span class="ok">Setup complete!</span>
-    <span class="ok">Now open the DSH Desktop app</span>
+    <span class="ok">Now open the DeepSeek Harness app</span>
     (Mac: Launchpad  |  Windows: Start menu)
   ============================================</div>
         </div>
@@ -185,17 +185,17 @@
 
     <div class="other-only">
       <div class="card notice" style="margin:0">
-        <p style="margin:0"><strong>DSH Desktop doesn&rsquo;t support your operating system yet.</strong><br>
-        It currently works on macOS and Windows only. If you&rsquo;re on Linux (or anything else), the
-        <a href="vscode.html">VS Code + Claude Code</a> option works on your system — or check back later.</p>
+        <p style="margin:0"><strong>DeepSeek Harness doesn&rsquo;t support your operating system yet.</strong><br>
+        It currently works on Apple-silicon macOS and Windows (x64) only. If you&rsquo;re on Linux, an Intel Mac, or
+        anything else, the <a href="vscode.html">VS Code + Claude Code</a> option works on your system — or check back later.</p>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="n4">4</span> Open DSH Desktop, add your model key, start</h2>
+    <h2><span class="n4">4</span> Open DeepSeek Harness, add your model key, start</h2>
     <div class="approw">
-      <img class="appicon" src="assets/dsh-desktop-icon.png" alt="DSH Desktop app icon">
+      <img class="appicon" src="assets/dsh-desktop-icon.png" alt="DeepSeek Harness app icon">
       <div>
         <p style="margin:0 0 .2rem">Find this icon and open the app:</p>
         <p style="margin:0">Mac: Launchpad (the rocket in the Dock) &middot; Windows: Start menu, type &ldquo;DSH&rdquo;</p>
@@ -212,7 +212,7 @@
   </div>
 
   <details>
-    <summary>Already have DSH Desktop? Quit it completely before running the command</summary>
+    <summary>Already have DeepSeek Harness? Quit it completely before running the command</summary>
     <div class="card" style="margin:.5rem 0 0">
       <p style="margin:0">Close its window; on Windows, make sure it isn&rsquo;t still running in the system tray.
       The app can hold onto its config files and block the command from updating them.
@@ -224,7 +224,7 @@
     <summary>What the command actually did</summary>
     <div class="card" style="margin:.5rem 0 0">
       <ol class="steps" style="margin:.2rem 0 0">
-        <li>Installed <strong>DSH Desktop</strong> (pinned version <code class="inline">v0.9.2</code>, from its official GitHub releases) if it wasn&rsquo;t already on the computer.</li>
+        <li>Installed <strong>DeepSeek Harness</strong> (official desktop, pinned <code class="inline">0.2.0-rc.2</code>, from DeepSeek's own download server) if it wasn&rsquo;t already on the computer.</li>
         <li>Created <code class="inline">~/ai-workspace</code> (Windows: <code class="inline">C:\Users\&lt;you&gt;\ai-workspace</code>) with workspace rules (AGENTS.md), a README, .gitignore and a NEXT-STEPS.md.</li>
         <li>Installed <strong>inside that folder</strong> everything the web tools need: a Python environment with crawl4ai, the browser it uses, and a helper.</li>
         <li>Enabled the <strong>crawl4ai</strong> web fetch &amp; search tools (free, no key) through the official DSH MCP client, so the assistant can read web pages.</li>
@@ -234,10 +234,11 @@
   </details>
 
   <details>
-    <summary>About DSH Desktop</summary>
+    <summary>About DeepSeek Harness</summary>
     <div class="card" style="margin:.5rem 0 0">
-      <p style="margin:0">DSH Desktop is a community desktop app for the open-source
-      <a href="https://deepseek-ai.github.io/deepseek-harness/">DeepSeek Harness</a> (by deepseek-ai).
+      <p style="margin:0">DeepSeek Harness is the official desktop client by DeepSeek (open-source,
+      <a href="https://deepseek-ai.github.io/deepseek-harness/">deepseek-ai/deepseek-harness</a>).
+      It bundles its own Node.js, pnpm and Python, so nothing else needs installing.
       Prefer coding in an IDE? The <a href="vscode.html">VS Code + Claude Code</a> setup works on Linux, macOS and Windows.</p>
     </div>
   </details>

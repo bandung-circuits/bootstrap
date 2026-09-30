@@ -1,4 +1,4 @@
-# dsh-desktop/prep.ps1 -- one-command workspace prep for DSH Desktop (Windows).
+# dsh-desktop/prep.ps1 -- one-command workspace prep for DeepSeek Harness (Windows).
 #
 # deployed:  (stamped by ci/deploy-pages.yml)
 #
@@ -7,8 +7,9 @@
 # or from a clone:
 #   .\dsh-desktop\prep.ps1
 #
-# Prerequisite: DSH Desktop installed (https://dshdesktop.com/en/). Platforms:
-# macOS + Windows only (the app has no Linux build).
+# Prerequisite: the official DeepSeek Harness desktop app installed
+# (https://deepseek.com/harness). Platforms: Apple-silicon macOS + Windows x64
+# only (the official desktop has no Intel/linux build).
 #
 # Everything is installed INSIDE the workspace so the app's subprocesses can
 # find it without ~\.local\bin (not on PATH) or ~\.crawl4ai:
@@ -20,8 +21,9 @@
 #     .local\bin\                  uv (helper, not needed at runtime)
 #
 # The crawl4ai MCP server runs the workspace venv's crawl4ai-search.exe by
-# absolute path. The app's harness data stays in %APPDATA%\DSH Desktop\harness;
-# the model key is entered by the learner in the app.
+# absolute path. Our config lives in the desktop profile patch layer
+# (%USERPROFILE%\.dsh\profiles\desktop); the model key is entered by the
+# learner in the app.
 
 #requires -Version 5.1
 $ErrorActionPreference = 'Stop'
@@ -37,16 +39,13 @@ function Err($m){ Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
 
 # ---------- paths (env-overridable for tests; PSCommandPath is $null under iex) ----------
 $WS = if ($env:WORKSPACE_DIR) { $env:WORKSPACE_DIR } else { Join-Path $env:USERPROFILE 'ai-workspace' }
-# DSH Desktop's Electron userData folder varies by build/version: observed as
-# both %APPDATA%\dsh-desktop and %APPDATA%\DSH Desktop. Prefer whichever already
-# holds harness state; default to the lowercase package-name variant.
-function Get-HarnessHome {
-    foreach ($cand in @((Join-Path $env:APPDATA 'dsh-desktop\harness'), (Join-Path $env:APPDATA 'DSH Desktop\harness'))) {
-        if (Test-Path $cand) { return $cand }
-    }
-    return (Join-Path $env:APPDATA 'dsh-desktop\harness')
-}
-$HARNESS = if ($env:DSH_HOME) { $env:DSH_HOME } else { Get-HarnessHome }
+# The official desktop shares the dsh-cli data root: $DSH_HOME (default
+# ~/.dsh = %USERPROFILE%\.dsh). Electron-owned config lives in the DESKTOP
+# PROFILE's own patch layer, $DSH_HOME\profiles\desktop. Setting DSH_HOME
+# redirects the whole root (the app honors it via resolveDshHome()).
+$DshHome = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $env:USERPROFILE '.dsh' }
+$ProfileName = 'desktop'
+$HARNESS = Join-Path $DshHome "profiles\$ProfileName"
 $UV      = Join-Path $WS '.local\bin\uv.exe'
 $VENV_PY = Join-Path $WS '.venv\Scripts\python.exe'
 $BROWSER = Join-Path $WS '.browsers'
@@ -190,7 +189,7 @@ function Ensure-McpCrawl4ai {
     if (Test-Path $patch) { Remove-StaleCrawl4aiBlock -patch $patch }
     $block = (Get-Content -Raw (Join-Path $script:TP 'crawl4ai-patch.yml'))
     $block = $block.Replace('{{CRAWL4AI_BIN}}', $CR4).Replace('{{WORKSPACE}}', $WS)
-    Add-Content -Path $patch -Value "`n# DSH Desktop harness home-level patch (applies to every profile)$([char]10)$block" -Encoding UTF8
+    Add-Content -Path $patch -Value "`n# DeepSeek Harness profile patch layer (desktop profile; applies after every bundle layer)$([char]10)$block" -Encoding UTF8
     Note "enabled crawl4ai MCP in $patch (pins $CR4)"
 }
 
@@ -241,53 +240,99 @@ function Ensure-Git {
 }
 
 # ---------- 8. default DSH plugins (Plugin Market + reasoning-effort) ----------
-# Installs community plugins into the DSH `web` profile so every learner gets
-# them by default, using the app's OWN bundled node + dsh bin.js (no system
-# node/pnpm). `dsh plugin --profile web add <pkg>` initializes the profile on
-# first use, adds the package to deps AND dsh.profile.bundles, and pnpm-installs
-# it. Idempotent.   dshmarket -> Settings -> Plugin Market.
+# Installs two community plugins into the DSH `desktop` profile (the official
+# desktop app's profile) so every learner gets them by default, using the app's
+# OWN bundled dsh CLI + pnpm (no system node/pnpm assumed).
+# `dsh plugin --profile desktop add <pkg>` initializes the profile on first use,
+# adds the package to deps AND dsh.profile.bundles, and pnpm-installs it.
+# Idempotent.   dshmarket -> Settings -> Plugin Market.
 #   dsh-better-reasoning-effort -> per-model reasoning-effort slider with a
 #   built-in model knowledge base (knows each vendor's correct effort levels);
 #   auto-fills reasoningEfforts on app launch. Needs DSH kernel >= 0.1.5-alpha.1
-#   (DSH Desktop 0.9.x bundles it); best-effort on older builds.
+#   (the official desktop ships well beyond it); best-effort if absent.
 $DefaultPlugins = @('dshmarket', 'dsh-better-reasoning-effort')
+
+function Find-AppDir {
+    foreach ($c in @((Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness'), (Join-Path $env:ProgramFiles 'DeepSeek Harness'))) {
+        if (Test-Path $c) { return $c }
+    }
+    return ''
+}
 
 function Ensure-Plugins {
     if ($env:PREP_NO_PLUGINS -eq '1') { Note 'skipping plugins (PREP_NO_PLUGINS=1)'; return }
-    $appDir = Join-Path $env:LOCALAPPDATA 'Programs\DSH Desktop'
-    if (-not (Test-Path $appDir)) { Warn "DSH Desktop app not found at $appDir -- skipping plugin install"; return }
-    $node = Get-ChildItem $appDir -Recurse -Filter 'node.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-    $dsh  = Get-ChildItem $appDir -Recurse -Filter 'bin.js' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '@deepseek-ai' -and $_.FullName -match '\\dsh\\' } | Select-Object -First 1
-    if (-not $node -or -not $dsh) { Warn "bundled node/dsh not found under $appDir -- skipping plugin install"; return }
-    # DSH Desktop's main process should not run while pnpm mutates the profile
-    # dir. Match the MAIN exe only by exact process name (helpers are named
-    # 'DSH Desktop Helper ...' and would false-positive a -match).
-    $run = Get-Process -Name 'DSH Desktop' -ErrorAction SilentlyContinue
-    if ($run) { Warn 'DSH Desktop is running -- quit it before plugin install; skipping plugins for now'; return }
+    $appDir = Find-AppDir
+    if (-not $appDir) { Warn 'DeepSeek Harness app not found -- skipping plugin install. Install it from https://deepseek.com/harness and re-run.'; return }
+    # The official desktop bundles a dsh CLI under resources\runtime\cli\bin.
+    $node = Get-ChildItem (Join-Path $appDir 'resources\runtime') -Recurse -Filter 'node.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    $cli  = @(Get-ChildItem (Join-Path $appDir 'resources\runtime\cli\bin') -Filter 'dsh*' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -eq '' -or $_.Extension -in '.cmd','.ps1' } | Select-Object -First 1) | Select-Object -First 1
+    # Fallback to the older in-bundle node + bin.js layout if the unpacked cli is absent.
+    if (-not $cli) {
+        $legacyNode = Get-ChildItem $appDir -Recurse -Filter 'node.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+        $legacyDsh  = Get-ChildItem $appDir -Recurse -Filter 'bin.js' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\dsh\\' } | Select-Object -First 1
+        if ($legacyDsh) { $cli = $legacyDsh; if (-not $node) { $node = $legacyNode } }
+    }
+    if (-not $cli) { Warn "bundled dsh CLI not found under $appDir -- skipping plugin install"; return }
+    # The app's main process should not run while pnpm mutates the profile dir.
+    $run = Get-Process -Name 'DeepSeek Harness' -ErrorAction SilentlyContinue
+    if ($run) { Warn 'DeepSeek Harness is running -- quit it before plugin install; skipping plugins for now'; return }
+    # The desktop app must be opened once (first run) to initialize its profile
+    # before `dsh plugin --profile desktop` will act. Fresh installs haven't done
+    # that yet, so defer plugins with clear guidance; re-running setup after the
+    # learner opens+quits the app installs them (idempotent).
+    if (-not (Test-Path (Join-Path $HARNESS 'package.json'))) {
+        Warn 'The desktop profile is not initialized yet. Open DeepSeek Harness once so it creates its profile, quit it, then re-run this setup command -- it will then install the default plugins. Skipping plugins for now (non-fatal).'
+        return
+    }
     # `dsh plugin add` shells out to a bare `pnpm`; learners rarely have pnpm on
     # PATH. Point a pnpm.cmd shim at the app's OWN bundled node + pnpm.cjs and
     # put it first on PATH for the call.
-    $pnpmCjs = Get-ChildItem $appDir -Recurse -Filter 'pnpm.cjs' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\pnpm\\bin\\' } | Select-Object -First 1
-    if ($pnpmCjs) {
+    $pnpmCjs = Get-ChildItem (Join-Path $appDir 'resources\runtime\pnpm\bin') -Filter 'pnpm.cjs' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $pnpmCjs) {
+        $pnpmCjs = Get-ChildItem $appDir -Recurse -Filter 'pnpm.cjs' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\pnpm\\bin\\' } | Select-Object -First 1
+    }
+    if ($pnpmCjs -and $node) {
         $shimDir = Join-Path $env:TEMP 'dsh-pnpm-shim'
         New-Item -ItemType Directory -Force -Path $shimDir | Out-Null
-        $shimPath = Join-Path $shimDir 'pnpm.cmd'
-        Set-Content -Path $shimPath -Value "@`"$($node.FullName)`" `"$($pnpmCjs.FullName)`" %*" -Encoding ASCII
+        Set-Content -Path (Join-Path $shimDir 'pnpm.cmd') -Value "@`"$($node.FullName)`" `"$($pnpmCjs.FullName)`" %*" -Encoding ASCII
         $env:PATH = "$shimDir;$env:PATH"
     }
-    $env:DSH_HOME = $HARNESS
+    $env:DSH_HOME = $DshHome     # root, so `--profile desktop` resolves profiles/desktop
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     foreach ($pkg in $DefaultPlugins) {
-        Note "installing DSH plugin $pkg"
-        # sanitize the package name for the log filename -- scoped packages like
-        # '@hytime/dsh-thinking-effort' contain a slash, which would turn the
-        # Join-Path into a missing subdirectory and silently break the redirect
-        # (and leave $LASTEXITCODE stale from the previous command).
+        Note "installing DSH plugin $pkg (desktop profile)"
+        # sanitize the package name for the log filename -- scoped packages
+        # contain a slash, which would turn the Join-Path into a missing
+        # subdirectory and silently break the redirect.
         $safe = $pkg -replace '[/\\:]', '-'
         $log = Join-Path $env:TEMP "dsh-prep-plugin-$safe.log"
-        & $node.FullName $dsh.FullName plugin --profile web add $pkg *>$log
-        if ($LASTEXITCODE -eq 0) {
+        $added = $false
+        if ($node -and $cli.FullName -match 'bin\.js$') {
+            & $node.FullName $cli.FullName plugin --profile $ProfileName add $pkg *>$log
+        } else {
+            & $cli.FullName plugin --profile $ProfileName add $pkg *>$log
+        }
+        if ($LASTEXITCODE -eq 0) { $added = $true }
+        else {
+            # On a newer dsh the app may gate a community plugin over a
+            # peer-dependency gap; the CLI prints the exact exemption command.
+            # Accept the documented risk it offers (its plugin-manager UI does
+            # the same) and retry once. Non-fatal if still refused.
+            $cmd = Get-Content $log -ErrorAction SilentlyContinue |
+                ForEach-Object { if ($_ -match 'allow-version ([^`]*--accept-risk)') { $Matches[1]; break } }
+            if ($cmd) {
+                Note "granting compatibility exemption for $pkg ($cmd)"
+                $args = @($cmd.Trim() -split '\s+') -ne ''
+                if ($node -and $cli.FullName -match 'bin\.js$') { & $node.FullName $cli.FullName plugin --profile $ProfileName @args *>$log }
+                else { & $cli.FullName plugin --profile $ProfileName @args *>$log }
+                if ($node -and $cli.FullName -match 'bin\.js$') { & $node.FullName $cli.FullName plugin --profile $ProfileName add $pkg *>$log }
+                else { & $cli.FullName plugin --profile $ProfileName add $pkg *>$log }
+                if ($LASTEXITCODE -eq 0) { $added = $true }
+            }
+        }
+        if ($added) {
             Note "plugin $pkg installed"
         } else {
             Warn "plugin $pkg install failed (exit $LASTEXITCODE) -- non-fatal; the workspace still works"
@@ -319,9 +364,9 @@ Ensure-Git
 Note 'Installing default DSH plugins (Plugin Market + reasoning-effort)'
 Ensure-Plugins
 
-if (-not (Test-Path (Split-Path $HARNESS -Parent))) {
-    Warn "DSH Desktop app data not found at $((Split-Path $HARNESS -Parent)) -- install DSH Desktop"
-    Warn "from https://dshdesktop.com/en/ and launch it once, then re-run this if needed."
+if (-not (Test-Path $DshHome)) {
+    Warn "DeepSeek Harness app data not found at $DshHome -- install the official app"
+    Warn "from https://deepseek.com/harness (or deepseek.com/download) and launch it once, then re-run this if needed."
 }
 
 if ($_TmpTemplates) { Remove-Item -Recurse -Force $_TmpTemplates -ErrorAction SilentlyContinue }
@@ -332,12 +377,12 @@ Write-Host @"
   Your AI workspace is ready at  $WS  (everything self-contained)
 
     Python / venv:    $WS\.venv
-    crawl4ai MCP:     enabled via the official DSH MCP client
+    crawl4ai MCP:     enabled via the official dsh MCP client (desktop profile)
     Browser:          pre-downloaded to $WS\.browsers
     DSH plugins:      Plugin Market (dshmarket) + reasoning-effort slider
 
   Remaining steps (2 clicks in the app):
-    1. Open DSH Desktop -> Settings -> Models -> paste your model API key.
+    1. Open DeepSeek Harness -> Settings -> Models -> paste your model API key.
     2. Choose workspace -> $WS
 
   See  $WS\NEXT-STEPS.md  for details.

@@ -4,7 +4,7 @@
 #   1. prep.sh end-to-end into a THROWAWAY workspace + harness: seeds, a real
 #      venv with crawl4ai inside the workspace, and a patch that points the
 #      official mcp-client at the workspace venv (no PATH dependence).
-#   2. If a DSH Desktop.app is installed, its OWN bundled harness must compose
+#   2. If a DeepSeek Harness.app is installed, its OWN bundled harness must compose
 #      the crawl4ai mcp-client patch (dump-config). Skips (not fails) when no
 #      app is present. Never touches real app data or ~/.crawl4ai.
 set -uo pipefail
@@ -33,7 +33,7 @@ done
 # whole workspace would false-positive on installed Python packages).
 if grep -q '{{' \
     "$T/ws/AGENTS.md" "$T/ws/README.md" "$T/ws/.gitignore" "$T/ws/NEXT-STEPS.md" \
-    "$T/harness/cordis.patch.yml" 2>/dev/null; then
+    "$T/harness/profiles/desktop/cordis.patch.yml" 2>/dev/null; then
   no 'no leftover {{ placeholders'
 else
   ok 'no leftover placeholders'
@@ -65,14 +65,14 @@ else
 fi
 
 # default permission preset pinned to danger-full-access (Full Access)
-settings="$T/harness/settings.yaml"
+settings="$T/harness/profiles/desktop/settings.yaml"
 if [ -f "$settings" ] && grep -q 'defaultPreset: danger-full-access' "$settings"; then
   ok 'harness settings.yaml pins permission default to danger-full-access'
 else
   no 'harness settings.yaml does not pin danger-full-access'
 fi
 
-patch="$T/harness/cordis.patch.yml"
+patch="$T/harness/profiles/desktop/cordis.patch.yml"
 if grep -q 'mcp-crawl4ai' "$patch" \
    && grep -q "@deepseek-ai/dsh-mcp-client" "$patch" \
    && grep -q "command: ${cr4_bin}" "$patch" \
@@ -93,20 +93,20 @@ fi
 
 # ---------- tier 2: real bundled harness composes the patch ----------
 BIN=""
-for p in \
-  "/Applications/DSH Desktop.app/Contents/Resources/app.asar.unpacked/node_modules/@deepseek-ai/dsh/lib/bin.js" \
-  "/Applications/DSH Desktop.app/Contents/Resources/app/node_modules/@deepseek-ai/dsh/lib/bin.js"; do
-  [ -f "$p" ] && { BIN="$p"; break; }
-done
-if [ -n "$BIN" ] && command -v node >/dev/null 2>&1; then
-  out2="$(DSH_HOME="$T/harness" node "$BIN" web --dump-config 2>&1 || true)"
+if [ -d "/Applications/DeepSeek Harness.app" ] || [ -d "$HOME/Applications/DeepSeek Harness.app" ]; then
+  app="/Applications/DeepSeek Harness.app"; [ -d "$app" ] || app="$HOME/Applications/DeepSeek Harness.app"
+  cli="$app/Contents/Resources/runtime/cli/bin/dsh"
+  [ -x "$cli" ] && BIN="$cli"
+fi
+if [ -n "$BIN" ]; then
+  out2="$(DSH_HOME="$T/harness" "$BIN" web --dump-config 2>&1 || true)"
   if printf '%s' "$out2" | grep -q 'mcp-crawl4ai'; then
-    ok 'bundled DSH harness composes mcp-crawl4ai (dump-config)'
+    ok 'official DeepSeek Harness composes mcp-crawl4ai (dump-config)'
   else
-    no 'bundled harness did not compose mcp-crawl4ai'
+    no 'official harness did not compose mcp-crawl4ai'
   fi
 else
-  sk 'DSH Desktop.app not found on this host — bundled-compose tier skipped'
+  sk 'DeepSeek Harness.app not found on this host — bundled-compose tier skipped'
 fi
 
 echo

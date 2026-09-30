@@ -1,10 +1,10 @@
 # My AI workspace
 
-This folder is your workspace for the **DSH Desktop** agent. Keep your projects here.
+This folder is your workspace for the **DeepSeek Harness** agent. Keep your projects here.
 
 ## Quick start
 
-1. Open **DSH Desktop**.
+1. Open **DeepSeek Harness**.
 2. In the assistant, choose this folder as the workspace (`ai-workspace`).
 3. Tell the AI what you want, e.g.:
    - "find recent news about <topic> and save a short summary to news.md"

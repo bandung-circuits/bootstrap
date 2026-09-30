@@ -1,10 +1,11 @@
-# dsh-desktop/setup.ps1 -- one-command bootstrap for DSH Desktop learners
+# dsh-desktop/setup.ps1 -- one-command bootstrap for DeepSeek Harness learners
 # (public, Windows). Nothing pre-installed:
 #
 #   iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.ps1 | Out-String)
 #
-# 1. Ensures DSH Desktop itself is installed (pinned release, fully silent)
-#    by running install-dsh.ps1 -- the shared front half with the cohort flow.
+# 1. Ensures the official DeepSeek Harness desktop app itself is installed
+#    (pinned release, fully silent) by running install-dsh.ps1 -- the shared
+#    front half with the cohort flow.
 # 2. Delegates everything else to prep.ps1 VERBATIM (workspace, venv +
 #    crawl4ai, browser, crawl4ai MCP, permission default) -- no setup logic
 #    here. The model API key is intentionally NOT handled: the learner
@@ -19,7 +20,7 @@ $ErrorActionPreference = 'Stop'
 $repoBase = 'https://bandung-circuits.github.io/bootstrap'
 $PrepUrl = if ($env:PREP_URL) { $env:PREP_URL } else { "$repoBase/dsh-desktop/prep.ps1" }
 
-# 1. DSH Desktop itself (pinned) -- shared front half.
+# 1. DeepSeek Harness itself (pinned) -- shared front half.
 if ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot 'install-dsh.ps1'))) {
   & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'install-dsh.ps1')
 } else {
@@ -42,7 +43,7 @@ Write-Host @'
 
   ============================================
     Setup complete!
-    Now open the DSH Desktop app
+    Now open the DeepSeek Harness app
     (Mac: Launchpad  |  Windows: Start menu)
   ============================================
 '@ -ForegroundColor Green

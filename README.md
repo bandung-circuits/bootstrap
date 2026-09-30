@@ -2,18 +2,18 @@
 
 帮几乎零 IT 背景的用户一条命令搭好智能体工作环境，背后接 DeepSeek V4 Flash 0731。两个并列方案：
 
-- **DSH Desktop 工作区**（首选，macOS/Windows）。
+- **DeepSeek Harness 工作区**（首选，macOS/Windows）。
 - **Visual Studio Code + Claude Code**（次选，Linux/macOS/Windows）。
 
 面向全球南方培训场景。最难的是设置工作环境这一步；搭好后，后续问题用户可以直接问 AI。
 
 ## 最终用户体验
 
-站点首页 `index.html` 是"二选一"门户：两个并列方案块（DSH Desktop 在前为首选），各自链到独立页面。
+站点首页 `index.html` 是"二选一"门户：两个并列方案块（DeepSeek Harness 在前为首选），各自链到独立页面。
 
-### 方案一（首选）：DSH Desktop 工作区
+### 方案一（首选）：DeepSeek Harness 工作区
 
-页面：`https://bandung-circuits.github.io/bootstrap/dsh-desktop.html`。一条命令完成全部（app 没装则先静默安装钉版 DSH Desktop，再配工作区）：
+页面：`https://bandung-circuits.github.io/bootstrap/dsh-desktop.html`。一条命令完成全部（app 没装则先静默安装钉版 DeepSeek Harness，再配工作区）：
 
 ```bash
 curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.sh | bash
@@ -25,7 +25,7 @@ Windows（PowerShell）：
 iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.ps1 | Out-String)
 ```
 
-得到 DSH Desktop（钉版 v0.9.2，如已装则跳过）+ `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
+得到 DeepSeek Harness（钉版 0.2.0-rc.2，如已装则跳过）+ `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
 
 ### 方案二（次选）：VS Code + Claude Code
 
@@ -66,22 +66,22 @@ lib/detect.sh                               共享：OS/arch/region 检测（两
 vscode/                方案 A：VS Code + Claude Code
   install.sh / install.ps1 / install-wsl.sh
   lib/  providers/  templates/  ci/verify/  wip/
-dsh-desktop/           方案 B：DSH Desktop 学员一条命令装好一切
-  install-dsh.sh / .ps1  共享前半段：钉版 DSH Desktop 静默安装（单一版本钉事实源）
+dsh-desktop/           方案 B：DeepSeek Harness 学员一条命令装好一切
+  install-dsh.sh / .ps1  共享前半段：钉版 DeepSeek Harness 静默安装（单一版本钉事实源）
   setup.sh / setup.ps1   公开学员入口：install-dsh + prep
   prep.sh / prep.ps1     工作区逻辑（venv、crawl4ai、MCP、权限；CI 与上层脚本复用）
   templates/  README.md
   cohort/              培训期单页安装指南生成器（每期 key 烧进单页 HTML，复用 install-dsh + prep）
-index.html              站点首页：二选一门户（两个并列方案块，DSH Desktop 首选）
+index.html              站点首页：二选一门户（两个并列方案块，DeepSeek Harness 首选）
 vscode.html             方案 A 页面：VS Code + Claude Code（安装命令与说明）
-dsh-desktop.html        方案 B 页面：DSH Desktop 工作区
+dsh-desktop.html        方案 B 页面：DeepSeek Harness 工作区
 providers-guide.html    provider 订阅指引（方案 A 用）
 ci/         CI：VMware Fusion Pro 上的 Linux ARM + Windows 11 ARM 模板机，快照恢复后按方案跑安装脚本并自动验证（见 `ci/run-test.sh`）
 .env        本地私有配置（主机地址/VM 路径/API key），已 gitignore；`.env.example` 是模板
 docs/       设计决策（design-vscode.md 为方案 A 记录）
 ```
 
-- DSH Desktop 方案：一条命令（`curl .../dsh-desktop/setup.sh | bash` 或 `iex (curl.exe -sL .../setup.ps1 | Out-String)`），app 没装则先静默安装钉版 DSH Desktop（v0.9.2，MIT 开源，GitHub 官方 release），再得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
+- DeepSeek Harness 方案：一条命令（`curl .../dsh-desktop/setup.sh | bash` 或 `iex (curl.exe -sL .../setup.ps1 | Out-String)`），app 没装则先静默安装钉版 DeepSeek Harness（0.2.0-rc.2，官方发布版，DeepSeek 官方下载源），再得到 `~/ai-workspace` + 工作区规则 + 经官方 mcp-client 启用的 crawl4ai。模型 key 在 app 内填。详见 `dsh-desktop/README.md`。
 - 设计原则：每个方案的种子配置都是 `templates/` 里的真实静态文件，脚本只拷贝 + 占位符替换。
 
 详见 `docs/design-vscode.md` 与 `ci/vm-setup.md`。
@@ -92,7 +92,7 @@ CI 在一台 Apple Silicon Mac 上的 VMware Fusion Pro 里跑：一台 Linux AR
 
 ## 范围（暂定）
 
-- 两个方案并列：DSH Desktop 工作区（首选）、VS Code + Claude Code（次选）。
+- 两个方案并列：DeepSeek Harness 工作区（首选）、VS Code + Claude Code（次选）。
 - 2026-09-15 曾试验把方案 A 的 Claude Code 换成 DeepSeek Harness for VS Code 扩展
   （分支 `migrate-vscode-to-dsh-harness`），因插件体验不佳放弃，保留 cc 方案。
 - 默认模型固定 DeepSeek V4 Flash 0731（又便宜又强）。

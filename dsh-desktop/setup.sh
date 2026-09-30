@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# dsh-desktop/setup.sh — one-command bootstrap for DSH Desktop learners
+# dsh-desktop/setup.sh — one-command bootstrap for DeepSeek Harness learners
 # (public, macOS). Nothing pre-installed:
 #
 #   curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/setup.sh | bash
 #
-# 1. Ensures DSH Desktop itself is installed (pinned release, silent) by
-#    running install-dsh.sh — the shared front half with the cohort flow.
+# 1. Ensures the official DeepSeek Harness desktop app itself is installed
+#    (pinned release, silent) by running install-dsh.sh — the shared front half
+#    with the cohort flow.
 # 2. Delegates everything else to prep.sh VERBATIM (workspace, venv +
 #    crawl4ai, browser, crawl4ai MCP, permission default) — no setup logic
 #    here. The model API key is intentionally NOT handled: the learner
@@ -20,7 +21,7 @@ REPO_BASE="https://bandung-circuits.github.io/bootstrap"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd 2>/dev/null || true)"
 PREP_URL="${PREP_URL:-${REPO_BASE}/dsh-desktop/prep.sh}"
 
-# 1. DSH Desktop itself (pinned) — shared front half.
+# 1. DeepSeek Harness itself (pinned) — shared front half.
 if [ -n "$SCRIPT_DIR" ] && [ -f "${SCRIPT_DIR}/install-dsh.sh" ]; then
   bash "${SCRIPT_DIR}/install-dsh.sh"
 else
@@ -39,4 +40,4 @@ fi
 # 3. The end line learners are told to look for on the setup page. Keep the
 #    text identical to the "how it ends when it worked" sample shown there
 #    (same banner in setup.sh, setup.ps1, cohort-setup.sh, cohort-setup.ps1).
-printf '\033[1;32m\n  ============================================\n    Setup complete!\n    Now open the DSH Desktop app\n    (Mac: Launchpad  |  Windows: Start menu)\n  ============================================\n\033[0m'
+printf '\033[1;32m\n  ============================================\n    Setup complete!\n    Now open the DeepSeek Harness app\n    (Mac: Launchpad  |  Windows: Start menu)\n  ============================================\n\033[0m'

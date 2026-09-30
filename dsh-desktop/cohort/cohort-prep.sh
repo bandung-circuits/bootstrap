@@ -5,7 +5,7 @@
 #   curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/cohort/cohort-prep.sh \
 #     | TRAINING_API_KEY='sk-...' bash
 #
-# Prerequisite: DSH Desktop installed (https://dshdesktop.com/en/). macOS only
+# Prerequisite: DeepSeek Harness installed (https://deepseek.com/harness). macOS only
 # here; Windows uses cohort-prep.ps1.
 #
 # This script REUSES the public dsh-desktop/prep.sh verbatim (it does NOT fork
@@ -36,17 +36,10 @@ err()  { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 # 0. key must be present (baked into the command on the cohort page).
 : "${TRAINING_API_KEY:?TRAINING_API_KEY is missing — copy the command from your cohort page, not a generic one.}"
 
-# 1. locate the DSH Desktop harness data dir (mirrors prep.sh's harness_discover).
-harness_discover() {
-  local cand
-  for cand in \
-    "${HOME}/Library/Application Support/dsh-desktop/harness" \
-    "${HOME}/Library/Application Support/DSH Desktop/harness"; do
-    [ -d "$cand" ] && { printf '%s\n' "$cand"; return 0; }
-  done
-  printf '%s\n' "${HOME}/Library/Application Support/dsh-desktop/harness"
-}
-HARNESS_HOME="${DSH_HOME:-$(harness_discover)}"
+# 1. official DeepSeek Harness data root + desktop profile (mirrors prep.sh).
+#    $DSH_HOME (default ~/.dsh); our config lives in profiles/desktop.
+DSH_HOME="${DSH_HOME:-${HOME}/.dsh}"
+HARNESS_HOME="${DSH_HOME}/profiles/desktop"
 
 # 2. pristine backup of the two files we will touch, BEFORE prep runs (prep.sh
 # itself edits settings.yaml for the permission default). Keep the first-ever
@@ -123,7 +116,7 @@ cat <<NEXT
     crawl4ai MCP:     enabled (web fetch + search, free, no key)
 
   Last step (one click in the app):
-    1. Open DSH Desktop.
+    1. Open DeepSeek Harness.
     2. Choose workspace ->  ~/ai-workspace
     3. Start asking. The model is already selected.
 

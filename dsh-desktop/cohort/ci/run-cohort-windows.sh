@@ -5,12 +5,20 @@
 # IDENTICAL to the rest of the CI: revert to clean-base -> run -> power off
 # (hard, discard). NEVER saves a snapshot over clean-base.
 #
+# MIGRATION NOTE (2026-09-30): this driver and verify-cohort-windows.ps1 were
+# updated for the OFFICIAL DeepSeek Harness (app name, Programs\DeepSeek Harness,
+# ~/.dsh\profiles\desktop instead of %APPDATA%\dsh-desktop\harness, and the
+# `desktop` profile not `web`). The provider/key injection internals
+# (inject_provider.py) are NOT yet re-validated against the official app's
+# credential store, and this whole cohort Windows path must be re-run on a real
+# VM before training use.
+#
 # What it tests (the real end-to-end, including the URL-fetch prep path that
 # failed on a learner's machine):
 #   1. revert Windows VM to clean-base, boot, SSH in.
 #   2. run the LATEST committed cohort-setup.ps1 (scp'd in) with a real key:
-#      it finds no DSH Desktop on the clean VM, downloads the PINNED release
-#      (DSH_VERSION in the script) from GitHub Releases, silent-installs it,
+#      it finds no DeepSeek Harness on the clean VM, downloads the PINNED release
+#      (DSH_VERSION in the script) from the official CDN, silent-installs it,
 #      then delegates to cohort-prep.ps1 (scp'd in via COHORT_PREP_URL).
 #      PREP_URL stays at its default (Pages) so the fixed
 #        iex (curl.exe -sL ... | Out-String)
@@ -77,7 +85,7 @@ scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
   dsh-desktop/cohort/ci/verify-cohort-windows.ps1 \
   "$WIN_USER@$ip": 2>&1 | tail -1
 
-# the silent installer may auto-launch DSH Desktop; the app's first-run init can
+# the silent installer may auto-launch DeepSeek Harness; the app's first-run init can
 # peg the VM and make SSH time out. Kill it, then re-wait for SSH before prep.
 ssh_retry() {
   local n=6
@@ -88,10 +96,10 @@ ssh_retry() {
   return 1
 }
 
-note "[cohort/win] guaranteeing the fresh-machine path: remove any DSH Desktop first"
-ssh_retry "taskkill /F /IM \"DSH Desktop.exe\" 2>nul& powershell -NoProfile -Command \"Remove-Item -Recurse -Force (Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop') -ErrorAction SilentlyContinue; exit 0\"" 2>&1 | tail -1
+note "[cohort/win] guaranteeing the fresh-machine path: remove any DeepSeek Harness first"
+ssh_retry "taskkill /F /IM \"DeepSeek Harness.exe\" 2>nul& powershell -NoProfile -Command \"Remove-Item -Recurse -Force (Join-Path \$env:LOCALAPPDATA 'Programs\DeepSeek Harness') -ErrorAction SilentlyContinue; exit 0\"" 2>&1 | tail -1
 
-note "[cohort/win] running cohort-setup.ps1 (pinned DSH Desktop download + silent install + delegate; PREP_URL=Pages default -> tests the fixed iex|Out-String branch)"
+note "[cohort/win] running cohort-setup.ps1 (pinned DeepSeek Harness download + silent install + delegate; PREP_URL=Pages default -> tests the fixed iex|Out-String branch)"
 ssh_retry "set TRAINING_API_KEY=$TEST_API_KEY&& set INJECT_URL=C:\\Users\\$WIN_USER\\inject_provider.py&& set COHORT_PREP_URL=C:\\Users\\$WIN_USER\\cohort-prep.ps1&& powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\$WIN_USER\\cohort-setup.ps1" \
   2>&1 | tee "ci/logs/cohort-win-$stamp.log"
 rc=$?
@@ -106,10 +114,10 @@ vrc=$?
 # injected provider survive the app's first launch? what does workspace.json
 # look like? (investigates whether the app overwrites settings.yaml on launch
 # and how the active/default workspace is represented) ---
-note "[cohort/win] launching DSH Desktop, observing first-launch behavior + workspace preselection"
+note "[cohort/win] launching DeepSeek Harness, observing first-launch behavior + workspace preselection"
 # 1. launch + wait (app stays running). 2. dump state. 3. screenshot. 4. kill.
 ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\$exe=Join-Path \$env:LOCALAPPDATA 'Programs\DSH Desktop\DSH Desktop.exe'; if (Test-Path \$exe) { Start-Process \$exe; Start-Sleep -Seconds 50; Write-Host '--- settings.yaml (head 60) ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\settings.yaml') -TotalCount 60 -ErrorAction SilentlyContinue; Write-Host '--- desktop-storage sessions.current ---'; (Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\profiles\web\desktop-storage.json') -Raw -ErrorAction SilentlyContinue); Write-Host '--- workspace.json ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\storages\workspace.json') -Raw -ErrorAction SilentlyContinue } else { Write-Host 'DSH Desktop.exe not found' }\"" \
+  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\$exe=Join-Path \$env:LOCALAPPDATA 'Programs\DeepSeek Harness\DeepSeek Harness.exe'; if (Test-Path \$exe) { Start-Process \$exe; Start-Sleep -Seconds 50; Write-Host '--- settings.yaml (head 60) ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\settings.yaml') -TotalCount 60 -ErrorAction SilentlyContinue; Write-Host '--- desktop-storage sessions.current ---'; (Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\profiles\desktop\desktop-storage.json') -Raw -ErrorAction SilentlyContinue); Write-Host '--- workspace.json ---'; Get-Content (Join-Path \$env:APPDATA 'dsh-desktop\harness\storages\workspace.json') -Raw -ErrorAction SilentlyContinue } else { Write-Host 'DeepSeek Harness.exe not found' }\"" \
   2>&1 | tee -a "ci/logs/cohort-win-$stamp.log"
 
 note "[cohort/win] capturing VM screenshot (app still running)"
@@ -120,7 +128,7 @@ vmrun -T fusion -gu "$WIN_USER" -gp "${WIN_PASS:-}" captureScreen "$WIN_VMX" "$S
 ls -la "$SHOT" 2>/dev/null || echo "(no screenshot)"
 
 ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
-  "taskkill /F /IM \"DSH Desktop.exe\" 2>nul; exit 0" 2>&1 | tail -1
+  "taskkill /F /IM \"DeepSeek Harness.exe\" 2>nul; exit 0" 2>&1 | tail -1
 
 note "[cohort/win] powering off VM (hard, discard -- leaves clean-base for next run)"
 vmrun stop "$WIN_VMX" hard 2>/dev/null || true

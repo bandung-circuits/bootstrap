@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# generate.py — produce a per-cohort single-page HTML setup guide for DSH Desktop
-# learners. The cohort's Bailian API key is baked into the commands on the page.
+# generate.py — produce a per-cohort single-page HTML setup guide for
+# DeepSeek Harness learners. The cohort's Bailian API key is baked into the
+# commands on the page.
 #
 # Run from a clone:
 #   python3 dsh-desktop/cohort/generate.py \
@@ -27,11 +28,12 @@ REPO_BASE = "https://bandung-circuits.github.io/bootstrap"
 COHORT_SETUP_MAC = f"{REPO_BASE}/dsh-desktop/cohort/cohort-setup.sh"
 COHORT_SETUP_WIN = f"{REPO_BASE}/dsh-desktop/cohort/cohort-setup.ps1"
 
-# Pinned DSH Desktop release the setup command installs when the app is
-# missing. Must match the DSH_VERSION default in cohort-setup.sh/.ps1 (the
+# Pinned DeepSeek Harness release the setup command installs when the app is
+# missing. Must match the DSH_VERSION default in install-dsh.sh/.ps1 (the
 # cohort smoke checks the three agree). Bump deliberately after verifying the
-# new version with the cohort flow.
-DSH_VERSION = "v0.9.2"
+# new version with the cohort flow. The official download is an always-current
+# `dsh-latest-*` pointer; this constant records the version we verify against.
+DSH_VERSION = "0.2.0-rc.2"
 
 DEFAULT_MODEL = "deepseek-v4-flash-0731"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"

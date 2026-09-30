@@ -1,9 +1,9 @@
-# cohort — per-training-cohort setup pages for DSH Desktop
+# cohort — per-training-cohort setup pages for DeepSeek Harness
 
 For each training cohort, the organizer generates **one self-contained HTML page**
 and sends the file to learners. The page contains a one-command setup whose
 command has the cohort's shared Bailian API key baked in. The learner runs it
-and gets everything on a fresh computer: DSH Desktop itself (pinned version,
+and gets everything on a fresh computer: DeepSeek Harness itself (pinned version,
 installed silently if missing) plus a ready `~/ai-workspace` with the key
 configured, the content-inspection header set, the default model pinned to the
 cohort model (currently `deepseek-v4-flash-0731`), and permission set to Full
@@ -11,7 +11,7 @@ Access — no manual key entry, no separate app download.
 
 This subtree is **separate from** the public `dsh-desktop/prep.*` flow. It
 reuses the public prep verbatim (by running it) and only adds (a) the pinned
-DSH Desktop install when the app is missing and (b) the provider/key injection.
+DeepSeek Harness install when the app is missing and (b) the provider/key injection.
 The public site files (`prep.sh`, `prep.ps1`, `dsh-desktop.html`, `index.html`,
 `templates/`) are not modified.
 
@@ -19,7 +19,7 @@ The public site files (`prep.sh`, `prep.ps1`, `dsh-desktop.html`, `index.html`,
 
 ```
 generate.py            generator — bakes the key into a per-cohort HTML page
-cohort-setup.sh        macOS learner command target: DSH Desktop (pinned) if
+cohort-setup.sh        macOS learner command target: DeepSeek Harness (pinned) if
                        missing, then cohort-prep.sh (published to Pages, no secret)
 cohort-setup.ps1       Windows learner command target (same)
 cohort-prep.sh         macOS: public prep + provider/key injection (called by
@@ -35,10 +35,10 @@ ci/smoke.sh            host-side smoke (inject unit tests + generator + setup gl
 ci/fixtures/settings.sample.yaml   de-sanitized real settings.yaml for unit tests
 ```
 
-## Pinned DSH Desktop version
+## Pinned DeepSeek Harness version
 
 On a fresh machine the learner command downloads and silently installs a
-**pinned** DSH Desktop release — currently `v0.9.2` (verified end to end with
+**pinned** DeepSeek Harness release — currently `0.2.0-rc.2` (verified against the official download; the cohort
 this flow), from the official GitHub releases. The install logic and the pin
 live in the shared front half [`../install-dsh.sh` / `.ps1`](../README.md)
 (also used by the public `setup.*` entry); see that README for platform
@@ -79,17 +79,17 @@ Enter), styles the command as a mock terminal window so learners recognise the
 real one (macOS traffic lights for Mac learners, Windows title-bar controls for
 Windows learners), auto-detects the OS and shows only one command, and shows a
 sample of the script's exact final output ("Setup complete!" banner printed by
-the cohort-setup scripts — keep the two in sync). The DSH Desktop app icon
+the cohort-setup scripts — keep the two in sync). The DeepSeek Harness app icon
 (`assets/`) is embedded as a data URI so the page stays a single
 self-contained file.
 
 ## What the learner's command does
 
-1. Installs DSH Desktop if it is missing (pinned version, silent — see above);
+1. Installs DeepSeek Harness if it is missing (pinned version, silent — see above);
    skips this when the app is already installed.
 2. Runs the public `dsh-desktop/prep.sh` (or `.ps1`) verbatim — workspace,
    crawl4ai MCP, browser, Full Access permission. (Reuse; not duplicated.)
-3. Calls `inject_provider.py`, which writes into the DSH Desktop harness dir:
+3. Calls `inject_provider.py`, which writes into the DeepSeek Harness harness dir:
    - `settings.yaml` — the `training` provider (baseURL, `apiKeyEnv`,
      `X-DashScope-DataInspection: {"input":"disable","output":"disable"}`,
      models), and `agent-default-model` pinned to the cohort model.

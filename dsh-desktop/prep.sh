@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# dsh-desktop/prep.sh — one-command workspace prep for DSH Desktop (macOS).
+# dsh-desktop/prep.sh — one-command workspace prep for DeepSeek Harness (macOS).
 #
 # Usage (macOS):
 #   curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/prep.sh | bash
 # or from a clone:
 #   bash dsh-desktop/prep.sh
 #
-# Prerequisite: DSH Desktop installed (https://dshdesktop.com/en/). Platforms:
-# macOS + Windows only (the app has no Linux build).
+# Prerequisite: the official DeepSeek Harness desktop app installed
+# (https://deepseek.com/harness). Platforms: Apple-silicon macOS + Windows x64
+# only (the official desktop has no Intel/linux build).
 #
 # Everything is installed INSIDE the workspace (~/ai-workspace) so the app's
 # subprocesses can find it without touching ~/.local/bin (not on the app's
@@ -20,9 +21,9 @@
 #     .local/bin/                   uv (a helper, not needed at runtime)
 #
 # The crawl4ai MCP server runs the workspace venv's crawl4ai-search executable
-# by absolute path (no PATH lookup). Odds & ends: the app's harness data stays
-# in the DSH Desktop app-data dir (macOS ~/Library/Application Support/DSH
-# Desktop/harness); the model key is entered by the learner in the app.
+# by absolute path (no PATH lookup). Odds & ends: our config lives in the app's
+# desktop profile patch layer ($DSH_HOME/profiles/desktop, default
+# ~/.dsh/profiles/desktop); the model key is entered by the learner in the app.
 
 set -euo pipefail
 
@@ -64,20 +65,13 @@ load_templates() {
 
 # ---------- paths (env-overridable for tests) ----------
 WORKSPACE_DIR="${WORKSPACE_DIR:-${HOME}/ai-workspace}"
-# DSH Desktop's Electron userData folder varies by build/version: observed as
-# both "$HOME/Library/Application Support/dsh-desktop" and ".../DSH Desktop".
-# Discover it: prefer whichever already holds harness state; default to the
-# lowercase package-name variant.
-harness_discover() {
-  local cand
-  for cand in \
-    "${HOME}/Library/Application Support/dsh-desktop/harness" \
-    "${HOME}/Library/Application Support/DSH Desktop/harness"; do
-    [ -d "$cand" ] && { printf '%s\n' "$cand"; return 0; }
-  done
-  printf '%s\n' "${HOME}/Library/Application Support/dsh-desktop/harness"
-}
-HARNESS_HOME="${DSH_HOME:-$(harness_discover)}"
+# The official desktop shares the dsh-cli data root: $DSH_HOME (default
+# ~/.dsh). Electron-owned config lives in the DESKTOP PROFILE's own patch
+# layer, $DSH_HOME/profiles/desktop. Setting DSH_HOME redirects the whole root
+# (the app honors it via resolveDshHome()).
+DSH_HOME="${DSH_HOME:-${HOME}/.dsh}"
+PROFILE_NAME="desktop"
+HARNESS_HOME="${DSH_HOME}/profiles/${PROFILE_NAME}"
 UV_BIN="${WORKSPACE_DIR}/.local/bin/uv"
 VENV_DIR="${WORKSPACE_DIR}/.venv"
 VENV_PY="${VENV_DIR}/bin/python"
@@ -222,7 +216,7 @@ PY
                 -e "s|{{WORKSPACE}}|${WORKSPACE_DIR}|g" \
                 "${TEMPLATES_PATCH}/crawl4ai-patch.yml" || true)"
   if [ ! -f "$patch" ]; then
-    printf '# DSH Desktop harness home-level patch (applies to every profile)\n' > "$patch"
+    printf '# DeepSeek Harness profile patch layer (desktop profile; applies after every bundle layer)\n' > "$patch"
   else
     printf '\n' >> "$patch"
   fi
@@ -264,25 +258,26 @@ ensure_git() {
 }
 
 # ---------- 8. default DSH plugins (dshmarket + thinking-effort) ----------
-# Installs two community plugins into the DSH `web` profile so every learner
-# gets them by default, using the app's OWN bundled node + dsh bin.js (no system
-# node/pnpm assumed). `dsh plugin --profile web add <pkg>` initializes the
-# profile on first use, adds the package to deps AND dsh.profile.bundles, and
-# pnpm-installs it. Idempotent (pnpm add is a no-op when already present).
+# Installs two community plugins into the DSH `desktop` profile (the official
+# desktop app's profile) so every learner gets them by default, using the app's
+# OWN bundled dsh CLI + pnpm (no system node/pnpm assumed).
+# `dsh plugin --profile desktop add <pkg>` initializes the profile on first use,
+# adds the package to deps AND dsh.profile.bundles, and pnpm-installs it.
+# Idempotent (pnpm add is a no-op when already present).
 #   dshmarket                      -> Settings -> Plugin Market (browse/install plugins)
 #   dsh-better-reasoning-effort     -> per-model reasoning-effort slider with a
 #     built-in model knowledge base (knows each vendor's correct effort levels,
 #     e.g. GLM-5.3 = low/high/max, DeepSeek = off/low/high/max); auto-fills
 #     reasoningEfforts on app launch. Needs DSH kernel >= 0.1.5-alpha.1
-#     (DSH Desktop 0.9.x bundles it); best-effort on older builds.
+#     (the official desktop 0.2.0 ships well beyond it); best-effort if absent.
 DEFAULT_PLUGINS="dshmarket dsh-better-reasoning-effort"
 
 app_discover_mac() {
   local cand m
-  for cand in "/Applications/DSH Desktop.app" "${HOME}/Applications/DSH Desktop.app"; do
+  for cand in "/Applications/DeepSeek Harness.app" "${HOME}/Applications/DeepSeek Harness.app"; do
     [ -d "$cand" ] && { printf '%s\n' "$cand"; return 0; }
   done
-  m="$(mdfind -name 'DSH Desktop.app' 2>/dev/null | grep -E 'DSH Desktop\.app$' | head -1)"
+  m="$(mdfind -name 'DeepSeek Harness.app' 2>/dev/null | grep -E 'DeepSeek Harness\.app$' | head -1)"
   [ -n "$m" ] && { printf '%s\n' "$m"; return 0; }
   return 1
 }
@@ -292,27 +287,38 @@ ensure_plugins() {
   local node binjs pnpmcjs
   app="$(app_discover_mac 2>/dev/null || true)"
   if [ -z "$app" ]; then
-    warn "DSH Desktop app not found — skipping plugin install. Install it from https://dshdesktop.com/en/ and re-run."
+    warn "DeepSeek Harness app not found — skipping plugin install. Install it from https://deepseek.com/harness (or deepseek.com/download) and re-run."
     return 0
   fi
-  node="${app}/Contents/Resources/app/node_modules/node/bin/node"
-  binjs="${app}/Contents/Resources/app/node_modules/@deepseek-ai/dsh/lib/bin.js"
-  pnpmcjs="${app}/Contents/Resources/app/node_modules/pnpm/bin/pnpm.cjs"
-  if [ ! -x "$node" ] || [ ! -f "$binjs" ]; then
-    warn "bundled node/dsh not found under $app — skipping plugin install"
+  # The official desktop carries a bundled dsh CLI under Contents/Resources/
+  # runtime/cli/bin/dsh (a shim that launches its own Electron-as-node). `dsh
+  # plugin add` shells out to a bare `pnpm`, so we prepend a shim pointing at
+  # the bundled pnpm; learners never need node/pnpm on PATH.
+  binjs="${app}/Contents/Resources/runtime/cli/bin/dsh"
+  node="${app}/Contents/Resources/runtime/bin/node"
+  pnpmcjs="${app}/Contents/Resources/runtime/pnpm/bin/pnpm.cjs"
+  if [ ! -x "$binjs" ]; then
+    warn "bundled dsh CLI not found under $app — skipping plugin install"
     return 0
   fi
-  # DSH Desktop's main process should not be running while pnpm mutates the
-  # profile dir. Match the MAIN binary path only (pgrep excludes itself, and
-  # helper sub-processes don't contain this exact path substring, so they
-  # don't false-positive).
-  if pgrep -f "DSH Desktop.app/Contents/MacOS/DSH Desktop" >/dev/null 2>&1; then
-    warn "DSH Desktop is running — quit it before plugin install; skipping plugins for now"
+  # The app's main process should not be running while pnpm mutates the profile
+  # dir. Match the MAIN binary path only (pgrep excludes itself, and helper
+  # sub-processes don't contain this exact path substring, so they don't
+  # false-positive).
+  if pgrep -f "DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" >/dev/null 2>&1; then
+    warn "DeepSeek Harness is running — quit it before plugin install; skipping plugins for now"
     return 0
   fi
-  # `dsh plugin add` shells out to a bare `pnpm`; learners rarely have pnpm on
-  # PATH. Point a pnpm shim at the app's OWN bundled node + pnpm.cjs and put it
-  # first on PATH for the call.
+  # The desktop app must be opened once (first run) to initialize its profile
+  # before `dsh plugin --profile desktop` will act. Fresh installs haven't done
+  # that yet, so defer plugins with clear guidance; re-running setup after the
+  # learner opens+quits the app installs them (idempotent).
+  if [ ! -f "${DSH_HOME}/profiles/${PROFILE_NAME}/package.json" ]; then
+    warn "The desktop profile isn't initialized yet. Open DeepSeek Harness once"
+    warn "so it creates its profile, then quit it and re-run this setup command — it"
+    warn "will then install the default plugins. Skipping plugins for now (non-fatal)."
+    return 0
+  fi
   local shim_dir shim
   shim_dir="$(mktemp -d)"
   shim="${shim_dir}/pnpm"
@@ -323,16 +329,30 @@ exec "$node" "$pnpmcjs" "\$@"
 EOF
     chmod +x "$shim"
   fi
-  local pkg rc
+  local pkg rc allow_cmd
   for pkg in $DEFAULT_PLUGINS; do
-    note "installing DSH plugin ${pkg}"
-    if PATH="$shim_dir:$PATH" DSH_HOME="$HARNESS_HOME" "$node" "$binjs" plugin --profile web add "$pkg" >/tmp/dsh-prep-plugin.log 2>&1; then
+    note "installing DSH plugin ${pkg} (desktop profile)"
+    if PATH="$shim_dir:$PATH" DSH_HOME="$DSH_HOME" "$binjs" plugin --profile "$PROFILE_NAME" add "$pkg" >/tmp/dsh-prep-plugin.log 2>&1; then
       note "plugin ${pkg} installed"
-    else
-      rc=$?
-      warn "plugin ${pkg} install failed (exit $rc) — non-fatal; the workspace still works"
-      tail -12 /tmp/dsh-prep-plugin.log >&2 2>/dev/null || true
+      continue
     fi
+    rc=$?
+    # On a newer dsh the app may gate a community plugin over a peer-dependency
+    # version gap; the CLI prints the exact exemption command. Accept the
+    # documented risk it offers (same action its plugin-manager UI guides an
+    # admin to) and retry once. Non-fatal if still refused.
+    allow_cmd="$(grep -oE 'allow-version +[^`]*--accept-risk' /tmp/dsh-prep-plugin.log 2>/dev/null | head -1 || true)"
+    if [ -n "$allow_cmd" ]; then
+      note "granting compatibility exemption for ${pkg} ($allow_cmd)"
+      if PATH="$shim_dir:$PATH" DSH_HOME="$DSH_HOME" "$binjs" plugin --profile "$PROFILE_NAME" $allow_cmd >/tmp/dsh-prep-plugin.log 2>&1 &&
+         PATH="$shim_dir:$PATH" DSH_HOME="$DSH_HOME" "$binjs" plugin --profile "$PROFILE_NAME" add "$pkg" >/tmp/dsh-prep-plugin.log 2>&1; then
+        note "plugin ${pkg} installed (after exemption)"
+        continue
+      fi
+      rc=$?
+    fi
+    warn "plugin ${pkg} install failed (exit $rc) — non-fatal; the workspace still works"
+    tail -12 /tmp/dsh-prep-plugin.log >&2 2>/dev/null || true
   done
   rm -rf "$shim_dir"
 }
@@ -357,9 +377,9 @@ main() {
   note "Installing default DSH plugins (Plugin Market + reasoning-effort)"
   ensure_plugins
 
-  if [ ! -d "$(dirname "$HARNESS_HOME")" ]; then
-    warn "DSH Desktop app data not found at $(dirname "$HARNESS_HOME") — install DSH Desktop"
-    warn "from https://dshdesktop.com/en/ and launch it once, then re-run this if needed."
+  if [ ! -d "$DSH_HOME" ]; then
+    warn "DeepSeek Harness app data not found at $DSH_HOME — install the official app"
+    warn "from https://deepseek.com/harness (or deepseek.com/download) and launch it once, then re-run this if needed."
   fi
 
   note "Done."
@@ -368,12 +388,12 @@ main() {
   Your AI workspace is ready at  ~/ai-workspace  (everything self-contained)
 
     Python / venv:    ~/ai-workspace/.venv
-    crawl4ai MCP:     enabled via the official DSH MCP client
+    crawl4ai MCP:     enabled via the official dsh MCP client (desktop profile)
     Browser:          pre-downloaded to ~/ai-workspace/.browsers
     DSH plugins:      Plugin Market (dshmarket) + reasoning-effort slider
 
   Remaining steps (2 clicks in the app):
-    1. Open DSH Desktop → Settings → Models → paste your model API key.
+    1. Open DeepSeek Harness → Settings → Models → paste your model API key.
     2. Choose workspace → ~/ai-workspace.
 
   See ~/ai-workspace/NEXT-STEPS.md for details.

@@ -3,7 +3,7 @@
 # Learner runs (the key is baked into the command on the cohort HTML page):
 #   $env:TRAINING_API_KEY='sk-...'; iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/cohort/cohort-prep.ps1 | Out-String)
 #
-# Prerequisite: DSH Desktop installed (https://dshdesktop.com/en/). Windows only
+# Prerequisite: DeepSeek Harness installed (https://deepseek.com/harness). Windows only
 # here; macOS uses cohort-prep.sh.
 #
 # REUSES the public dsh-desktop/prep.ps1 verbatim for the workspace, venv +
@@ -33,24 +33,20 @@ if (-not $env:TRAINING_API_KEY -or $env:TRAINING_API_KEY -eq '') {
   Err 'TRAINING_API_KEY is missing -- copy the command from your cohort page, not a generic one.'
 }
 
-# 0.5. DSH Desktop must not be running while we write its config. If the app is
-# open, it holds settings.yaml in memory and will overwrite our injection on
-# quit. Kill it (the learner was told to quit, but enforce it).
-$procs = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'DSH\s*Desktop' })
+# 0.5. DeepSeek Harness must not be running while we write its config. If the
+# app is open, it holds settings.yaml in memory and will overwrite our injection
+# on quit. Kill it (the learner was told to quit, but enforce it).
+$procs = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'DeepSeek\s*Harness' })
 if ($procs.Count -gt 0) {
-  Note 'DSH Desktop is running -- closing it so the config writes are not overwritten'
+  Note 'DeepSeek Harness is running -- closing it so the config writes are not overwritten'
   $procs | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Seconds 2
 }
 
-# 1. locate the DSH Desktop harness data dir (mirrors prep.ps1's Get-HarnessHome).
-function Get-HarnessHome {
-  foreach ($cand in @((Join-Path $env:APPDATA 'dsh-desktop\harness'), (Join-Path $env:APPDATA 'DSH Desktop\harness'))) {
-    if (Test-Path $cand) { return $cand }
-  }
-  return (Join-Path $env:APPDATA 'dsh-desktop\harness')
-}
-$HARNESS = if ($env:DSH_HOME) { $env:DSH_HOME } else { Get-HarnessHome }
+# 1. official DeepSeek Harness data root + desktop profile (mirrors prep.ps1).
+#    $DSH_HOME (default ~/.dsh); our config lives in profiles/desktop.
+$DshHome = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $env:USERPROFILE '.dsh' }
+$HARNESS = Join-Path $DshHome 'profiles\desktop'
 
 # 2. pristine backup of the two files we will touch, BEFORE prep runs.
 foreach ($f in @((Join-Path $HARNESS 'settings.yaml'), (Join-Path $HARNESS '.credentials.yaml'))) {
@@ -123,7 +119,7 @@ Write-Host "    Permission:       Full Access (the agent can work without prompt
 Write-Host "    crawl4ai MCP:     enabled (web fetch + search, free, no key)"
 Write-Host ''
 Write-Host '  Last step (one click in the app):'
-Write-Host '    1. Open DSH Desktop.'
+Write-Host '    1. Open DeepSeek Harness.'
 Write-Host '    2. Choose workspace ->  ~\ai-workspace'
 Write-Host '    3. Start asking. The model is already selected.'
 Write-Host ''

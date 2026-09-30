@@ -17,7 +17,7 @@ Prefer the **crawl4ai** MCP (free, no API key) when its tools are listed in this
 
 **Check the toolset once at the start.** If the `mcp__crawl4ai__*` tools are not listed, they will not appear mid-session — do not keep retrying them. Fall back in this order:
 
-1. **Diagnose** briefly: MCP tools register only when the server process starts, and the server is launched exactly by `command` in `<DSH Desktop data>/harness/cordis.patch.yml`. If reading that file is quick, check that the pinned `command` path exists on disk. A wrong path means the setup command needs to be re-run (it self-heals the row) and the session reopened.
+1. **Diagnose** briefly: MCP tools register only when the server process starts, and the server is launched exactly by `command` in `~/.dsh/profiles/desktop/cordis.patch.yml`. If reading that file is quick, check that the pinned `command` path exists on disk. A wrong path means the setup command needs to be re-run (it self-heals the row) and the session reopened.
 2. **Run crawl4ai directly** from the workspace venv — same engine, no MCP needed. Use the venv python (see section 3) to run scripts, or `~/ai-workspace/.venv/bin/crawl4ai-search` (macOS) / `.venv\Scripts\crawl4ai-search.exe` (Windows) for the CLI. Its first real use creates `.crawl4ai` folders inside the workspace.
 3. **Built-in harness tools**: `web_fetch` needs no key. `web_search` needs the model key configured (Settings → Models in the app) — if it fails with a missing-key error, note that to the user rather than retrying forever.
 
@@ -57,15 +57,15 @@ Reference: [BHV-05 Grounded Web Research](https://github.com/eXtremeProgramming-
 
 ## 5. The harness data lives outside this folder
 
-This workspace is used with the **DSH Desktop** application. The harness's own data (profiles, plugins, sessions) lives in the application's data directory, not in this folder — the app-data folder is most often the package name `dsh-desktop` (sometimes `DSH Desktop`, depending on the build):
+This workspace is used with the official **DeepSeek Harness** desktop application. The harness's own data root is `~/.dsh` (overridable via `DSH_HOME`); this folder only holds the desktop **profile's** user config, at `~/.dsh/profiles/desktop`:
 
-- macOS: `~/Library/Application Support/dsh-desktop/harness` (or `.../DSH Desktop/harness`)
-- Windows: `%APPDATA%\dsh-desktop\harness` (or `%APPDATA%\DSH Desktop\harness`)
+- macOS: `~/.dsh/profiles/desktop`
+- Windows: `%USERPROFILE%\.dsh\profiles\desktop`
 
 Treat that directory as machinery — editing it is a config change and requires an explicit user request. Two files there are worth READING for diagnosis:
 
-- `settings.yaml` — holds the default permission preset (`permission.defaultPreset`).
-- `cordis.patch.yml` — the MCP server registrations (including crawl4ai) and the exact `command` paths they launch.
+- `settings.yaml` — a legacy import shim the app loads on first start (`permission.defaultPreset` and other sections are imported into the profile).
+- `cordis.patch.yml` — the desktop profile's patch layer: MCP server registrations (including crawl4ai) and the exact `command` paths they launch.
 
 Keep your own work in this workspace root or a project subfolder.
 

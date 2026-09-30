@@ -1,5 +1,5 @@
 # dsh-desktop/ci/verify/verify-windows.ps1 -- run INSIDE the Windows VM AFTER the
-# DSH Desktop app has been installed and dsh-desktop/prep.ps1 has run.
+# DeepSeek Harness app has been installed and dsh-desktop/prep.ps1 has run.
 # Asserts: workspace seeds, in-workspace venv with crawl4ai, the crawl4ai patch
 # pointing at the workspace venv (with in-workspace browsers/data env), and that
 # the app's bundled harness composes the patch (dump-config).
@@ -9,14 +9,9 @@ function OK($m){ Write-Host "  PASS  $m"; $script:pass++ }
 function NO($m){ Write-Host "  FAIL  $m"; $script:fail++ }
 
 $WS      = Join-Path $env:USERPROFILE 'ai-workspace'
-# DSH Desktop userData varies by build (dsh-desktop vs DSH Desktop).
-function Get-HarnessHome {
-    foreach ($cand in @((Join-Path $env:APPDATA 'dsh-desktop\harness'), (Join-Path $env:APPDATA 'DSH Desktop\harness'))) {
-        if (Test-Path $cand) { return $cand }
-    }
-    return (Join-Path $env:APPDATA 'dsh-desktop\harness')
-}
-$HARNESS = if ($env:DSH_HOME) { $env:DSH_HOME } else { Get-HarnessHome }
+# Official DeepSeek Harness data root + desktop profile (mirrors prep.ps1).
+$DshHome = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $env:USERPROFILE '.dsh' }
+$HARNESS = Join-Path $DshHome 'profiles\desktop'
 $patch   = Join-Path $HARNESS 'cordis.patch.yml'
 $venvPy  = Join-Path $WS '.venv\Scripts\python.exe'
 $cr4exe  = Join-Path $WS '.venv\Scripts\crawl4ai-search.exe'
@@ -70,18 +65,24 @@ if ($pc -match 'mcp-crawl4ai' -and $pc -match '@deepseek-ai/dsh-mcp-client' -and
 }
 
 # --- bundled harness composes the patch ---
-$node = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs\DSH Desktop') -Recurse -Filter 'node.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-$dsh  = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs\DSH Desktop') -Recurse -Filter 'bin.js' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '@deepseek-ai' -and $_.FullName -match '\\dsh\\' } | Select-Object -First 1
-if ($node -and $dsh) {
-    $env:DSH_HOME = $HARNESS
-    $out = & $node.FullName $dsh.FullName web --dump-config 2>&1 | Out-String
-    if ($out -match 'mcp-crawl4ai') { OK 'bundled DSH harness composes mcp-crawl4ai (dump-config)' } else { NO 'bundled harness did not compose mcp-crawl4ai' }
+$appDir = @(
+  (Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness'),
+  (Join-Path $env:ProgramFiles 'DeepSeek Harness')
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($appDir) {
+    $cli = Get-ChildItem (Join-Path $appDir 'resources\runtime\cli\bin') -Filter 'dsh*' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -eq '' -or $_.Extension -in '.cmd','.ps1' } | Select-Object -First 1
+} else { $cli = $null }
+if ($cli) {
+    $env:DSH_HOME = $DshHome
+    $out = & $cli.FullName web --dump-config 2>&1 | Out-String
+    if ($out -match 'mcp-crawl4ai') { OK 'official DeepSeek Harness composes mcp-crawl4ai (dump-config)' } else { NO 'official harness did not compose mcp-crawl4ai' }
 } else {
-    NO "bundled harness not found (node=$($node.FullName), dsh=$($dsh.FullName))"
+    NO "bundled official harness not found (app=$appDir)"
 }
 
 # --- default plugins installed by prep (dshmarket + dsh-better-reasoning-effort) ---
-$pkgJson = Join-Path $HARNESS 'profiles\web\package.json'
+$pkgJson = Join-Path $HARNESS 'package.json'
 if (Test-Path $pkgJson) {
   try { $pj = Get-Content $pkgJson -Raw | ConvertFrom-Json } catch { $pj = $null }
   if ($pj) {
@@ -89,8 +90,8 @@ if (Test-Path $pkgJson) {
     $bundles = $pj.dsh.profile.bundles
     if ($deps -contains 'dshmarket' -and $bundles -contains 'dshmarket') { OK 'plugin dshmarket in deps+bundles' } else { NO 'plugin dshmarket missing' }
     if ($deps -contains 'dsh-better-reasoning-effort' -and $bundles -contains 'dsh-better-reasoning-effort') { OK 'plugin dsh-better-reasoning-effort in deps+bundles' } else { NO 'plugin dsh-better-reasoning-effort missing' }
-  } else { NO 'profiles/web/package.json unreadable' }
-} else { NO 'profiles/web/package.json not found (plugins not installed)' }
+  } else { NO 'profiles/desktop/package.json unreadable' }
+} else { NO 'profiles/desktop/package.json not found (plugins not installed)' }
 
 Write-Host ''
 Write-Host "RESULT: $pass passed, $fail failed"

@@ -2,11 +2,11 @@
 
 Your AI workspace is ready at  ~/ai-workspace  (Windows:  C:\Users\<you>\ai-workspace )
 
-## 1. Install DSH Desktop (if you haven't already)
+## 1. Install DeepSeek Harness (if you haven't already)
 
-Download from:  https://dshdesktop.com/en/
+The official desktop app — download from:  https://deepseek.com/harness (or https://deepseek.com/download)
 
-Supported: macOS (Apple Silicon and Intel) and Windows. Requires a user account with normal permissions — no administrator needed for the workspace setup.
+Supported: Apple-silicon macOS and Windows x64. Requires a user account with normal permissions — no administrator needed for the workspace setup.
 
 ## 2. Add the model key
 
@@ -29,4 +29,4 @@ The **crawl4ai** MCP (web fetch/search) is already enabled through the official 
 
 ---
 
-*What the setup command did: created this folder with the workspace rules (AGENTS.md), installed everything self-contained inside it (Python venv with crawl4ai, the Chromium browser, and uv), and enabled the crawl4ai MCP server in the DSH Desktop harness data. Nothing outside this folder except the one MCP patch row was touched. To remove crawl4ai later, delete the `mcp-crawl4ai` block from `<DSH Desktop data>/harness/cordis.patch.yml`.*
+*What the setup command did: created this folder with the workspace rules (AGENTS.md), installed everything self-contained inside it (Python venv with crawl4ai, the Chromium browser, and uv), and enabled the crawl4ai MCP server in the DeepSeek Harness desktop profile. Nothing outside this folder except the one MCP patch row was touched. To remove crawl4ai later, delete the `mcp-crawl4ai` block from `~/.dsh/profiles/desktop/cordis.patch.yml`.*

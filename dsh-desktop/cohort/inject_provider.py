@@ -9,9 +9,20 @@
 # inspection header that the bailian-content-inspection page documents, and pin
 # the session's default model.
 #
-# What it writes (all inside the DSH Desktop harness data dir):
+# What it writes (all inside the desktop profile dir, ~/.dsh/profiles/desktop):
 #   settings.yaml   — the `training` provider block + `agent-default-model`
 #   .credentials.yaml — `refs.TRAINING_API_KEY` (the key the cohort shares)
+#
+# MIGRATION PENDING (official desktop, 2026-09-30): this script was written for
+# the community DSH Desktop harness, which kept settings.yaml, .credentials.yaml
+# and storages/ all under one harness dir. The official DeepSeek Harness keeps
+# the desktop profile config in ~/.dsh/profiles/desktop but reads real provider
+# credentials from the ~/.dsh ROOT (.credentials.yaml) and workspaces from
+# ~/.dsh/storages. So the provider-key/workspace parts of the cohort flow must
+# be re-validated against the official app (settings.yaml in the profile dir is
+# still picked up by the official legacy-import shim for the permission preset).
+# Until that is done on a Windows VM, treat cohort provider injection as
+# NOT yet verified end to end on the official app.
 #
 # Design: line/block surgery on the raw files, NOT a full pyyaml round-trip, so
 # every byte outside the two touched blocks stays identical to what the learner

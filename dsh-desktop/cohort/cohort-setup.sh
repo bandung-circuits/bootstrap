@@ -5,7 +5,7 @@
 #   curl -fsSL https://bandung-circuits.github.io/bootstrap/dsh-desktop/cohort/cohort-setup.sh \
 #     | TRAINING_API_KEY='sk-...' bash
 #
-# 1. Ensures DSH Desktop is installed — the shared front half
+# 1. Ensures DeepSeek Harness is installed — the shared front half
 #    (../install-dsh.sh, pinned release, silent install) does this; this
 #    script holds no install logic and no version pin.
 # 2. Delegates everything else to cohort-prep.sh VERBATIM (public prep +
@@ -26,7 +26,7 @@ err()  { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 # 0. fail fast on a missing key BEFORE downloading a ~175 MB installer.
 : "${TRAINING_API_KEY:?TRAINING_API_KEY is missing — copy the command from your cohort page, not a generic one.}"
 
-# 1. DSH Desktop itself (pinned) — shared front half with the public flow.
+# 1. DeepSeek Harness itself (pinned) — shared front half with the public flow.
 if [ -n "$SCRIPT_DIR" ] && [ -f "${SCRIPT_DIR}/../install-dsh.sh" ]; then
   bash "${SCRIPT_DIR}/../install-dsh.sh"
 else
@@ -45,4 +45,4 @@ fi
 # 3. The end line learners are told to look for on the cohort page. Keep the
 #    text identical to the "how it ends when it worked" sample shown there
 #    (same banner in setup.sh, setup.ps1, cohort-setup.sh, cohort-setup.ps1).
-printf '\033[1;32m\n  ============================================\n    Setup complete!\n    Now open the DSH Desktop app\n    (Mac: Launchpad  |  Windows: Start menu)\n  ============================================\n\033[0m'
+printf '\033[1;32m\n  ============================================\n    Setup complete!\n    Now open the DeepSeek Harness app\n    (Mac: Launchpad  |  Windows: Start menu)\n  ============================================\n\033[0m'

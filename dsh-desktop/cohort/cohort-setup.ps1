@@ -3,7 +3,7 @@
 #
 #   $env:TRAINING_API_KEY='sk-...'; iex (curl.exe -sL https://bandung-circuits.github.io/bootstrap/dsh-desktop/cohort/cohort-setup.ps1 | Out-String)
 #
-# 1. Ensures DSH Desktop is installed -- the shared front half
+# 1. Ensures DeepSeek Harness is installed -- the shared front half
 #    (../install-dsh.ps1, pinned release, fully silent /S) does this; this
 #    script holds no install logic and no version pin.
 # 2. Delegates everything else to cohort-prep.ps1 VERBATIM (public prep +
@@ -25,7 +25,7 @@ if (-not $env:TRAINING_API_KEY -or $env:TRAINING_API_KEY -eq '') {
   Err 'TRAINING_API_KEY is missing -- copy the command from your cohort page, not a generic one.'
 }
 
-# 1. DSH Desktop itself (pinned, fully silent) -- shared front half.
+# 1. DeepSeek Harness itself (pinned, fully silent) -- shared front half.
 if ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot '..\install-dsh.ps1'))) {
   & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot '..\install-dsh.ps1')
 } else {
@@ -49,7 +49,7 @@ Write-Host @'
 
   ============================================
     Setup complete!
-    Now open the DSH Desktop app
+    Now open the DeepSeek Harness app
     (Mac: Launchpad  |  Windows: Start menu)
   ============================================
 '@ -ForegroundColor Green

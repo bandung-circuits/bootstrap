@@ -167,10 +167,11 @@ note "Step 2 passed"
 # ----------------------------------------------------------------------------
 note "Step 3: cohort-prep.sh e2e glue (prep stubbed, temp harness)"
 WS="$TMP/ws"; HARN="$TMP/harness"
-mkdir -p "$WS" "$HARN"
+# Official desktop config lives in the desktop PROFILE dir under DSH_HOME.
+mkdir -p "$WS" "$HARN/profiles/desktop"
 # pre-seed a minimal settings.yaml WITHOUT a training provider, so cohort-prep's
 # pristine backup_once has a file to back up, and inject takes the insert path.
-cat > "$HARN/settings.yaml" <<'YML'
+cat > "$HARN/profiles/desktop/settings.yaml" <<'YML'
 ui-onboarding:
   welcomeNoticeVersion: 2026-08-13.1
 llm-pi-ai:
@@ -204,8 +205,9 @@ DSH_HOME="$HARN" WORKSPACE_DIR="$WS" PREP_URL="$STUB" INJECT_URL="$INJECT" \
 unset DSH_HOME WORKSPACE_DIR PREP_URL INJECT_URL
 
 # pristine backup was taken before inject (cohort-prep's backup_once).
-[ -f "$HARN/settings.yaml.dsh-bak" ] || fail "cohort-prep did not back up settings.yaml"
-"$PYBIN" - "$HARN/settings.yaml" "$HARN/.credentials.yaml" "$KEY" <<'PY' || fail "e2e assertions failed"
+PROF="$HARN/profiles/desktop"
+[ -f "$PROF/settings.yaml.dsh-bak" ] || fail "cohort-prep did not back up settings.yaml"
+"$PYBIN" - "$PROF/settings.yaml" "$PROF/.credentials.yaml" "$KEY" <<'PY' || fail "e2e assertions failed"
 import sys, yaml
 s, c, key = sys.argv[1], sys.argv[2], sys.argv[3]
 d = yaml.safe_load(open(s))
@@ -227,7 +229,7 @@ note "Step 3 passed"
 # ----------------------------------------------------------------------------
 # Step 3.5 — cohort-setup.sh glue: pin consistency, key guard, app-detect +
 # delegate. Only the app-present branch is exercised (no ~176 MB download in
-# CI); on a host without DSH Desktop.app that branch is skipped (same policy as
+# CI); on a host without DeepSeek Harness.app that branch is skipped (same policy as
 # dsh-desktop/ci/verify/verify-macos.sh tier 2). PowerShell syntax is not
 # checked here (no pwsh on the mac host); cohort-setup.ps1 reuses the exact
 # silent-install method proven in the Windows VM (formerly install-windows.ps1,
@@ -243,11 +245,11 @@ bash -n "$PUBLIC_SETUP" || fail "public setup.sh syntax error"
 
 # pin lives in the shared install-dsh.* front half (single source of truth),
 # mirrored into generate.py for the cohort page text.
-pin_sh="$(sed -n 's/^DSH_VERSION="\${DSH_VERSION:-\(v[0-9.]*\)}".*/\1/p' "$INSTALL_DSH" | head -1)"
-pin_ps="$(sed -n "s/.*else { '\(v[0-9.]*\)'.*/\1/p" "$HERE/../../install-dsh.ps1" | head -1)"
-pin_gen="$("$PYBIN" -c "import re,sys;print(re.search(r'DSH_VERSION = \"(v[0-9.]+)\"', open(sys.argv[1]).read()).group(1))" "$HERE/../generate.py")"
+pin_sh="$(sed -n 's/^DSH_VERSION="\${DSH_VERSION:-\([0-9][0-9A-Za-z.-]*\)}".*/\1/p' "$INSTALL_DSH" | head -1)"
+pin_ps="$(sed -n "s/.*else { '\([0-9][0-9A-Za-z.-]*\)'.*/\1/p" "$HERE/../../install-dsh.ps1" | head -1)"
+pin_gen="$("$PYBIN" -c "import re,sys;print(re.search(r'DSH_VERSION = \"([0-9][0-9A-Za-z.-]+)\"', open(sys.argv[1]).read()).group(1))" "$HERE/../generate.py")"
 [ -n "$pin_sh" ] && [ "$pin_sh" = "$pin_ps" ] && [ "$pin_sh" = "$pin_gen" ] \
-  || fail "DSH Desktop version pin mismatch: install-dsh.sh=$pin_sh install-dsh.ps1=$pin_ps generate.py=$pin_gen"
+  || fail "DeepSeek Harness version pin mismatch: install-dsh.sh=$pin_sh install-dsh.ps1=$pin_ps generate.py=$pin_gen"
 echo "  version pin consistent across install-dsh sh/ps1 + generate.py: $pin_sh"
 
 SETUP_PREP_STUB="$TMP/cohort-prep-stub.sh"
@@ -258,13 +260,13 @@ if env -u TRAINING_API_KEY COHORT_PREP_URL="$SETUP_PREP_STUB" bash "$SETUP" >/de
 fi
 echo "  key guard OK (fails fast without TRAINING_API_KEY)"
 
-if [ -d "/Applications/DSH Desktop.app" ] || [ -d "$HOME/Applications/DSH Desktop.app" ]; then
+if [ -d "/Applications/DeepSeek Harness.app" ] || [ -d "$HOME/Applications/DeepSeek Harness.app" ]; then
   out="$(COHORT_PREP_URL="$SETUP_PREP_STUB" TRAINING_API_KEY=dummy-key-smoke bash "$SETUP" 2>&1)"
   printf '%s' "$out" | grep -q "already installed" || fail "cohort-setup.sh did not detect the installed app"
   printf '%s' "$out" | grep -q "cohort-prep stubbed" || fail "cohort-setup.sh did not delegate to cohort-prep"
   echo "  app-detect + delegate to cohort-prep OK"
 else
-  echo "  SKIP app-detect branch (no DSH Desktop.app on this host)"
+  echo "  SKIP app-detect branch (no DeepSeek Harness.app on this host)"
 fi
 note "Step 3.5 passed"
 
