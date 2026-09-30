@@ -346,10 +346,12 @@ EOF
     fi
     rc=$?
     # On a newer dsh the app may gate a community plugin over a peer-dependency
-    # version gap; the CLI prints the exact exemption command. Accept the
+    # version gap; the CLI prints the exact exemption command. The message is
+    # wrapped at console width, so join lines before matching. Accept the
     # documented risk it offers (same action its plugin-manager UI guides an
     # admin to) and retry once. Non-fatal if still refused.
-    allow_cmd="$(grep -oE 'allow-version +[^`]*--accept-risk' /tmp/dsh-prep-plugin.log 2>/dev/null | head -1 || true)"
+    allow_cmd="$(tr -d '\r' < /tmp/dsh-prep-plugin.log 2>/dev/null | tr '\n' ' ' \
+      | grep -oE 'allow-version [^`]*--accept-risk' | head -1 | sed 's/  */ /g' || true)"
     if [ -n "$allow_cmd" ]; then
       note "granting compatibility exemption for ${pkg} ($allow_cmd)"
       if PATH="$shim_dir:$PATH" DSH_HOME="$DSH_HOME" "$binjs" plugin --profile "$PROFILE_NAME" $allow_cmd >/tmp/dsh-prep-plugin.log 2>&1 &&
