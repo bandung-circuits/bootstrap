@@ -336,7 +336,9 @@ function Ensure-Plugins {
             if ($raw) {
                 $joined = $raw -replace "\r?\n", " "
                 if ($joined -match 'allow-version (.+?)--accept-risk') {
-                    $cmd = ($Matches[1] -replace '\s+', ' ').Trim()
+                    # Rebuild the FULL command: the capture excludes the
+                    # `allow-version` prefix and the `--accept-risk` suffix.
+                    $cmd = ("allow-version " + $Matches[1] + " --accept-risk") -replace '\s+', ' '
                 }
             }
             if ($cmd) {
