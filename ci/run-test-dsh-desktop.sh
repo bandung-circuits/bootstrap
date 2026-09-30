@@ -63,12 +63,24 @@ if [ -n "${WIN_VMX:-}" ]; then
   ssh_wait "$ip" "$WIN_USER" || fail "windows SSH timeout"
   note "[win] scp latest learner entry + verify into VM"
   scp -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no \
-    dsh-desktop/setup.ps1 dsh-desktop/install-dsh.ps1 dsh-desktop/ci/verify/verify-windows.ps1 \
+    dsh-desktop/setup.ps1 dsh-desktop/install-dsh.ps1 dsh-desktop/prep.ps1 dsh-desktop/ci/verify/verify-windows.ps1 dsh-desktop/ci/first-open-init.ps1 \
     "$WIN_USER@$ip": 2>&1 | tail -1
-  note "[win] running setup.ps1 (pinned DSH Desktop install + prep via REAL user path)"
+  note "[win] running setup.ps1 (official DeepSeek Harness install + prep via REAL user path)"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$WIN_USER@$ip" \
-    "set INSTALL_DSH_URL=C:\\Users\\$WIN_USER\\install-dsh.ps1&& powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/setup.ps1" \
+    "set \"INSTALL_DSH_URL=C:\\Users\\$WIN_USER\\install-dsh.ps1\"&& set \"PREP_URL=C:\\Users\\$WIN_USER\\prep.ps1\"&& powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/setup.ps1" \
     2>&1 | tail -10
+  # The official app only lets `dsh plugin --profile desktop add` run after the
+  # desktop app has been opened once (its profile is initialized then). CI has
+  # no screen to click, so launch it headless, wait for the profile, quit —
+  # then re-run prep so the plugin step actually installs the default plugins.
+  note "[win] first-open to initialize the desktop profile"
+  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
+    "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/first-open-init.ps1" \
+    2>&1 | tail -4
+  note "[win] re-running prep so default plugins install into the initialized profile"
+  ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$WIN_USER@$ip" \
+    "set \"INSTALL_DSH_URL=C:\\Users\\$WIN_USER\\install-dsh.ps1\"&& set \"PREP_URL=C:\\Users\\$WIN_USER\\prep.ps1\"&& powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/setup.ps1" \
+    2>&1 | tail -6
   note "[win] verifying"
   ssh -i "$CI_SSH_KEY" -o StrictHostKeyChecking=no "$WIN_USER@$ip" \
     "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/$WIN_USER/verify-windows.ps1" \
